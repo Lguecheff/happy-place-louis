@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { ManageIcon, Modal } from "@/components/manage/crud-ui";
 import {
   fetchSubmissionHistory,
@@ -117,6 +117,8 @@ export function SubmissionThreadView({
   steps,
   loading,
   error,
+  readOnly = true,
+  actions,
   onClose,
 }: {
   content: string;
@@ -124,6 +126,9 @@ export function SubmissionThreadView({
   steps: ThreadStep[];
   loading?: boolean;
   error?: boolean;
+  /** Affiche la mention « Lecture seule » (par défaut). Les managers passent `false` et fournissent `actions`. */
+  readOnly?: boolean;
+  actions?: ReactNode;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -149,12 +154,17 @@ export function SubmissionThreadView({
           <p className="font-body-md text-body-md text-on-surface wrap-anywhere">{content}</p>
           <p className="flex flex-wrap items-center gap-xs font-label-sm text-label-sm uppercase text-on-surface-variant">
             <span>{team}</span>
-            <span aria-hidden="true">·</span>
-            <span className="inline-flex items-center gap-1">
-              <ManageIcon name="lock" className="!text-[14px]" /> Lecture seule
-            </span>
+            {readOnly && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="inline-flex items-center gap-1">
+                  <ManageIcon name="lock" className="!text-[14px]" /> Lecture seule
+                </span>
+              </>
+            )}
           </p>
         </div>
+        {actions}
         {loading && <p className="text-body-sm text-on-surface-variant">Chargement…</p>}
         {error && <p className="text-body-sm text-error">Impossible de charger le fil.</p>}
         {!loading && !error && steps.length <= 1 && (
