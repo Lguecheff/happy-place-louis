@@ -4,7 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { AttachmentLink } from "@/components/attachment-link";
 import { SubmissionPreview, formatExactDate } from "@/components/expandable-card";
 import { ManageIcon } from "@/components/manage/crud-ui";
-import { StatusMenu, type Status } from "@/components/status-actions";
+import { DS_INPUT } from "@/components/ds";
+import { cn } from "@/lib/utils";
+import { severityLabel, statusLabel } from "@/components/overview/overview-utils";
+import { StatusChip } from "@/components/submission-status-thread";
+import { ACTION_BUTTON, StatusMenu, type Status } from "@/components/status-actions";
 import {
   fetchManagedSubmissions,
   fetchResolvedBlockers,
@@ -12,7 +16,7 @@ import {
   type Submission,
 } from "@/lib/dashboard";
 
-/** Fenêtre « Archive des points bloquants » (lecture seule, statut RÉSOLU). */
+/** Fenêtre « Archive des points bloquants » (lecture seule, statut Résolu). */
 export function BlockerArchive({ open, onClose }: { open: boolean; onClose: () => void }) {
   const q = useQuery({ queryKey: ["blockers", "resolved"], queryFn: fetchResolvedBlockers, enabled: open, retry: false });
   return (
@@ -25,11 +29,11 @@ export function BlockerArchive({ open, onClose }: { open: boolean; onClose: () =
               <DialogPrimitive.Title className="font-headline-sm text-headline-sm text-primary">
                 Archive des points bloquants
               </DialogPrimitive.Title>
-              <DialogPrimitive.Description className="font-label-sm text-label-sm text-on-surface-variant">
+              <DialogPrimitive.Description className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
                 Points résolus, du plus récent au plus ancien
               </DialogPrimitive.Description>
             </div>
-            <DialogPrimitive.Close aria-label="Fermer" className="text-on-surface-variant hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <DialogPrimitive.Close aria-label="Fermer" className="inline-flex size-11 shrink-0 items-center justify-center text-on-surface-variant hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <span aria-hidden="true" className="material-symbols-outlined">close</span>
             </DialogPrimitive.Close>
           </div>
@@ -45,9 +49,9 @@ export function BlockerArchive({ open, onClose }: { open: boolean; onClose: () =
                 {b.description && (
                   <p className="text-body-sm text-on-surface-variant whitespace-pre-line wrap-anywhere">{b.description}</p>
                 )}
-                <div className="flex flex-wrap items-center gap-sm mt-xs text-[11px] font-label-sm">
-                  <span className="bg-surface-container-highest px-xs py-0.5">{b.department}</span>
-                  <span className="text-on-surface-variant">Sévérité : {b.severity}</span>
+                <div className="flex flex-wrap items-center gap-sm mt-xs font-label-md text-label-md normal-case tracking-normal">
+                  <span className="bg-surface-container-highest px-xs py-0.5">{statusLabel(b.department)}</span>
+                  <span className="text-on-surface-variant">Gravité : {severityLabel(b.severity)}</span>
                   <span className="text-on-surface-variant">Mis à jour le {formatExactDate(b.updated_at)}</span>
                 </div>
               </div>
@@ -93,16 +97,16 @@ export function ValidatedSubmissions({
   const shown = filtered.slice(0, limit);
 
   return (
-    <section className="col-span-12 min-w-0 bg-surface-container-lowest border border-outline-variant p-md">
-      <div className="flex flex-wrap items-center justify-between gap-sm border-b border-outline-variant pb-sm mb-md">
-        <h2 className="font-headline-sm text-headline-sm text-primary">Demandes validées</h2>
-        <label className="flex items-center gap-xs font-label-sm text-label-sm text-on-surface-variant min-w-0">
+    <div className="min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-sm mb-md">
+        <h3 className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">Demandes validées</h3>
+        <label className="flex items-center gap-xs font-label-md text-label-md normal-case tracking-normal text-on-surface-variant min-w-0">
           <span className="sr-only">Filtrer par équipe</span>
           <select
             aria-label="Filtrer par équipe"
             value={team}
             onChange={(e) => { setTeam(e.target.value); setLimit(PAGE); }}
-            className="max-w-full bg-card border border-outline-variant p-xs focus:outline-none focus:border-primary"
+            className={cn(DS_INPUT, "w-auto max-w-full")}
           >
             <option value="">Toutes les équipes</option>
             {teams.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -117,16 +121,16 @@ export function ValidatedSubmissions({
       <div className="grid gap-xs md:grid-cols-2">
         {shown.map((s) => (
           <div key={s.id} className="p-sm border border-outline-variant bg-card min-w-0 overflow-hidden space-y-xs">
-            <p className="text-[11px] font-label-sm text-on-surface-variant uppercase wrap-anywhere">
-              <span className="text-primary font-bold">{s.author_name}</span> • {s.team} •{" "}
-              {s.validated_at ? `Validée le ${formatExactDate(s.validated_at)}` : `Soumise le ${formatExactDate(s.created_at)}`}
+            <p className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant wrap-anywhere">
+              <span className="text-primary font-bold">{s.author_name}</span> · {s.team} ·{" "}
+              {s.validated_at ? `Validée le ${formatExactDate(s.validated_at)}` : `Créée le ${formatExactDate(s.created_at)}`}
             </p>
             <SubmissionPreview content={s.content} onOpen={() => onRead(s)} />
             {s.attachment_path &&
               (canReadAttachment(s, { role, email, managerTeams }) ? (
                 <AttachmentLink path={s.attachment_path} name={s.attachment_name} />
               ) : (
-                <p className="text-[11px] font-label-sm text-on-surface-variant italic">Pièce jointe réservée à l'équipe</p>
+                <p className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant italic">Pièce jointe réservée à l'équipe</p>
               ))}
           </div>
         ))}
@@ -135,12 +139,12 @@ export function ValidatedSubmissions({
         <button
           type="button"
           onClick={() => setLimit((l) => l + PAGE)}
-          className="mt-md font-label-sm text-label-sm text-primary underline"
+          className="mt-md min-h-11 font-label-md text-label-md normal-case tracking-normal text-primary underline"
         >
           Afficher plus ({filtered.length - limit} restantes)
         </button>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -163,9 +167,9 @@ export function ManagedSubmissions({
   const shown = filtered.slice(0, limit);
 
   return (
-    <section className="col-span-12 min-w-0 bg-surface-container-lowest border border-outline-variant p-md">
-      <div className="flex flex-wrap items-center justify-between gap-sm border-b border-outline-variant pb-sm mb-md">
-        <h2 className="font-headline-sm text-headline-sm text-primary">Suivi des demandes</h2>
+    <div className="min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-sm mb-md">
+        <h3 className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">Suivi des demandes</h3>
         <select
           aria-label="Filtrer par statut"
           value={status}
@@ -173,12 +177,12 @@ export function ManagedSubmissions({
             setStatus(e.target.value);
             setLimit(PAGE);
           }}
-          className="max-w-full bg-card border border-outline-variant p-xs focus:outline-none focus:border-primary"
+          className={cn(DS_INPUT, "w-auto max-w-full")}
         >
           <option value="">Tous les statuts</option>
           {MANAGED_STATUSES.map((st) => (
             <option key={st} value={st}>
-              {st.charAt(0).toUpperCase() + st.slice(1)}
+              {statusLabel(st)}
             </option>
           ))}
         </select>
@@ -190,9 +194,10 @@ export function ManagedSubmissions({
       )}
       <div className="grid gap-xs md:grid-cols-2">
         {shown.map((s) => (
-          <div key={s.id} className="p-sm border border-outline-variant bg-card min-w-0 overflow-hidden space-y-xs">
-            <p className="text-[11px] font-label-sm text-on-surface-variant uppercase wrap-anywhere">
-              <span className="text-primary font-bold">{s.author_name}</span> • {s.team} • {s.status} •{" "}
+          <div key={s.id} className="p-sm border border-outline-variant bg-card min-w-0 space-y-xs">
+            <StatusChip status={s.status} />
+            <p className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant wrap-anywhere">
+              <span className="text-primary font-bold">{s.author_name}</span> · {s.team} ·{" "}
               {formatExactDate(s.created_at)}
             </p>
             <SubmissionPreview content={s.content} onOpen={() => onRead(s)} />
@@ -201,9 +206,9 @@ export function ManagedSubmissions({
                 type="button"
                 aria-haspopup="dialog"
                 onClick={() => onThread(s)}
-                className="flex items-center gap-xs border border-outline bg-surface px-sm py-1 font-label-sm text-label-sm uppercase text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className={ACTION_BUTTON}
               >
-                <ManageIcon name="history" /> Voir le fil
+                <ManageIcon name="history" /> Voir le suivi
               </button>
               <StatusMenu id={s.id} current={s.status} onPick={(st) => onChangeStatus(s, st)} />
             </div>
@@ -214,11 +219,11 @@ export function ManagedSubmissions({
         <button
           type="button"
           onClick={() => setLimit((l) => l + PAGE)}
-          className="mt-md font-label-sm text-label-sm text-primary underline"
+          className="mt-md min-h-11 font-label-md text-label-md normal-case tracking-normal text-primary underline"
         >
           Afficher plus ({filtered.length - limit} restantes)
         </button>
       )}
-    </section>
+    </div>
   );
 }

@@ -10,7 +10,7 @@ import {
   type ThreadStep,
 } from "@/components/submission-status-thread";
 import { REJECTION_CATEGORIES, type Submission } from "@/lib/dashboard";
-import { StatusButtons, StatusMenu, type Status } from "@/components/status-actions";
+import { ACTION_BUTTON, StatusButtons, StatusMenu, type Status } from "@/components/status-actions";
 import { rejectionSchema, validate, type FieldErrors } from "@/lib/manage-schemas";
 
 export const Route = createFileRoute("/_authenticated/maquettes/us02")({
@@ -411,7 +411,7 @@ function Us02Mockup() {
                             type="button"
                             aria-haspopup="dialog"
                             onClick={() => setOpenId(r.id)}
-                            className="inline-flex items-center justify-center gap-xs border border-outline bg-surface px-md py-xs font-label-md text-label-md uppercase text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                            className={ACTION_BUTTON}
                           >
                             <ManageIcon name="history" /> Voir le fil
                           </button>

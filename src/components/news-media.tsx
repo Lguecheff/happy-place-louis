@@ -94,12 +94,12 @@ export function NewsMediaEditor({
             showExisting && <NewsImage path={value.existingPath!} alt={title || "Image de l'actualité"} className="max-w-xs max-h-40" />
           )}
           <div className="flex gap-sm">
-            <button type="button" disabled={disabled} onClick={pick} className="font-label-sm text-label-sm text-primary underline disabled:opacity-50">Remplacer</button>
+            <button type="button" disabled={disabled} onClick={pick} className="min-h-11 font-label-md text-label-md normal-case tracking-normal text-primary underline disabled:opacity-50">Remplacer</button>
             <button
               type="button"
               disabled={disabled}
               onClick={() => onChange({ ...value, file: null, removeExisting: !!value.existingPath })}
-              className="font-label-sm text-label-sm text-error underline disabled:opacity-50"
+              className="min-h-11 font-label-md text-label-md normal-case tracking-normal text-error underline disabled:opacity-50"
             >
               Retirer
             </button>
@@ -118,7 +118,7 @@ export function NewsMediaEditor({
               value={l.url}
               disabled={disabled}
               onChange={(e) => onChange({ ...value, links: value.links.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)) })}
-              className="min-w-0 flex-[2] bg-card border border-outline-variant p-xs font-body-sm focus:outline-none focus:border-primary"
+              className="min-h-11 min-w-0 flex-[2] bg-card border border-outline p-xs font-body-sm focus:outline-none focus:border-primary"
             />
             <div className="flex gap-xs min-w-0 flex-1">
               <input
@@ -128,14 +128,14 @@ export function NewsMediaEditor({
                 value={l.label}
                 disabled={disabled}
                 onChange={(e) => onChange({ ...value, links: value.links.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) })}
-                className="min-w-0 flex-1 bg-card border border-outline-variant p-xs font-body-sm focus:outline-none focus:border-primary"
+                className="min-h-11 min-w-0 flex-1 bg-card border border-outline p-xs font-body-sm focus:outline-none focus:border-primary"
               />
               <button
                 type="button"
                 aria-label={`Retirer le lien ${i + 1}`}
                 disabled={disabled}
                 onClick={() => onChange({ ...value, links: value.links.filter((_, j) => j !== i) })}
-                className="text-on-surface-variant hover:text-error"
+                className="inline-flex size-11 shrink-0 items-center justify-center text-on-surface-variant hover:text-error"
               >
                 <I name="close" />
               </button>
@@ -150,20 +150,20 @@ export function NewsMediaEditor({
           type="button"
           disabled={disabled}
           onClick={pick}
-          className="text-on-surface-variant flex items-center gap-xs hover:text-primary transition-colors disabled:opacity-50"
+          className="min-h-11 text-on-surface-variant flex items-center gap-xs hover:text-primary transition-colors disabled:opacity-50"
         >
-          <I name="image" /> <span className="font-label-sm text-label-sm">{hasImage ? "CHANGER LE MÉDIA" : "AJOUTER UN MÉDIA"}</span>
+          <I name="image" /> <span className="font-label-md text-label-md normal-case tracking-normal">{hasImage ? "Changer le média" : "Ajouter un média"}</span>
         </button>
         <button
           type="button"
           disabled={disabled || full}
           title={full ? "3 liens maximum" : undefined}
           onClick={() => onChange({ ...value, links: [...value.links, { url: "", label: "" }] })}
-          className="text-on-surface-variant flex items-center gap-xs hover:text-primary transition-colors disabled:opacity-50 disabled:hover:text-on-surface-variant"
+          className="min-h-11 text-on-surface-variant flex items-center gap-xs hover:text-primary transition-colors disabled:opacity-50 disabled:hover:text-on-surface-variant"
         >
-          <I name="link" /> <span className="font-label-sm text-label-sm">AJOUTER UN LIEN</span>
+          <I name="link" /> <span className="font-label-md text-label-md normal-case tracking-normal">Ajouter un lien</span>
         </button>
-        {full && <span className="font-label-sm text-label-sm text-on-surface-variant">3 liens maximum</span>}
+        {full && <span className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">3 liens maximum</span>}
       </div>
     </div>
   );

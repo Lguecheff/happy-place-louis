@@ -273,9 +273,11 @@ export type Database = {
           id: string
           image_path: string | null
           links: Json
+          published_at: string | null
           revalidate_at: string | null
           status: Database["public"]["Enums"]["news_status"]
           title: string
+          updated_at: string
         }
         Insert: {
           author?: string
@@ -285,9 +287,11 @@ export type Database = {
           id?: string
           image_path?: string | null
           links?: Json
+          published_at?: string | null
           revalidate_at?: string | null
           status?: Database["public"]["Enums"]["news_status"]
           title: string
+          updated_at?: string
         }
         Update: {
           author?: string
@@ -297,9 +301,11 @@ export type Database = {
           id?: string
           image_path?: string | null
           links?: Json
+          published_at?: string | null
           revalidate_at?: string | null
           status?: Database["public"]["Enums"]["news_status"]
           title?: string
+          updated_at?: string
         }
         Relationships: []
       }

@@ -71,7 +71,7 @@ export function Modal({
             type="button"
             aria-label="Fermer"
             onClick={onClose}
-            className="text-on-surface-variant hover:text-primary"
+            className="inline-flex size-11 shrink-0 items-center justify-center text-on-surface-variant hover:text-primary"
           >
             <ManageIcon name="close" />
           </button>

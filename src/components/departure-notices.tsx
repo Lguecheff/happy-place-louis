@@ -60,7 +60,7 @@ function NoticeBanner({ notice: n, email }: { notice: DepartureNotice; email: st
     }
   }
 
-  const btn = "px-sm py-1 border border-outline text-primary font-label-sm text-label-sm hover:bg-surface-container disabled:opacity-50";
+  const btn = "min-h-11 px-sm py-1 border border-outline text-primary font-label-md text-label-md normal-case tracking-normal hover:bg-surface-container disabled:opacity-50";
 
   return (
     <div
@@ -95,7 +95,7 @@ function NoticeBanner({ notice: n, email }: { notice: DepartureNotice; email: st
               </span>
               <button
                 type="button"
-                className="text-primary underline font-label-sm text-label-sm"
+                className="min-h-11 text-primary underline font-label-md text-label-md normal-case tracking-normal"
                 onClick={() => downloadAttachment(d.path, d.name).catch((e) => toast.error((e as Error).message))}
               >
                 Télécharger

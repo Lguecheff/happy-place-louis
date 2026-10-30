@@ -2,6 +2,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Linkify } from "@/components/linkify";
 import { formatExactDate } from "@/components/expandable-card";
 import { NewsImage, NewsLinks } from "@/components/news-media";
+import { newsPublishedAt } from "@/components/overview/overview-utils";
 import type { News } from "@/lib/dashboard";
 
 /** Fenêtre de lecture d'une actualité publiée (lecture seule, Échap, clic fond). */
@@ -19,13 +20,13 @@ export function NewsReader({ news: n, onClose }: { news: News | null; onClose: (
                 <DialogPrimitive.Title className="font-headline-sm text-headline-sm text-primary wrap-anywhere">
                   {n.title}
                 </DialogPrimitive.Title>
-                <DialogPrimitive.Description className="font-label-sm text-label-sm text-on-surface-variant">
-                  Publiée le {formatExactDate(n.created_at)} • Par {n.author}
+                <DialogPrimitive.Description className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
+                  Publiée le {formatExactDate(newsPublishedAt(n))} · Par {n.author}
                 </DialogPrimitive.Description>
               </div>
               <DialogPrimitive.Close
                 aria-label="Fermer"
-                className="text-on-surface-variant hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="inline-flex size-11 shrink-0 items-center justify-center text-on-surface-variant hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <span aria-hidden="true" className="material-symbols-outlined">close</span>
               </DialogPrimitive.Close>

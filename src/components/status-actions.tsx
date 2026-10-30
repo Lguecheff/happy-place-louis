@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { DsButton } from "@/components/ds";
 import { ManageIcon } from "@/components/manage/crud-ui";
 
 // Changement de statut d'une demande (mêmes statuts partout : un statut peut toujours être corrigé).
+
+/** Bouton secondaire compact des actions de demande (« Voir le suivi », « Statut »). */
+export const ACTION_BUTTON =
+  "inline-flex min-h-11 items-center justify-center gap-xs border border-outline bg-surface px-sm py-1 font-label-md text-sm font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
 export type Status = "en attente" | "validée" | "refusée" | "clôturée";
 
@@ -21,24 +26,19 @@ export function StatusButtons({
   onPick: (s: Status) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-xs border border-outline-variant bg-surface-container-low p-sm">
-      <p className="mr-auto font-label-sm text-label-sm uppercase text-on-surface-variant">
+    <div className="flex flex-wrap items-center gap-xs border border-outline-variant bg-surface-container p-sm">
+      <p className="mr-auto font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
         Changer le statut
       </p>
       {STATUS_ACTIONS.filter((a) => a.status !== current).map((a) => (
-        <button
+        <DsButton
           key={a.status}
-          type="button"
+          variant={a.status === "validée" ? "confirm" : "secondary"}
           aria-haspopup={a.status === "refusée" ? "dialog" : undefined}
           onClick={() => onPick(a.status)}
-          className={
-            a.status === "validée"
-              ? "bg-primary px-md py-xs font-label-md text-label-md uppercase text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              : "border border-outline bg-surface px-md py-xs font-label-md text-label-md uppercase text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          }
         >
           {a.label}
-        </button>
+        </DsButton>
       ))}
     </div>
   );
@@ -87,7 +87,7 @@ export function StatusMenu({
         aria-expanded={isOpen}
         aria-controls={`statut-menu-${id}`}
         onClick={() => setIsOpen((v) => !v)}
-        className="inline-flex items-center justify-center gap-xs border border-outline bg-surface px-md py-xs font-label-md text-label-md uppercase text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className={ACTION_BUTTON}
       >
         <ManageIcon name="edit" /> Statut
       </button>
@@ -107,7 +107,7 @@ export function StatusMenu({
                   setIsOpen(false);
                   onPick(a.status);
                 }}
-                className="block w-full px-sm py-xs text-left font-label-md text-label-md uppercase text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+                className="block min-h-11 w-full px-sm py-xs text-left font-label-md text-sm text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
               >
                 {a.label}
               </button>

@@ -2,9 +2,11 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Linkify } from "@/components/linkify";
 import { AttachmentLink } from "@/components/attachment-link";
 import { formatExactDate } from "@/components/expandable-card";
+import { DsButton } from "@/components/ds";
+import { statusLabel as formatStatus } from "@/components/overview/overview-utils";
 import type { Submission } from "@/lib/dashboard";
 
-/** Grande fenêtre de lecture d'une soumission (focus piégé, Échap, clic fond). */
+/** Grande fenêtre de lecture d'une demande (focus piégé, Échap, clic fond). */
 export function SubmissionReader({
   submission: s,
   statusLabel,
@@ -36,13 +38,13 @@ export function SubmissionReader({
                 <DialogPrimitive.Title className="font-headline-sm text-headline-sm text-primary wrap-anywhere">
                   {s.author_name}
                 </DialogPrimitive.Title>
-                <DialogPrimitive.Description className="font-label-sm text-label-sm text-on-surface-variant">
-                  {s.team} • {(statusLabel ?? s.status).toUpperCase()} • Soumise le {formatExactDate(s.created_at)}
+                <DialogPrimitive.Description className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
+                  {s.team} · {formatStatus(statusLabel ?? s.status)} · Créée le {formatExactDate(s.created_at)}
                 </DialogPrimitive.Description>
               </div>
               <DialogPrimitive.Close
                 aria-label="Fermer"
-                className="text-on-surface-variant hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="inline-flex size-11 shrink-0 items-center justify-center text-on-surface-variant hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <span aria-hidden="true" className="material-symbols-outlined">close</span>
               </DialogPrimitive.Close>
@@ -62,34 +64,19 @@ export function SubmissionReader({
             {(onReject || onApprove || statusActions?.length) && (
               <div className="flex flex-wrap gap-xs border-t border-outline-variant p-md">
                 {statusActions?.map((a) => (
-                  <button
-                    key={a.label}
-                    type="button"
-                    disabled={approving}
-                    onClick={a.onClick}
-                    className="flex-1 py-sm border border-outline text-primary font-label-sm text-label-sm hover:bg-surface-container transition-colors disabled:opacity-60"
-                  >
+                  <DsButton key={a.label} disabled={approving} onClick={a.onClick} className="flex-1">
                     {a.label}
-                  </button>
+                  </DsButton>
                 ))}
                 {onReject && (
-                  <button
-                    type="button"
-                    onClick={onReject}
-                    className="flex-1 py-sm border border-outline text-primary font-label-sm text-label-sm hover:bg-surface-container transition-colors"
-                  >
-                    REFUSER
-                  </button>
+                  <DsButton onClick={onReject} className="flex-1">
+                    Refuser
+                  </DsButton>
                 )}
                 {onApprove && (
-                  <button
-                    type="button"
-                    disabled={approving}
-                    onClick={onApprove}
-                    className="flex-1 py-sm bg-primary text-on-primary font-label-sm text-label-sm hover:opacity-90 transition-colors disabled:opacity-60"
-                  >
-                    VALIDER
-                  </button>
+                  <DsButton variant="confirm" disabled={approving} onClick={onApprove} className="flex-1">
+                    Valider
+                  </DsButton>
                 )}
               </div>
             )}

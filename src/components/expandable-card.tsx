@@ -19,7 +19,7 @@ export function CharCounter({ value, max, min }: { value: string; max: number; m
   const under = min !== undefined && n > 0 && n < min;
   const fmt = (x: number) => x.toLocaleString("fr-FR");
   return (
-    <div className="mt-1 text-[11px] font-label-sm" aria-live="polite">
+    <div className="mt-1 font-label-md text-label-md normal-case tracking-normal" aria-live="polite">
       <p className={`text-right ${over ? "text-error font-bold" : "text-on-surface-variant"}`}>
         {fmt(n)} / {fmt(max)}
       </p>
@@ -68,7 +68,7 @@ export function SubmissionPreview({ content, onOpen }: { content: string; onOpen
           type="button"
           aria-haspopup="dialog"
           onClick={onOpen}
-          className="font-label-sm text-label-sm text-primary font-bold underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="inline-flex min-h-11 items-center font-label-md text-label-md normal-case tracking-normal text-primary font-bold underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Voir plus
         </button>

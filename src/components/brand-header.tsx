@@ -1,9 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import sharkLogo from "@/assets/bigger-boat-shark.png";
 import { supabase } from "@/integrations/supabase/client";
 
-export function BrandHeader() {
+/** `children` remplace la zone de droite (navigation et compte de la vue d'ensemble). */
+export function BrandHeader({ children }: { children?: ReactNode }) {
   // Version élèves : lien « Changer de rôle » visible dès qu'on est connecté.
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [signedIn, setSignedIn] = useState(false);
@@ -16,7 +17,7 @@ export function BrandHeader() {
 
   return (
     <header className="border-b border-outline-variant bg-surface-container-lowest">
-      <div className="mx-auto flex min-h-16 w-full max-w-interface items-center justify-between gap-md px-sm py-xs md:px-md">
+      <div className="mx-auto flex min-h-16 w-full max-w-interface flex-wrap items-center justify-between gap-x-md gap-y-xs px-sm py-xs md:px-md">
         <Link to="/" className="flex min-w-0 items-center gap-sm" aria-label="Bigger Boat — accueil">
           <img
             src={sharkLogo}
@@ -27,17 +28,19 @@ export function BrandHeader() {
           />
           <span className="font-label-md text-lg font-bold uppercase text-primary">Bigger Boat</span>
         </Link>
-        <div className="flex items-center gap-md">
-          {signedIn && pathname !== "/choisir-role" && (
-            <Link
-              to="/choisir-role"
-              className="font-label-sm text-label-sm uppercase text-primary underline-offset-2 hover:underline"
-            >
-              Changer de rôle
-            </Link>
-          )}
-          <span className="font-label-sm text-label-sm uppercase text-on-surface-variant">Happy Place</span>
-        </div>
+        {children ?? (
+          <div className="flex items-center gap-md">
+            {signedIn && pathname !== "/choisir-role" && (
+              <Link
+                to="/choisir-role"
+                className="font-label-sm text-label-sm uppercase text-primary underline-offset-2 hover:underline"
+              >
+                Changer de rôle
+              </Link>
+            )}
+            <span className="font-label-sm text-label-sm uppercase text-on-surface-variant">Happy Place</span>
+          </div>
+        )}
       </div>
     </header>
   );

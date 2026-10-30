@@ -16,6 +16,9 @@ export type News = {
   author_email?: string | null;
   status: string;
   created_at: string;
+  /** Renseignées par la base (migration 20261030100000_dates_actus). */
+  updated_at?: string | null;
+  published_at?: string | null;
   image_path?: string | null;
   links?: unknown;
 };

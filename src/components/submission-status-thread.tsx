@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, type ReactNode } from "react";
+import { DsBadge, type DsBadgeVariant } from "@/components/ds";
 import { ManageIcon, Modal } from "@/components/manage/crud-ui";
+import { statusLabel } from "@/components/overview/overview-utils";
 import {
   fetchSubmissionHistory,
   type Submission,
@@ -34,21 +36,14 @@ function authorLabel(s: ThreadStep): string {
   return s.changed_by_name ?? s.changed_by_email ?? "Utilisateur supprimé";
 }
 
-function statusChipClass(status: string): string {
-  if (status === "validée") return "bg-secondary-fixed text-primary";
-  if (status === "refusée") return "bg-error-container text-on-error-container";
-  if (status === "clôturée") return "bg-primary text-on-primary";
-  return "bg-surface-container-high text-primary";
+function statusVariant(status: string): DsBadgeVariant {
+  if (status === "validée") return "status";
+  if (status === "refusée") return "critical";
+  return "neutral";
 }
 
 export function StatusChip({ status }: { status: string }) {
-  return (
-    <span
-      className={`inline-block px-xs py-1 font-label-sm text-label-sm uppercase ${statusChipClass(status)}`}
-    >
-      {status}
-    </span>
-  );
+  return <DsBadge variant={statusVariant(status)}>{statusLabel(status)}</DsBadge>;
 }
 
 /** Fil vertical en lecture seule : une étape par changement de statut. */
@@ -69,7 +64,7 @@ export function StatusThread({ steps }: { steps: ThreadStep[] }) {
             <div className="flex flex-wrap items-center gap-xs">
               <StatusChip status={s.new_status} />
               {creation && (
-                <span className="font-label-sm text-label-sm uppercase text-on-surface-variant">
+                <span className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
                   Création
                 </span>
               )}
@@ -84,7 +79,7 @@ export function StatusThread({ steps }: { steps: ThreadStep[] }) {
               <span
                 className={
                   s.is_automatic
-                    ? "font-label-md text-label-md uppercase text-primary"
+                    ? "font-label-md text-label-md normal-case tracking-normal text-primary"
                     : "text-primary"
                 }
               >
@@ -93,7 +88,7 @@ export function StatusThread({ steps }: { steps: ThreadStep[] }) {
             </p>
             {s.new_status === "refusée" && s.rejection_category && (
               <div className="mt-xs border-l-[3px] border-error bg-error-container p-xs text-on-error-container wrap-anywhere">
-                <p className="font-label-md text-label-md uppercase">
+                <p className="font-label-md text-label-md normal-case tracking-normal">
                   Catégorie : {s.rejection_category}
                 </p>
                 {s.rejection_note && (
@@ -148,17 +143,17 @@ export function SubmissionThreadView({
   }, []);
 
   return (
-    <Modal title="Fil de la demande" onClose={onClose}>
+    <Modal title="Suivi de la demande" onClose={onClose}>
       <div className="space-y-md">
         <div className="space-y-xs">
           <p className="font-body-md text-body-md text-on-surface wrap-anywhere">{content}</p>
-          <p className="flex flex-wrap items-center gap-xs font-label-sm text-label-sm uppercase text-on-surface-variant">
+          <p className="flex flex-wrap items-center gap-xs font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
             <span>{team}</span>
             {readOnly && (
               <>
                 <span aria-hidden="true">·</span>
                 <span className="inline-flex items-center gap-1">
-                  <ManageIcon name="lock" className="!text-[14px]" /> Lecture seule
+                  <ManageIcon name="lock" className="text-base" /> Lecture seule
                 </span>
               </>
             )}
@@ -166,7 +161,7 @@ export function SubmissionThreadView({
         </div>
         {actions}
         {loading && <p className="text-body-sm text-on-surface-variant">Chargement…</p>}
-        {error && <p className="text-body-sm text-error">Impossible de charger le fil.</p>}
+        {error && <p className="text-body-sm text-error">Impossible de charger le suivi.</p>}
         {!loading && !error && steps.length <= 1 && (
           <p className="font-body-sm text-body-sm italic text-on-surface-variant">
             Aucun changement de statut depuis la création.
