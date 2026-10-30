@@ -181,9 +181,12 @@ export function SubmissionThreadView({
 /** Fil d'une demande, lu dans la base (limité par les règles d'accès : seules les demandes lisibles ont un fil). */
 export function SubmissionThreadModal({
   submission,
+  actions,
   onClose,
 }: {
   submission: Submission;
+  /** Actions de statut réservées aux managers : reçoivent le statut courant. Sans elles, le fil est en lecture seule. */
+  actions?: (currentStatus: string) => ReactNode;
   onClose: () => void;
 }) {
   const q = useQuery({
@@ -191,11 +194,14 @@ export function SubmissionThreadModal({
     queryFn: () => fetchSubmissionHistory(submission.id),
     retry: false,
   });
+  const steps = sortSteps(q.data ?? []);
   return (
     <SubmissionThreadView
       content={submission.content}
       team={submission.team}
-      steps={sortSteps(q.data ?? [])}
+      steps={steps}
+      readOnly={!actions}
+      actions={actions?.(steps[0]?.new_status ?? submission.status)}
       loading={q.isLoading}
       error={q.isError}
       onClose={onClose}

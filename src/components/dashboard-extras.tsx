@@ -3,6 +3,8 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AttachmentLink } from "@/components/attachment-link";
 import { SubmissionPreview, formatExactDate } from "@/components/expandable-card";
+import { ManageIcon } from "@/components/manage/crud-ui";
+import { StatusMenu, type Status } from "@/components/status-actions";
 import {
   fetchManagedSubmissions,
   fetchResolvedBlockers,
@@ -145,7 +147,15 @@ export function ValidatedSubmissions({
 const MANAGED_STATUSES = ["en attente", "validée", "refusée", "clôturée"] as const;
 
 /** Toutes les demandes de ses équipes, quel que soit le statut : le manager ouvre une demande pour en corriger le statut. */
-export function ManagedSubmissions({ onRead }: { onRead: (s: Submission) => void }) {
+export function ManagedSubmissions({
+  onRead,
+  onThread,
+  onChangeStatus,
+}: {
+  onRead: (s: Submission) => void;
+  onThread: (s: Submission) => void;
+  onChangeStatus: (s: Submission, status: Status) => void;
+}) {
   const q = useQuery({ queryKey: ["submissions", "managed"], queryFn: fetchManagedSubmissions, retry: false });
   const [status, setStatus] = useState("");
   const [limit, setLimit] = useState(PAGE);
@@ -186,6 +196,17 @@ export function ManagedSubmissions({ onRead }: { onRead: (s: Submission) => void
               {formatExactDate(s.created_at)}
             </p>
             <SubmissionPreview content={s.content} onOpen={() => onRead(s)} />
+            <div className="flex flex-wrap items-center gap-xs pt-xs">
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                onClick={() => onThread(s)}
+                className="flex items-center gap-xs border border-outline bg-surface px-sm py-1 font-label-sm text-label-sm uppercase text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <ManageIcon name="history" /> Voir le fil
+              </button>
+              <StatusMenu id={s.id} current={s.status} onPick={(st) => onChangeStatus(s, st)} />
+            </div>
           </div>
         ))}
       </div>

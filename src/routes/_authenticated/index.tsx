@@ -11,6 +11,7 @@ import { AttachmentLink } from "@/components/attachment-link";
 import { CharCounter, SubmissionPreview, rejectionErrorMessage } from "@/components/expandable-card";
 import { Linkify } from "@/components/linkify";
 import { SubmissionReader } from "@/components/submission-reader";
+import { StatusButtons, type Status } from "@/components/status-actions";
 import { SubmissionThreadModal } from "@/components/submission-status-thread";
 import { NewsReader } from "@/components/news-reader";
 import { DepartureNotices } from "@/components/departure-notices";
@@ -134,6 +135,7 @@ function ManagerSpace() {
   const [rejecting, setRejecting] = useState<Submission | null>(null);
   const [reading, setReading] = useState<Submission | null>(null);
   const [threadOf, setThreadOf] = useState<Submission | null>(null);
+  const [threadEditable, setThreadEditable] = useState(false);
   const [readingNews, setReadingNews] = useState<News | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [rejectForm, setRejectForm] = useState({ rejection_category: "", rejection_note: "" });
@@ -215,6 +217,17 @@ function ManagerSpace() {
     },
     onError: (e: unknown) => toast.error(rejectionErrorMessage(e)),
   });
+
+  /** Changement de statut depuis le fil ou la liste : « refusée » passe par la fenêtre de motif. */
+  function changeStatus(s: Submission, status: Status) {
+    if (status === "refusée") startReject(s);
+    else review.mutate({ id: s.id, status });
+  }
+
+  function openThread(s: Submission, editable: boolean) {
+    setThreadEditable(editable);
+    setThreadOf(s);
+  }
 
   function startReject(s: Submission) {
     setReading(null);
@@ -569,6 +582,16 @@ function ManagerSpace() {
                   </div>
                   <SubmissionPreview content={s.content} onOpen={() => setReading(s)} />
                   <AttachmentLink path={s.attachment_path} name={s.attachment_name} />
+                  {canReview && (
+                    <button
+                      type="button"
+                      aria-haspopup="dialog"
+                      onClick={() => openThread(s, true)}
+                      className="flex items-center gap-xs border border-outline bg-surface px-sm py-1 font-label-sm text-label-sm uppercase text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      <Icon name="history" /> Voir le fil
+                    </button>
+                  )}
                   {canReview && <div className="flex gap-xs pt-xs">
                     <button
                       onClick={() => startReject(s)}
@@ -605,7 +628,7 @@ function ManagerSpace() {
                     <button
                       type="button"
                       aria-haspopup="dialog"
-                      onClick={() => setThreadOf(s)}
+                      onClick={() => openThread(s, false)}
                       className="mt-xs flex items-center gap-xs border border-outline bg-surface px-sm py-1 font-label-sm text-label-sm uppercase text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       <Icon name="history" /> Voir le fil
@@ -622,7 +645,13 @@ function ManagerSpace() {
             </section>
           )}
 
-          {canReview && <ManagedSubmissions onRead={setReading} />}
+          {canReview && (
+            <ManagedSubmissions
+              onRead={setReading}
+              onThread={(s) => openThread(s, true)}
+              onChangeStatus={changeStatus}
+            />
+          )}
 
           <ValidatedSubmissions
             role={role}
@@ -790,7 +819,19 @@ function ManagerSpace() {
         </div>
       </main>
       <BlockerArchive open={archiveOpen} onClose={() => setArchiveOpen(false)} />
-      {threadOf && <SubmissionThreadModal submission={threadOf} onClose={() => setThreadOf(null)} />}
+      {threadOf && !rejecting && (
+        <SubmissionThreadModal
+          submission={threadOf}
+          actions={
+            canReview && threadEditable
+              ? (current) => (
+                  <StatusButtons current={current} onPick={(st) => changeStatus(threadOf, st)} />
+                )
+              : undefined
+          }
+          onClose={() => setThreadOf(null)}
+        />
+      )}
       <NewsReader news={readingNews} onClose={() => setReadingNews(null)} />
       <SubmissionReader
         submission={reading}
