@@ -1,0 +1,234 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { BrandHeader } from "@/components/brand-header";
+import {
+  DsBadge,
+  DsButton,
+  DsEmptyState,
+  DsFreshness,
+  DsIcon,
+  DsKpiTile,
+  DsListItem,
+  DsSection,
+  DsStatTile,
+  toastUndo,
+} from "@/components/ds";
+
+export const Route = createFileRoute("/_authenticated/design-system")({
+  head: () => ({
+    meta: [{ title: "Happy Place — Catalogue du design system" }],
+  }),
+  component: DesignSystemPage,
+});
+
+// Données fictives : le catalogue ne lit rien en base.
+const NOW = Date.now();
+const ago = (minutes: number) => new Date(NOW - minutes * 60_000).toISOString();
+
+function Demo({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-xs">
+      <h3 className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
+        {title}
+      </h3>
+      <div className="flex flex-wrap items-start gap-sm">{children}</div>
+    </div>
+  );
+}
+
+function DesignSystemPage() {
+  return (
+    <div className="flex min-h-screen flex-col bg-background font-body-md text-on-surface">
+      <BrandHeader />
+      <main className="mx-auto w-full max-w-interface flex-grow space-y-md p-sm md:p-md">
+        <div className="space-y-xs">
+          <h1 className="font-headline-lg text-headline-lg text-primary">Design system</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            Catalogue de tous les composants de <code>src/components/ds/</code>, avec des données
+            fictives. Les règles sont dans <code>DESIGN.md</code>. Ici, plusieurs boutons « primary
+            » sont affichés pour montrer leurs états ; sur un vrai écran, il n'y en a qu'un.
+          </p>
+        </div>
+
+        <DsSection id="boutons" title="DsButton">
+          <Demo title="Variantes">
+            <DsButton variant="primary" icon="add">
+              Créer une demande
+            </DsButton>
+            <DsButton variant="secondary">Refuser</DsButton>
+            <DsButton variant="confirm" icon="check">
+              Valider
+            </DsButton>
+            <DsButton variant="link">Voir l'archive</DsButton>
+          </Demo>
+          <Demo title="Désactivé">
+            <DsButton variant="primary" disabled>
+              Créer une demande
+            </DsButton>
+            <DsButton variant="secondary" disabled>
+              Refuser
+            </DsButton>
+            <DsButton variant="confirm" disabled>
+              Publier
+            </DsButton>
+            <DsButton variant="link" disabled>
+              Voir l'archive
+            </DsButton>
+          </Demo>
+          <Demo title="En cours (pending)">
+            <DsButton variant="primary" pending>
+              Enregistrer
+            </DsButton>
+            <DsButton variant="confirm" pending>
+              Publier
+            </DsButton>
+          </Demo>
+          <Demo title="Lien (balise a)">
+            <DsButton variant="secondary" href="#boutons" icon="arrow_forward">
+              Revenir à cette section
+            </DsButton>
+          </Demo>
+        </DsSection>
+
+        <DsSection
+          id="sections"
+          title="DsSection"
+          action={<DsButton variant="link">Voir l'archive</DsButton>}
+        >
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            Carte blanche avec bordure. Le titre est un h2, l'action se place à droite et une
+            bordure sépare l'en-tête.
+          </p>
+        </DsSection>
+
+        <DsSection id="badges" title="DsBadge">
+          <Demo title="Variantes">
+            <DsBadge variant="critical" icon="error">
+              Critique
+            </DsBadge>
+            <DsBadge variant="watch">À surveiller</DsBadge>
+            <DsBadge variant="status">Brouillon</DsBadge>
+            <DsBadge variant="neutral">Équipe Data</DsBadge>
+          </Demo>
+        </DsSection>
+
+        <DsSection id="fraicheur" title="DsFreshness">
+          <Demo title="Normal et ancien (stale)">
+            <DsFreshness at={ago(12)} />
+            <DsFreshness at={ago(60 * 24 * 9)} stale />
+          </Demo>
+        </DsSection>
+
+        <DsSection id="kpi" title="DsKpiTile">
+          <div className="grid grid-cols-1 gap-sm md:grid-cols-3">
+            <DsKpiTile
+              label="Taux de placement"
+              value="78,4 %"
+              trend="+2,1 points sur 30 jours"
+              trendDirection="up"
+              updatedAt={ago(35)}
+              helpHref="#kpi"
+            />
+            <DsKpiTile
+              label="Missions actives"
+              value="42"
+              valueFont="headline"
+              trend="Stable sur 30 jours"
+              updatedAt={ago(60 * 5)}
+              helpHref="#kpi"
+            />
+            <DsKpiTile
+              label="NPS candidats"
+              value="31"
+              trend="−4 points sur 30 jours"
+              trendDirection="down"
+              updatedAt={ago(60 * 24 * 12)}
+              stale
+              helpHref="#kpi"
+            />
+          </div>
+        </DsSection>
+
+        <DsSection id="lignes" title="DsListItem">
+          <div className="space-y-xs">
+            <DsListItem
+              icon="draft"
+              title="Refonte de l'accueil candidats"
+              meta="Créée il y a 2 jours · par Camille"
+              actions={
+                <>
+                  <DsButton variant="secondary">Modifier</DsButton>
+                  <DsButton variant="confirm">Publier</DsButton>
+                </>
+              }
+            />
+            <DsListItem
+              icon="article"
+              title="Nouvelle offre cadre IT"
+              meta="Publiée il y a 3 heures · par Sam"
+              href="#lignes"
+            />
+            <DsListItem
+              icon="history"
+              title="Voir le fil de la demande"
+              meta="Ligne cliquable en bouton"
+              onClick={() => toastUndo("Fil ouvert (exemple)", () => {})}
+            />
+          </div>
+        </DsSection>
+
+        <DsSection id="chiffres" title="DsStatTile">
+          <div className="grid grid-cols-1 gap-sm md:grid-cols-2">
+            <DsStatTile
+              value="12"
+              label="Demandes en attente"
+              hint="3 de plus que la semaine dernière"
+              href="#chiffres"
+              linkLabel="Voir les demandes"
+            />
+            <DsStatTile
+              tone="alert"
+              value="2"
+              label="Points bloquants critiques"
+              hint="À traiter avant vendredi"
+              href="#chiffres"
+              linkLabel="Voir les points bloquants"
+            />
+          </div>
+        </DsSection>
+
+        <DsSection id="vide" title="DsEmptyState">
+          <DsEmptyState
+            action={
+              <DsButton variant="secondary" icon="add">
+                Créer ta première demande
+              </DsButton>
+            }
+          >
+            Tu n'as encore aucune demande. Dès que tu en crées une, elle apparaît ici.
+          </DsEmptyState>
+        </DsSection>
+
+        <DsSection id="toast" title="toastUndo">
+          <Demo title="Message avec action « Annuler »">
+            <DsButton
+              variant="secondary"
+              icon="undo"
+              onClick={() =>
+                toastUndo("Demande refusée.", () => toastUndo("Refus annulé.", () => {}))
+              }
+            >
+              Afficher le message
+            </DsButton>
+          </Demo>
+        </DsSection>
+
+        <DsSection id="icones" title="DsIcon">
+          <Demo title="Décorative (aria-hidden) et porteuse de sens (label)">
+            <DsIcon name="schedule" />
+            <DsIcon name="error" filled label="Critique" className="text-error" />
+          </Demo>
+        </DsSection>
+      </main>
+    </div>
+  );
+}

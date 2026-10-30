@@ -9,3 +9,11 @@
 - Keep metric delta and value formatting in shared dashboard helpers so management rows and dashboard trends interpret numeric text consistently.
 
 - Version élèves : la connexion est libre et chaque compte choisit son rôle via `public.choisir_mon_role` (écran `/choisir-role`). Ne pas réintroduire de liste blanche : les règles RLS par rôle restent la référence.
+
+## Interface
+
+- Toute modification d'UI commence par lire `DESIGN.md`.
+- Réutilise les composants de `src/components/ds/` (voir le catalogue `/design-system`) ; ajoute un composant ds avant de dupliquer un motif.
+- N'invente ni couleur (hex, rgb, oklch inline) ni taille de police (pas de `text-[10px]`, `text-[11px]`, ni `text-label-sm`) : utilise les tokens de `src/styles.css`.
+- Un seul `DsButton` « primary » par écran ; libellés au tutoiement, à l'infinitif, en casse normale ; « demande », jamais « idée » ni « soumission ».
+
