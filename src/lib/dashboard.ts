@@ -147,6 +147,17 @@ export async function fetchSubmissions(): Promise<Submission[]> {
   return (data ?? []) as Submission[];
 }
 
+/** Demandes de tous statuts visibles du manager (ses équipes), pour corriger un statut. */
+export async function fetchManagedSubmissions(): Promise<Submission[]> {
+  const { data, error } = await db
+    .from("submissions")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) throw error;
+  return (data ?? []) as Submission[];
+}
+
 export async function fetchMySubmissions(email: string): Promise<Submission[]> {
   const { data, error } = await db
     .from("submissions")
@@ -207,7 +218,7 @@ export async function exportMyRecentSubmissions(email: string): Promise<number> 
 
 export async function reviewSubmission(
   input:
-    | { id: string; status: "validée" }
+    | { id: string; status: "en attente" | "validée" | "clôturée" }
     | { id: string; status: "refusée"; rejection_category: RejectionCategory; rejection_note: string },
 ) {
   const patch =

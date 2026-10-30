@@ -3,7 +3,12 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AttachmentLink } from "@/components/attachment-link";
 import { SubmissionPreview, formatExactDate } from "@/components/expandable-card";
-import { fetchResolvedBlockers, fetchValidatedSubmissions, type Submission } from "@/lib/dashboard";
+import {
+  fetchManagedSubmissions,
+  fetchResolvedBlockers,
+  fetchValidatedSubmissions,
+  type Submission,
+} from "@/lib/dashboard";
 
 /** Fenêtre « Archive des points bloquants » (lecture seule, statut RÉSOLU). */
 export function BlockerArchive({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -121,6 +126,66 @@ export function ValidatedSubmissions({
               ) : (
                 <p className="text-[11px] font-label-sm text-on-surface-variant italic">Pièce jointe réservée à l'équipe</p>
               ))}
+          </div>
+        ))}
+      </div>
+      {filtered.length > limit && (
+        <button
+          type="button"
+          onClick={() => setLimit((l) => l + PAGE)}
+          className="mt-md font-label-sm text-label-sm text-primary underline"
+        >
+          Afficher plus ({filtered.length - limit} restantes)
+        </button>
+      )}
+    </section>
+  );
+}
+
+const MANAGED_STATUSES = ["en attente", "validée", "refusée", "clôturée"] as const;
+
+/** Toutes les demandes de ses équipes, quel que soit le statut : le manager ouvre une demande pour en corriger le statut. */
+export function ManagedSubmissions({ onRead }: { onRead: (s: Submission) => void }) {
+  const q = useQuery({ queryKey: ["submissions", "managed"], queryFn: fetchManagedSubmissions, retry: false });
+  const [status, setStatus] = useState("");
+  const [limit, setLimit] = useState(PAGE);
+  const filtered = (q.data ?? []).filter((s) => !status || s.status === status);
+  const shown = filtered.slice(0, limit);
+
+  return (
+    <section className="col-span-12 min-w-0 bg-surface-container-lowest border border-outline-variant p-md">
+      <div className="flex flex-wrap items-center justify-between gap-sm border-b border-outline-variant pb-sm mb-md">
+        <h2 className="font-headline-sm text-headline-sm text-primary">Suivi des demandes</h2>
+        <select
+          aria-label="Filtrer par statut"
+          value={status}
+          onChange={(e) => {
+            setStatus(e.target.value);
+            setLimit(PAGE);
+          }}
+          className="max-w-full bg-card border border-outline-variant p-xs focus:outline-none focus:border-primary"
+        >
+          <option value="">Tous les statuts</option>
+          {MANAGED_STATUSES.map((st) => (
+            <option key={st} value={st}>
+              {st.charAt(0).toUpperCase() + st.slice(1)}
+            </option>
+          ))}
+        </select>
+      </div>
+      {q.isLoading && <p className="text-body-sm text-on-surface-variant">Chargement…</p>}
+      {q.isError && <p className="text-body-sm text-error">Les demandes sont indisponibles.</p>}
+      {q.data && filtered.length === 0 && (
+        <p className="text-body-sm text-on-surface-variant italic">Aucune demande pour ce statut.</p>
+      )}
+      <div className="grid gap-xs md:grid-cols-2">
+        {shown.map((s) => (
+          <div key={s.id} className="p-sm border border-outline-variant bg-card min-w-0 overflow-hidden space-y-xs">
+            <p className="text-[11px] font-label-sm text-on-surface-variant uppercase wrap-anywhere">
+              <span className="text-primary font-bold">{s.author_name}</span> • {s.team} • {s.status} •{" "}
+              {formatExactDate(s.created_at)}
+            </p>
+            <SubmissionPreview content={s.content} onOpen={() => onRead(s)} />
           </div>
         ))}
       </div>

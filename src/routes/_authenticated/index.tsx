@@ -15,7 +15,7 @@ import { NewsReader } from "@/components/news-reader";
 import { DepartureNotices } from "@/components/departure-notices";
 import { NewsImage, NewsLinks, NewsMediaEditor } from "@/components/news-media";
 import { emptyMedia, linkErrors, mediaFromNews, toNewsLinks, type MediaDraft } from "@/lib/news-media";
-import { BlockerArchive, ValidatedSubmissions } from "@/components/dashboard-extras";
+import { BlockerArchive, ManagedSubmissions, ValidatedSubmissions } from "@/components/dashboard-extras";
 import { Button } from "@/components/ui/button";
 import {
   fetchBlockers,
@@ -612,6 +612,8 @@ function ManagerSpace() {
             </section>
           )}
 
+          {canReview && <ManagedSubmissions onRead={setReading} />}
+
           <ValidatedSubmissions
             role={role}
             email={myEmail}
@@ -782,10 +784,19 @@ function ManagerSpace() {
       <SubmissionReader
         submission={reading}
         onClose={() => setReading(null)}
-        onReject={reading && canReview && reading.status === "en attente" ? () => startReject(reading) : undefined}
-        onApprove={
-          reading && canReview && reading.status === "en attente"
-            ? () => review.mutate({ id: reading.id, status: "validée" })
+        onReject={reading && canReview && reading.status !== "refusée" ? () => startReject(reading) : undefined}
+        statusActions={
+          reading && canReview
+            ? ([
+                { status: "validée", label: "VALIDER" },
+                { status: "clôturée", label: "CLÔTURER" },
+                { status: "en attente", label: "REMETTRE EN ATTENTE" },
+              ] as const)
+                .filter((a) => a.status !== reading.status)
+                .map((a) => ({
+                  label: a.label,
+                  onClick: () => review.mutate({ id: reading.id, status: a.status }),
+                }))
             : undefined
         }
         approving={review.isPending}

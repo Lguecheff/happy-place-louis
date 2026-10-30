@@ -21,6 +21,7 @@ import { Route as AuthenticatedManageMetricsRouteImport } from './routes/_authen
 import { Route as AuthenticatedManageNewsRouteImport } from './routes/_authenticated/manage.news'
 import { Route as AuthenticatedManageSubmissionsRouteImport } from './routes/_authenticated/manage.submissions'
 import { Route as AuthenticatedManageUsersRouteImport } from './routes/_authenticated/manage.users'
+import { Route as AuthenticatedMaquettesUs01RouteImport } from './routes/_authenticated/maquettes.us01'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -86,6 +87,12 @@ const AuthenticatedManageUsersRoute =
     path: '/users',
     getParentRoute: () => AuthenticatedManageRoute,
   } as any)
+const AuthenticatedMaquettesUs01Route =
+  AuthenticatedMaquettesUs01RouteImport.update({
+    id: '/maquettes/us01',
+    path: '/maquettes/us01',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/manage/news': typeof AuthenticatedManageNewsRoute
   '/manage/submissions': typeof AuthenticatedManageSubmissionsRoute
   '/manage/users': typeof AuthenticatedManageUsersRoute
+  '/maquettes/us01': typeof AuthenticatedMaquettesUs01Route
   '/manage/': typeof AuthenticatedManageIndexRoute
 }
 export interface FileRoutesByTo {
@@ -110,6 +118,7 @@ export interface FileRoutesByTo {
   '/manage/news': typeof AuthenticatedManageNewsRoute
   '/manage/submissions': typeof AuthenticatedManageSubmissionsRoute
   '/manage/users': typeof AuthenticatedManageUsersRoute
+  '/maquettes/us01': typeof AuthenticatedMaquettesUs01Route
   '/manage': typeof AuthenticatedManageIndexRoute
 }
 export interface FileRoutesById {
@@ -125,6 +134,7 @@ export interface FileRoutesById {
   '/_authenticated/manage/news': typeof AuthenticatedManageNewsRoute
   '/_authenticated/manage/submissions': typeof AuthenticatedManageSubmissionsRoute
   '/_authenticated/manage/users': typeof AuthenticatedManageUsersRoute
+  '/_authenticated/maquettes/us01': typeof AuthenticatedMaquettesUs01Route
   '/_authenticated/manage/': typeof AuthenticatedManageIndexRoute
 }
 export interface FileRouteTypes {
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/manage/news'
     | '/manage/submissions'
     | '/manage/users'
+    | '/maquettes/us01'
     | '/manage/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/manage/news'
     | '/manage/submissions'
     | '/manage/users'
+    | '/maquettes/us01'
     | '/manage'
   id:
     | '__root__'
@@ -166,6 +178,7 @@ export interface FileRouteTypes {
     | '/_authenticated/manage/news'
     | '/_authenticated/manage/submissions'
     | '/_authenticated/manage/users'
+    | '/_authenticated/maquettes/us01'
     | '/_authenticated/manage/'
   fileRoutesById: FileRoutesById
 }
@@ -262,6 +275,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedManageUsersRouteImport
       parentRoute: typeof AuthenticatedManageRoute
     }
+    '/_authenticated/maquettes/us01': {
+      id: '/_authenticated/maquettes/us01'
+      path: '/maquettes/us01'
+      fullPath: '/maquettes/us01'
+      preLoaderRoute: typeof AuthenticatedMaquettesUs01RouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -289,11 +309,13 @@ const AuthenticatedManageRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedManageRoute: typeof AuthenticatedManageRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedMaquettesUs01Route: typeof AuthenticatedMaquettesUs01Route
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedManageRoute: AuthenticatedManageRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedMaquettesUs01Route: AuthenticatedMaquettesUs01Route,
 }
 
 const AuthenticatedRouteRouteWithChildren =

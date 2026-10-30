@@ -48,6 +48,7 @@ const submissionStatusLabels: Record<string, string> = {
   "en attente": "En attente",
   validée: "Validée",
   refusée: "Refusée",
+  clôturée: "Clôturée",
 };
 
 const empty: SubmissionInput = { author_name: "", team: "", content: "", status: "en attente" };
@@ -222,6 +223,7 @@ function ManageSubmissions() {
                 <option value="en attente">En attente</option>
                 <option value="validée">Validée</option>
                 <option value="refusée">Refusée</option>
+                <option value="clôturée">Clôturée</option>
               </Select>
             </Field>
             {form.status === "refusée" && (

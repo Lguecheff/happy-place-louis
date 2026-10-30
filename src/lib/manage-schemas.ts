@@ -26,7 +26,7 @@ export const submissionSchema = z.object({
     if (v.length > 2000)
       ctx.addIssue({ code: "custom", message: `Ta proposition dépasse 2 000 caractères (${v.length.toLocaleString("fr-FR")} saisis). Raccourcis-la avant d'envoyer.` });
   }),
-  status: z.enum(["en attente", "validée", "refusée"], {
+  status: z.enum(["en attente", "validée", "refusée", "clôturée"], {
     errorMap: () => ({ message: "Statut invalide" }),
   }),
   rejection_category: z.string().nullable().optional(),

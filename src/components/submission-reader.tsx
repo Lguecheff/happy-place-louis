@@ -12,6 +12,7 @@ export function SubmissionReader({
   onReject,
   onApprove,
   approving,
+  statusActions,
 }: {
   submission: Submission | null;
   statusLabel?: string;
@@ -19,6 +20,8 @@ export function SubmissionReader({
   onReject?: () => void;
   onApprove?: () => void;
   approving?: boolean;
+  /** Autres changements de statut possibles (le manager peut en changer autant de fois que nécessaire). */
+  statusActions?: { label: string; onClick: () => void }[];
 }) {
   return (
     <DialogPrimitive.Root open={!!s} onOpenChange={(o) => !o && onClose()}>
@@ -56,8 +59,19 @@ export function SubmissionReader({
                 </div>
               )}
             </div>
-            {(onReject || onApprove) && (
-              <div className="flex gap-xs border-t border-outline-variant p-md">
+            {(onReject || onApprove || statusActions?.length) && (
+              <div className="flex flex-wrap gap-xs border-t border-outline-variant p-md">
+                {statusActions?.map((a) => (
+                  <button
+                    key={a.label}
+                    type="button"
+                    disabled={approving}
+                    onClick={a.onClick}
+                    className="flex-1 py-sm border border-outline text-primary font-label-sm text-label-sm hover:bg-surface-container transition-colors disabled:opacity-60"
+                  >
+                    {a.label}
+                  </button>
+                ))}
                 {onReject && (
                   <button
                     type="button"

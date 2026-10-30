@@ -478,7 +478,7 @@ export type Database = {
         | "en désaccord avec les process"
         | "doublon"
         | "autre"
-      submission_status: "en attente" | "validée" | "refusée"
+      submission_status: "en attente" | "validée" | "refusée" | "clôturée"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -616,7 +616,7 @@ export const Constants = {
         "doublon",
         "autre",
       ],
-      submission_status: ["en attente", "validée", "refusée"],
+      submission_status: ["en attente", "validée", "refusée", "clôturée"],
     },
   },
 } as const
