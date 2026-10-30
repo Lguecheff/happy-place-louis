@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { BrandHeader } from "@/components/brand-header";
-import { ManageIcon, Modal } from "@/components/manage/crud-ui";
+import { ManageIcon } from "@/components/manage/crud-ui";
 import {
-  REJECTION_CATEGORIES,
-  type Submission,
-  type SubmissionStatusHistory,
-} from "@/lib/dashboard";
+  StatusChip,
+  SubmissionThreadView,
+  sortSteps,
+  type ThreadStep,
+} from "@/components/submission-status-thread";
+import { REJECTION_CATEGORIES, type Submission } from "@/lib/dashboard";
 
 export const Route = createFileRoute("/_authenticated/maquettes/us01")({
   head: () => ({
@@ -74,18 +76,7 @@ const MOCK_REQUESTS: MockRequest[] = [
   },
 ];
 
-type Step = Pick<
-  SubmissionStatusHistory,
-  | "id"
-  | "old_status"
-  | "new_status"
-  | "changed_by_email"
-  | "changed_by_name"
-  | "is_automatic"
-  | "rejection_category"
-  | "rejection_note"
-  | "changed_at"
->;
+type Step = ThreadStep;
 
 function step(
   id: string,
@@ -193,127 +184,20 @@ const FIXED_STEPS: Record<string, Step[]> = {
 // Présentation
 // ---------------------------------------------------------------------------
 
-const dateTime = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" });
-
 function stepsFor(id: string, scenario: Scenario): Step[] {
   const chrono = id === "d1" ? SCENARIO_STEPS[scenario] : (FIXED_STEPS[id] ?? []);
-  // Plus récente en premier.
-  return [...chrono].sort(
-    (a, b) => new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime(),
-  );
-}
-
-function authorLabel(s: Step): string {
-  if (s.is_automatic) return "Automatique";
-  return s.changed_by_name ?? s.changed_by_email ?? "Utilisateur supprimé";
-}
-
-function statusChipClass(status: string): string {
-  if (status === "validée") return "bg-secondary-fixed text-primary";
-  if (status === "refusée") return "bg-error-container text-on-error-container";
-  if (status === "clôturée") return "bg-primary text-on-primary";
-  return "bg-surface-container-high text-primary";
-}
-
-function StatusChip({ status }: { status: string }) {
-  return (
-    <span
-      className={`inline-block px-xs py-1 font-label-sm text-label-sm uppercase ${statusChipClass(status)}`}
-    >
-      {status}
-    </span>
-  );
-}
-
-function StatusThread({ steps }: { steps: Step[] }) {
-  return (
-    <ol
-      aria-label="Étapes de la demande, de la plus récente à la plus ancienne"
-      className="border-l border-outline ml-xs"
-    >
-      {steps.map((s) => {
-        const creation = s.old_status === null;
-        return (
-          <li key={s.id} className="relative pl-md pb-md last:pb-0">
-            <span
-              aria-hidden="true"
-              className="absolute -left-[5px] top-[7px] h-[9px] w-[9px] border border-outline bg-surface-container-lowest"
-            />
-            <div className="flex flex-wrap items-center gap-xs">
-              <StatusChip status={s.new_status} />
-              {creation && (
-                <span className="font-label-sm text-label-sm uppercase text-on-surface-variant">
-                  Création
-                </span>
-              )}
-            </div>
-            <p className="mt-xs font-body-md text-body-md text-on-surface-variant">
-              <time dateTime={s.changed_at} className="font-bold text-primary">
-                {dateTime.format(new Date(s.changed_at))}
-              </time>
-            </p>
-            <p className="font-body-md text-body-md text-on-surface-variant">
-              {s.is_automatic ? "Changement " : creation ? "Créée par " : "Modifié par "}
-              <span
-                className={
-                  s.is_automatic
-                    ? "font-label-md text-label-md uppercase text-primary"
-                    : "text-primary"
-                }
-              >
-                {authorLabel(s)}
-              </span>
-            </p>
-            {s.new_status === "refusée" && s.rejection_category && (
-              <div className="mt-xs border-l-[3px] border-error bg-error-container p-xs text-on-error-container wrap-anywhere">
-                <p className="font-label-md text-label-md uppercase">
-                  Catégorie : {s.rejection_category}
-                </p>
-                {s.rejection_note && (
-                  <p className="mt-1 font-body-md text-body-md whitespace-pre-line">
-                    {s.rejection_note}
-                  </p>
-                )}
-              </div>
-            )}
-          </li>
-        );
-      })}
-    </ol>
-  );
+  return sortSteps(chrono);
 }
 
 function Us01Mockup() {
   const [scenario, setScenario] = useState<Scenario>("validee");
   const [openId, setOpenId] = useState<string | null>(null);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
   const requests = MOCK_REQUESTS.map((r) => {
     const steps = stepsFor(r.id, scenario);
     return { ...r, steps, status: steps[0]?.new_status ?? "en attente" };
   });
   const open = requests.find((r) => r.id === openId) ?? null;
-
-  function close() {
-    setOpenId(null);
-    triggerRef.current?.focus();
-  }
-
-  useEffect(() => {
-    if (!open) return;
-    // Place le focus dans la fenêtre et permet de la fermer avec Échap.
-    closeBtnRef.current = document.querySelector<HTMLButtonElement>(
-      '[role="dialog"] button[aria-label="Fermer"]',
-    );
-    closeBtnRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open?.id]);
 
   return (
     <div className="bg-background text-on-surface font-body-md min-h-screen flex flex-col">
@@ -379,10 +263,7 @@ function Us01Mockup() {
                   <button
                     type="button"
                     aria-haspopup="dialog"
-                    onClick={(e) => {
-                      triggerRef.current = e.currentTarget;
-                      setOpenId(r.id);
-                    }}
+                    onClick={() => setOpenId(r.id)}
                     className="flex shrink-0 items-center justify-center gap-xs border border-outline bg-surface px-md py-xs font-label-md text-label-md uppercase text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     <ManageIcon name="history" /> Voir le fil
@@ -395,28 +276,12 @@ function Us01Mockup() {
       </main>
 
       {open && (
-        <Modal title="Fil de la demande" onClose={close}>
-          <div className="space-y-md">
-            <div className="space-y-xs">
-              <p className="font-body-md text-body-md text-on-surface wrap-anywhere">
-                {open.content}
-              </p>
-              <p className="flex flex-wrap items-center gap-xs font-label-sm text-label-sm uppercase text-on-surface-variant">
-                <span>{open.team}</span>
-                <span aria-hidden="true">·</span>
-                <span className="inline-flex items-center gap-1">
-                  <ManageIcon name="lock" className="!text-[14px]" /> Lecture seule
-                </span>
-              </p>
-            </div>
-            {open.steps.length === 1 && (
-              <p className="font-body-sm text-body-sm italic text-on-surface-variant">
-                Aucun changement de statut depuis la création.
-              </p>
-            )}
-            <StatusThread steps={open.steps} />
-          </div>
-        </Modal>
+        <SubmissionThreadView
+          content={open.content}
+          team={open.team}
+          steps={open.steps}
+          onClose={() => setOpenId(null)}
+        />
       )}
     </div>
   );

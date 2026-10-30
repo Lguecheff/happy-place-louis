@@ -11,6 +11,7 @@ import { AttachmentLink } from "@/components/attachment-link";
 import { CharCounter, SubmissionPreview, rejectionErrorMessage } from "@/components/expandable-card";
 import { Linkify } from "@/components/linkify";
 import { SubmissionReader } from "@/components/submission-reader";
+import { SubmissionThreadModal } from "@/components/submission-status-thread";
 import { NewsReader } from "@/components/news-reader";
 import { DepartureNotices } from "@/components/departure-notices";
 import { NewsImage, NewsLinks, NewsMediaEditor } from "@/components/news-media";
@@ -132,6 +133,7 @@ function ManagerSpace() {
   const [attachment, setAttachment] = useState<File | null>(null);
   const [rejecting, setRejecting] = useState<Submission | null>(null);
   const [reading, setReading] = useState<Submission | null>(null);
+  const [threadOf, setThreadOf] = useState<Submission | null>(null);
   const [readingNews, setReadingNews] = useState<News | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [rejectForm, setRejectForm] = useState({ rejection_category: "", rejection_note: "" });
@@ -600,6 +602,14 @@ function ManagerSpace() {
                     <p className="text-[11px] font-label-sm text-on-surface-variant uppercase mt-xs">
                       {s.status} • {s.team} • {timeAgo(s.created_at)}
                     </p>
+                    <button
+                      type="button"
+                      aria-haspopup="dialog"
+                      onClick={() => setThreadOf(s)}
+                      className="mt-xs flex items-center gap-xs border border-outline bg-surface px-sm py-1 font-label-sm text-label-sm uppercase text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      <Icon name="history" /> Voir le fil
+                    </button>
                     {s.status === "refusée" && s.rejection_category && (
                       <div className="mt-xs p-xs bg-error-container text-on-error-container text-body-sm wrap-anywhere">
                         <p className="font-bold">Motif : {s.rejection_category}</p>
@@ -780,6 +790,7 @@ function ManagerSpace() {
         </div>
       </main>
       <BlockerArchive open={archiveOpen} onClose={() => setArchiveOpen(false)} />
+      {threadOf && <SubmissionThreadModal submission={threadOf} onClose={() => setThreadOf(null)} />}
       <NewsReader news={readingNews} onClose={() => setReadingNews(null)} />
       <SubmissionReader
         submission={reading}
