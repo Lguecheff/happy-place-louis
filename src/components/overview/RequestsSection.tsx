@@ -173,7 +173,7 @@ export function RequestsSection({
   return (
     <DsSection
       id="demandes"
-      title={canReview ? "Demandes à traiter" : "Demandes"}
+      title="Demandes"
       action={
         canReview && (
           <DsButton
