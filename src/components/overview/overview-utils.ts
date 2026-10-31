@@ -1,4 +1,4 @@
-import type { News } from "@/lib/dashboard";
+import type { News, Submission } from "@/lib/dashboard";
 
 /** Cible d'actus publiées par mois (North Star, décision du 2026-10-28). */
 export const NEWS_MONTHLY_TARGET = 4;
@@ -20,6 +20,11 @@ export function formatDays(days: number) {
 
 export function plural(count: number, word: string) {
   return count > 1 ? `${word}s` : word;
+}
+
+/** Date d'où compte l'attente : dernier changement de statut, sinon création. */
+export function pendingSince(s: Submission) {
+  return s.pending_since ?? s.created_at;
 }
 
 const parisMonth = new Intl.DateTimeFormat("fr-FR", {

@@ -30,6 +30,8 @@ export type Submission = {
   content: string;
   status: string;
   created_at: string;
+  /** Dernier changement de statut, lu dans l'historique (renseigné par `fetchSubmissions`). */
+  pending_since?: string;
   rejection_category?: string | null;
   rejection_note?: string | null;
   submitted_by_email?: string | null;
@@ -50,6 +52,8 @@ export type Blocker = {
   title: string;
   description: string | null;
   department: string;
+  /** Équipe concernée ; sans équipe, le point concerne toutes les équipes. */
+  team?: string | null;
   severity: string;
   status: string;
   updated_at: string;
@@ -147,7 +151,21 @@ export async function fetchSubmissions(): Promise<Submission[]> {
     .eq("status", "en attente")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as Submission[];
+  const submissions = (data ?? []) as Submission[];
+  if (!submissions.length) return submissions;
+
+  // `submissions` n'a pas de date de mise à jour : l'historique note chaque changement de statut.
+  const { data: history, error: historyError } = await db
+    .from("submission_status_history")
+    .select("submission_id, changed_at")
+    .in(
+      "submission_id",
+      submissions.map((s) => s.id),
+    )
+    .order("changed_at", { ascending: true });
+  if (historyError) throw historyError;
+  const lastChange = new Map((history ?? []).map((h) => [h.submission_id, h.changed_at]));
+  return submissions.map((s) => ({ ...s, pending_since: lastChange.get(s.id) }));
 }
 
 /** Demandes de tous statuts visibles du manager (ses équipes), pour corriger un statut. */
@@ -332,6 +350,7 @@ export type BlockerInput = {
   title: string;
   description: string;
   department: string;
+  team: string | null;
   severity: string;
   status: string;
 };

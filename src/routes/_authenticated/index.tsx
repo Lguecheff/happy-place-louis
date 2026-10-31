@@ -241,6 +241,11 @@ function ManagerSpace() {
     onError,
   });
 
+  const myBlockers = isAdmin
+    ? blockers.data
+    : blockers.data &&
+      myTeams.data &&
+      blockers.data.filter((b) => !b.team || myTeams.data.includes(b.team));
   const publishedCount = publishedThisMonth(news.data ?? [], myEmail);
   const drafts = (news.data ?? []).filter(
     (n) =>
@@ -310,7 +315,7 @@ function ManagerSpace() {
         <TodayStrip
           canReview={canReview}
           pending={submissions.data}
-          blockers={blockers.data}
+          blockers={myBlockers}
           drafts={drafts}
           publishedCount={publishedCount}
         />

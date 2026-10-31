@@ -72,6 +72,12 @@ Props : `variant` (`critical` | `watch` | `status` | `neutral`), `icon`, `childr
 <DsBadge variant="critical" icon="error">Critique</DsBadge>
 ```
 
+### DsCount
+Props : `value`, `label` (ce que compte le chiffre, en toutes lettres : obligatoire et lu à la place du chiffre). Petit compteur sur fond `secondary-fixed`, à côté d'un titre. Pour un état avec du texte, utilise `DsBadge`.
+```tsx
+<DsCount value={7} label="7 éléments à traiter" />
+```
+
 ### DsFreshness
 Props : `at` (date ISO), `stale`. Affiche « Mis à jour il y a X » (via `timeAgo`). `stale` passe en couleur d'alerte avec icône d'avertissement.
 ```tsx

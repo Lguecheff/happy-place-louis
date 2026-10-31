@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { DS_INPUT, DsField } from "@/components/ds";
 import {
   ConfirmDelete,
   ErrorSummary,
@@ -13,6 +14,7 @@ import {
   TextArea,
   TextInput,
 } from "@/components/manage/crud-ui";
+import { supabase } from "@/integrations/supabase/client";
 import { blockerSchema, validate, type FieldErrors } from "@/lib/manage-schemas";
 import {
   createBlocker,
@@ -48,6 +50,7 @@ const empty: BlockerInput = {
   title: "",
   description: "",
   department: "",
+  team: null,
   severity: "warning",
   status: "EN COURS",
 };
@@ -60,6 +63,18 @@ function ManageBlockers() {
   const [toDelete, setToDelete] = useState<Blocker | null>(null);
 
   const list = useQuery({ queryKey: ["blockers", "all"], queryFn: fetchAllBlockers, retry: false });
+  const teamsQuery = useQuery({
+    queryKey: ["teams"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("teams").select("name, is_reserved");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const teams = (teamsQuery.data ?? [])
+    .filter((t) => !t.is_reserved && t.name.toLowerCase() !== "admin")
+    .map((t) => t.name)
+    .sort((a, b) => a.localeCompare(b, "fr"));
   const invalidate = () => qc.invalidateQueries({ queryKey: ["blockers"] });
   const onError = (e: unknown) => toast.error((e as Error).message);
 
@@ -135,7 +150,7 @@ function ManageBlockers() {
               <p className="font-body-md text-primary font-bold">{b.title}</p>
               <p className="text-body-sm text-on-surface-variant">{b.description}</p>
               <p className="text-[11px] font-label-sm text-on-surface-variant uppercase mt-xs">
-                 {b.department} • {severityLabels[b.severity] ?? b.severity} • {b.status} • {timeAgo(b.updated_at)}
+                 {b.department} • {b.team ?? "Toutes les équipes"} • {severityLabels[b.severity] ?? b.severity} • {b.status} • {timeAgo(b.updated_at)}
               </p>
             </div>
             <RowActions
@@ -146,6 +161,7 @@ function ManageBlockers() {
                   title: b.title,
                   description: b.description ?? "",
                   department: b.department,
+                  team: b.team ?? null,
                   severity: b.severity,
                   status: b.status,
                 });
@@ -189,6 +205,24 @@ function ManageBlockers() {
                 onChange={(e) => setForm({ ...form, department: e.target.value })}
               />
             </Field>
+            <DsField id="blocker-equipe" label="Équipe concernée" error={errors.team}>
+              <select
+                id="blocker-equipe"
+                className={DS_INPUT}
+                value={form.team ?? ""}
+                onChange={(e) => setForm({ ...form, team: e.target.value || null })}
+              >
+                <option value="">Toutes les équipes</option>
+                {form.team && !teams.includes(form.team) && (
+                  <option value={form.team}>{form.team}</option>
+                )}
+                {teams.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </DsField>
             <Field label="Sévérité" error={errors.severity}>
               <Select
                 value={form.severity}

@@ -3,6 +3,7 @@ import { BrandHeader } from "@/components/brand-header";
 import {
   DsBadge,
   DsButton,
+  DsCount,
   DsEmptyState,
   DsFreshness,
   DsIcon,
@@ -108,6 +109,15 @@ function DesignSystemPage() {
             <DsBadge variant="watch">À surveiller</DsBadge>
             <DsBadge variant="status">Brouillon</DsBadge>
             <DsBadge variant="neutral">Équipe Data</DsBadge>
+          </Demo>
+        </DsSection>
+
+        <DsSection id="compteurs" title="DsCount">
+          <Demo title="À côté d'un titre (le libellé complet est lu par les lecteurs d'écran)">
+            <p className="flex items-center gap-xs font-headline-sm text-headline-sm text-primary">
+              À traiter
+              <DsCount value={7} label="7 éléments à traiter" />
+            </p>
           </Demo>
         </DsSection>
 

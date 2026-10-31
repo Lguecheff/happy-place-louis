@@ -13,7 +13,12 @@ import {
 import { DS_FOCUS } from "@/components/ds/focus";
 import { SubmissionPreview } from "@/components/expandable-card";
 import { Linkify } from "@/components/linkify";
-import { LONG_WAIT_DAYS, daysSince, formatDays } from "@/components/overview/overview-utils";
+import {
+  LONG_WAIT_DAYS,
+  daysSince,
+  formatDays,
+  pendingSince,
+} from "@/components/overview/overview-utils";
 import type { Status } from "@/components/status-actions";
 import { StatusChip } from "@/components/submission-status-thread";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -51,7 +56,7 @@ function PendingRow({
   onThread: () => void;
   onRead: () => void;
 }) {
-  const days = daysSince(s.created_at);
+  const days = daysSince(pendingSince(s));
   return (
     <DsListItem
       leading={<DsAvatar name={s.author_name} />}
@@ -168,7 +173,9 @@ export function RequestsSection({
   const [tab, setTab] = useState(canReview ? "a-traiter" : "mes-demandes");
   const managedTab = useRef<HTMLButtonElement>(null);
   // La plus ancienne en premier : c'est celle à traiter d'abord.
-  const queue = [...(pending.data ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const queue = [...(pending.data ?? [])].sort((a, b) =>
+    pendingSince(a).localeCompare(pendingSince(b)),
+  );
 
   return (
     <DsSection

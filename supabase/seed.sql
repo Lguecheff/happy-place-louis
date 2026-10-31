@@ -114,6 +114,15 @@ INSERT INTO public.blockers (title, description, department, severity, status, c
 ('Capacité limitée sur le pôle Cybersécurité', 'Deux nouveaux mandats nécessitent un renfort temporaire en sourcing spécialisé.', 'DIRECTION RECRUTEMENT', 'warning', 'SURVEILLANCE', now() - interval '17 days', now() - interval '17 days'),
 ('Import des candidatures dans l’ATS', 'Les dossiers actifs ont été repris et contrôlés dans le nouvel outil de suivi.', 'OPÉRATIONS', 'warning', 'EN COURS', now() - interval '17 days', now() - interval '17 days');
 UPDATE public.blockers SET status = 'RÉSOLU' WHERE title = 'Import des candidatures dans l’ATS';
+UPDATE public.blockers b SET team = m.team
+FROM (VALUES
+  ('PRODUCT TEAM', 'Product'),
+  ('RELATIONS CLIENTS', 'Relation clients'),
+  ('DATA & IA', 'Pôle Data et IA'),
+  ('DIRECTION RECRUTEMENT', 'Direction recrutement'),
+  ('OPÉRATIONS', 'Opérations')
+) AS m(department, team)
+WHERE b.department = m.department;
 
 -- 6. Indicateurs (l'historique d'abord, puis la valeur actuelle)
 INSERT INTO public.metrics_history (metric_key, value, recorded_at) VALUES

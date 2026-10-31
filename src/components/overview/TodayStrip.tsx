@@ -1,9 +1,10 @@
-import { DsStatTile } from "@/components/ds";
+import { DsCount, DsStatTile } from "@/components/ds";
 import type { Blocker, Submission } from "@/lib/dashboard";
 import {
   NEWS_MONTHLY_TARGET,
   daysSince,
   formatDays,
+  pendingSince,
   plural,
 } from "@/components/overview/overview-utils";
 
@@ -12,7 +13,7 @@ function oldest(dates: string[]) {
 }
 
 function waitHint(pending: Submission[]) {
-  return `La plus ancienne attend depuis ${formatDays(oldest(pending.map((s) => s.created_at)))}`;
+  return `La plus ancienne attend depuis ${formatDays(oldest(pending.map(pendingSince)))}`;
 }
 
 export function TodayStrip({
@@ -31,11 +32,21 @@ export function TodayStrip({
   const waiting = pending?.length ?? 0;
   const critical = blockers?.filter((b) => b.severity === "critical") ?? [];
   const heading = canReview ? "À traiter" : "En cours";
+  const total = waiting + critical.length + drafts;
 
   return (
     <section aria-labelledby="a-traiter-titre" className="space-y-sm">
-      <h2 id="a-traiter-titre" className="font-headline-sm text-headline-sm text-primary">
+      <h2
+        id="a-traiter-titre"
+        className="flex items-center gap-xs font-headline-sm text-headline-sm text-primary"
+      >
         {heading}
+        {canReview && pending && blockers && (
+          <DsCount
+            value={total}
+            label={`${total} ${plural(total, "élément")} à traiter : ${waiting} ${plural(waiting, "demande")} en attente, ${critical.length} ${plural(critical.length, "point")} ${plural(critical.length, "bloquant")} ${plural(critical.length, "critique")} et ${drafts} ${plural(drafts, "brouillon")} à publier`}
+          />
+        )}
       </h2>
       <div className="grid gap-md md:grid-cols-3">
         {canReview ? (

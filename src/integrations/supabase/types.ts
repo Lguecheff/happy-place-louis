@@ -116,6 +116,7 @@ export type Database = {
           id: string
           severity: Database["public"]["Enums"]["blocker_severity"]
           status: Database["public"]["Enums"]["blocker_status"]
+          team: string | null
           title: string
           updated_at: string
         }
@@ -126,6 +127,7 @@ export type Database = {
           id?: string
           severity?: Database["public"]["Enums"]["blocker_severity"]
           status?: Database["public"]["Enums"]["blocker_status"]
+          team?: string | null
           title: string
           updated_at?: string
         }
@@ -136,10 +138,19 @@ export type Database = {
           id?: string
           severity?: Database["public"]["Enums"]["blocker_severity"]
           status?: Database["public"]["Enums"]["blocker_status"]
+          team?: string | null
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "blockers_team_fkey"
+            columns: ["team"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["name"]
+          },
+        ]
       }
       departure_notices: {
         Row: {
