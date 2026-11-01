@@ -78,7 +78,7 @@ export function TodayStrip({
               hint={
                 publishedCount === undefined
                   ? undefined
-                  : `${publishedCount} ${plural(publishedCount, "actu")} ${plural(publishedCount, "publiée")} sur ${NEWS_MONTHLY_TARGET} ce mois-ci`
+                  : `${publishedCount} sur ${NEWS_MONTHLY_TARGET} actus publiées ce mois-ci`
               }
               href="#actus"
               linkLabel="Voir les brouillons"

@@ -202,15 +202,17 @@ function ManageNews() {
                 onChange={(e) => setForm({ ...form, author: e.target.value })}
               />
             </Field>
-            <Field label="Statut" error={errors.status}>
-              <Select
-                value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value })}
-              >
-                <option value="brouillon">Brouillon</option>
-                <option value="publiée">Publiée</option>
-              </Select>
-            </Field>
+            {editing?.status !== "publiée" && (
+              <Field label="Statut" error={errors.status}>
+                <Select
+                  value={form.status}
+                  onChange={(e) => setForm({ ...form, status: e.target.value })}
+                >
+                  <option value="brouillon">Brouillon</option>
+                  <option value="publiée">Publiée</option>
+                </Select>
+              </Field>
+            )}
             <FormActions pending={save.isPending} onCancel={close} />
           </form>
         </Modal>

@@ -19,7 +19,6 @@ import {
   formatDays,
   myDrafts,
   newsPublishedAt,
-  plural,
 } from "@/components/overview/overview-utils";
 import { timeAgo, type News } from "@/lib/dashboard";
 import {
@@ -45,7 +44,7 @@ export type DraftInput = {
 function MonthlyProgress({ count }: { count: number }) {
   const percent = Math.min(count / NEWS_MONTHLY_TARGET, 1) * 100;
   const reached = count >= NEWS_MONTHLY_TARGET;
-  const text = `${count} sur ${NEWS_MONTHLY_TARGET} ${plural(count, "publiée")} ce mois-ci`;
+  const text = `${count} sur ${NEWS_MONTHLY_TARGET} publiées ce mois-ci`;
   return (
     <div className="space-y-xs">
       <div

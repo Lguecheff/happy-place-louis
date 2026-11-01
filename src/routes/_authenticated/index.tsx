@@ -246,7 +246,9 @@ function ManagerSpace() {
     : blockers.data &&
       myTeams.data &&
       blockers.data.filter((b) => !b.team || myTeams.data.includes(b.team));
-  const publishedCount = publishedThisMonth(news.data ?? [], myEmail);
+  // Managers seulement, et une fois les actus chargées : sinon le compteur afficherait un faux 0.
+  const publishedCount =
+    role === "manager" && news.data ? publishedThisMonth(news.data, myEmail) : undefined;
   const drafts = myDrafts(news.data ?? [], myEmail).length;
 
   function openComposer() {

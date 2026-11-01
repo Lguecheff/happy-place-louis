@@ -33,9 +33,9 @@ const parisMonth = new Intl.DateTimeFormat("fr-FR", {
   month: "2-digit",
 });
 
-/** `created_at` tient lieu de date tant que la migration des dates d'actus n'est pas appliquée. */
+/** Réservé aux actus publiées : la base renseigne toujours leur date de publication. */
 export function newsPublishedAt(n: News) {
-  return n.published_at ?? n.created_at;
+  return n.published_at as string;
 }
 
 export function publishedThisMonth(news: News[], email: string) {

@@ -50,7 +50,7 @@ const SCENARIOS: {
     name: "Kesha",
     email: KESHA,
     count: 2,
-    hint: "La barre est à moitié remplie, sans libellé.",
+    hint: "La barre est à moitié remplie, sans libellé. Le compteur reste au pluriel, même à 0 ou 1.",
   },
   {
     value: "quatre",
