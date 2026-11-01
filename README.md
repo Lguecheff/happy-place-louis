@@ -95,7 +95,7 @@ La base contient aussi dix membres fictifs de Bigger Boat (`@biggerboat.example`
 - **Structure** : les écrans sont dans `src/routes`, les composants dans `src/components`, et la base dans `supabase/migrations` (une migration par évolution, dans l'ordre).
 - **Modifier la base** : écris une nouvelle migration SQL plutôt que de modifier les anciennes. Après toute modification d'ENUM, de trigger ou de statut, lance `select * from private.run_smoke_tests();` : toutes les lignes doivent revenir à `ok = true`.
 - **Règles du projet** : le fichier `AGENTS.md` liste les conventions à respecter. Donne-le à ton assistant IA de code.
-- **Tâches automatiques** : deux tâches tournent chaque nuit dans Supabase (revalidation annuelle des contenus, départs programmés des collaborateurs). Tu les retrouves dans le module **Cron** de Supabase.
+- **Tâches automatiques** : deux tâches tournent chaque nuit dans Supabase (clôture des demandes validées depuis un an, départs programmés des collaborateurs). Tu les retrouves dans le module **Cron** de Supabase.
 - **Mise en ligne** : l'app tourne sur un serveur Node (TanStack Start). Elle se déploie sur Vercel ou Netlify : ajoute `VITE_SUPABASE_URL` et `VITE_SUPABASE_PUBLISHABLE_KEY` dans les variables d'environnement de l'hébergeur.
 
 ## En cas de problème

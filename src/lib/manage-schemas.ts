@@ -1,11 +1,20 @@
 import { z } from "zod";
 
-export const newsSchema = z.object({
-  title: z.string().trim().min(3, "Le titre doit faire au moins 3 caractères").max(160, "160 caractères maximum"),
-  body: z.string().trim().max(5000, "5000 caractères maximum"),
-  author: z.string().trim().min(2, "Auteur requis").max(80, "80 caractères maximum"),
-  status: z.enum(["brouillon", "publiée"], { errorMap: () => ({ message: "Statut invalide" }) }),
-});
+// Le titre n'est obligatoire que pour publier : un brouillon demande un titre ou un texte.
+export const newsSchema = z
+  .object({
+    title: z.string().trim().max(160, "160 caractères maximum"),
+    body: z.string().trim().max(5000, "5000 caractères maximum"),
+    author: z.string().trim().min(2, "Auteur requis").max(80, "80 caractères maximum"),
+    status: z.enum(["brouillon", "publiée"], { errorMap: () => ({ message: "Statut invalide" }) }),
+  })
+  .superRefine((news, ctx) => {
+    const message =
+      news.status === "publiée"
+        ? news.title.length < 3 && "Le titre doit faire au moins 3 caractères"
+        : !news.title && !news.body && "Saisis un titre ou un texte.";
+    if (message) ctx.addIssue({ code: "custom", path: ["title"], message });
+  });
 
 export const REJECTION_CATEGORY_VALUES = ["à clarifier", "en désaccord avec les process", "doublon", "autre"] as const;
 

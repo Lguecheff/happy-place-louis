@@ -136,7 +136,9 @@ function ManageNews() {
           >
             <div className="min-w-0 flex-1 space-y-xs">
               {n.image_path && <NewsImage path={n.image_path} alt={n.title} />}
-              <p className="font-body-md text-primary font-bold wrap-anywhere">{n.title}</p>
+              <p className="font-body-md text-primary font-bold wrap-anywhere">
+                {n.title || <span className="italic">Sans titre</span>}
+              </p>
               <p className="text-body-sm text-on-surface-variant line-clamp-2 wrap-anywhere">{n.body}</p>
               <NewsLinks links={n.links} />
               <p className="text-[11px] font-label-sm text-on-surface-variant uppercase mt-xs">
@@ -216,7 +218,7 @@ function ManageNews() {
 
       {toDelete && (
         <ConfirmDelete
-          label={toDelete.title}
+          label={toDelete.title || "Sans titre"}
           pending={remove.isPending}
           onCancel={() => setToDelete(null)}
           onConfirm={() => remove.mutate(toDelete)}
