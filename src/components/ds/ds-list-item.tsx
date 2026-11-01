@@ -19,11 +19,11 @@ type DsListItemProps =
   | (Common & { actions?: ReactNode; children?: ReactNode; href?: undefined; onClick?: undefined })
   /** Ligne entièrement cliquable (lien) : flèche à droite, pas d'actions imbriquées. */
   | (Common & { href: string; onClick?: undefined; actions?: undefined; children?: undefined })
-  /** Ligne entièrement cliquable (bouton) : flèche à droite, pas d'actions imbriquées. */
-  | (Common & { onClick: () => void; href?: undefined; actions?: undefined; children?: undefined });
+  /** Ligne cliquable (bouton) : flèche à droite ; `actions` se place à côté du bouton, jamais dedans. */
+  | (Common & { onClick: () => void; actions?: ReactNode; href?: undefined; children?: undefined });
 
-const ROW =
-  "flex min-h-11 w-full min-w-0 items-center gap-sm border border-outline-variant bg-surface-container-lowest p-sm text-left";
+const FRAME = "w-full min-w-0 border border-outline-variant bg-surface-container-lowest";
+const ROW = cn("flex min-h-11 items-center gap-sm p-sm text-left", FRAME);
 
 export function DsListItem(props: DsListItemProps) {
   const { title, meta, icon, leading, className } = props;
@@ -47,6 +47,24 @@ export function DsListItem(props: DsListItemProps) {
         {body}
         <DsIcon name="arrow_forward" className="shrink-0 text-primary" />
       </a>
+    );
+  }
+  if (props.onClick && props.actions) {
+    return (
+      <div className={cn("flex flex-wrap items-center", FRAME, className)}>
+        <button
+          type="button"
+          onClick={props.onClick}
+          className={cn(
+            "flex min-h-11 min-w-0 flex-1 basis-64 items-center gap-sm self-stretch p-sm text-left hover:bg-surface-container",
+            DS_FOCUS,
+          )}
+        >
+          {body}
+          <DsIcon name="arrow_forward" className="shrink-0 text-primary" />
+        </button>
+        <div className="flex flex-wrap items-center gap-xs p-sm">{props.actions}</div>
+      </div>
     );
   }
   if (props.onClick) {

@@ -91,9 +91,16 @@ Props : `label`, `value`, `valueFont` (`display` | `headline`), `trend`, `trendD
 ```
 
 ### DsListItem
-Props : `title`, `meta`, `icon` ou `leading` (ex. `DsAvatar`), et soit `actions` et `children` (ligne statique, `children` place le contenu et les actions sous le titre), soit `href`, soit `onClick` (ligne entièrement cliquable avec flèche, sans actions imbriquées).
+Props : `title`, `meta`, `icon` ou `leading` (ex. `DsAvatar`), et soit `actions` et `children` (ligne statique, `children` place le contenu et les actions sous le titre), soit `href` (ligne entièrement cliquable avec flèche, sans actions), soit `onClick` (ligne cliquable avec flèche). Avec `onClick`, `actions` est possible : le bouton de la ligne et les actions sont voisins, jamais imbriqués, et les actions restent hors de la zone cliquable.
 ```tsx
 <DsListItem icon="article" title="Nouvelle offre" meta="Publiée il y a 3 heures · par Sam" href="/actualites/12" />
+<DsListItem
+  icon="draft"
+  title="Nouvelle offre"
+  meta="Créé le 11/10/2026 · 21 jours"
+  onClick={ouvrir}
+  actions={<DsButton variant="confirm">Publier</DsButton>}
+/>
 ```
 
 ### DsStatTile

@@ -52,6 +52,25 @@ export function publishedThisMonth(news: News[], email: string) {
   ).length;
 }
 
+/** Brouillons dont le compte est l'auteur, du plus ancien au plus récent. */
+export function myDrafts(news: News[], email: string) {
+  return news
+    .filter((n) => n.status === "brouillon" && (n.author_email ?? "").toLowerCase() === email)
+    .sort((a, b) => a.created_at.localeCompare(b.created_at));
+}
+
+const parisDay = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: "Europe/Paris",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
+/** Date au format JJ/MM/AAAA. */
+export function formatDay(iso: string) {
+  return parisDay.format(new Date(iso));
+}
+
 function sentenceCase(text: string) {
   const lower = text.toLocaleLowerCase("fr-FR");
   return lower.charAt(0).toLocaleUpperCase("fr-FR") + lower.slice(1);

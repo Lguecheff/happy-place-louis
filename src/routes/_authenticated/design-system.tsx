@@ -183,6 +183,13 @@ function DesignSystemPage() {
               meta="Ligne cliquable en bouton"
               onClick={() => toastUndo("Fil ouvert (exemple)", () => {})}
             />
+            <DsListItem
+              icon="draft"
+              title="Ouvrir le brouillon"
+              meta="Ligne cliquable avec une action à côté"
+              onClick={() => toastUndo("Brouillon ouvert (exemple)", () => {})}
+              actions={<DsButton variant="confirm">Publier</DsButton>}
+            />
           </div>
         </DsSection>
 

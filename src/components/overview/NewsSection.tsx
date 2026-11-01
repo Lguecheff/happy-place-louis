@@ -6,6 +6,10 @@ import { NewsMediaEditor } from "@/components/news-media";
 import { ConfirmDialog } from "@/components/overview/ConfirmDialog";
 import {
   NEWS_MONTHLY_TARGET,
+  daysSince,
+  formatDay,
+  formatDays,
+  myDrafts,
   newsPublishedAt,
   newsUpdatedAt,
   plural,
@@ -22,6 +26,7 @@ import {
 
 const RECENT_NEWS = 4;
 const SUBTITLE = "font-label-md text-label-md normal-case tracking-normal text-on-surface-variant";
+const MISSING_TITLE = "Ajoute un titre pour publier.";
 
 export type DraftInput = {
   id?: string;
@@ -66,8 +71,10 @@ export function NewsSection({
   removing,
   onSave,
   onPublish,
+  onPublishEdited,
   onRemove,
   onRead,
+  draftRows,
 }: {
   canWrite: boolean;
   isAdmin: boolean;
@@ -82,8 +89,15 @@ export function NewsSection({
   removing: boolean;
   onSave: (input: DraftInput, onSaved: () => void) => void;
   onPublish: (n: News) => void;
+  /** Enregistre les modifications du rédacteur, puis publie. */
+  onPublishEdited?: (input: DraftInput, onPublished: () => void) => void;
   onRemove: (n: News) => void;
   onRead: (n: News) => void;
+  /**
+   * Bloc « Mes brouillons » (US4, maquette) : `open` ouvre le rédacteur au clic sur la ligne,
+   * `open-publish` y ajoute le bouton Publier. Sans cette prop, l'accueil reste inchangé.
+   */
+  draftRows?: "open" | "open-publish";
 }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -94,7 +108,10 @@ export function NewsSection({
   const [publishTarget, setPublishTarget] = useState<News | null>(null);
   const [removeTarget, setRemoveTarget] = useState<News | null>(null);
   const linkErrs = showLinkErrs ? linkErrors(media.links) : {};
-  const drafts = news.data?.filter((n) => n.status === "brouillon") ?? [];
+  const drafts = draftRows
+    ? myDrafts(news.data ?? [], email)
+    : (news.data?.filter((n) => n.status === "brouillon") ?? []);
+  const publishesEdited = !!publishTarget && publishTarget.id === editing?.id;
   const published = (news.data?.filter((n) => n.status === "publiée") ?? []).sort((a, b) =>
     newsPublishedAt(b).localeCompare(newsPublishedAt(a)),
   );
@@ -108,36 +125,59 @@ export function NewsSection({
     setTitleError(undefined);
   }
 
-  function startEditing(n: News) {
+  function startEditing(n: News, error?: string) {
     setEditing(n);
     setTitle(n.title);
     setBody(n.body ?? "");
     setMedia(mediaFromNews(n));
     setShowLinkErrs(false);
-    setTitleError(undefined);
+    setTitleError(error);
     flushSync(() => onComposerOpenChange(true));
     titleRef.current?.focus();
   }
 
+  function closeComposer() {
+    reset();
+    onComposerOpenChange(false);
+  }
+
+  function draftInput(): DraftInput {
+    return { id: editing?.id, title: title.trim(), body, links: toNewsLinks(media.links), media };
+  }
+
+  function linksAreValid(action: string) {
+    setShowLinkErrs(true);
+    if (!Object.keys(linkErrors(media.links)).length) return true;
+    toast.error(`Corrige les liens invalides avant ${action}.`);
+    return false;
+  }
+
   function save(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim()) {
-      setTitleError("Saisis un titre.");
+    if (draftRows ? !title.trim() && !body.trim() : !title.trim()) {
+      setTitleError(draftRows ? "Saisis un titre ou un texte." : "Saisis un titre.");
       return;
     }
     setTitleError(undefined);
-    setShowLinkErrs(true);
-    if (Object.keys(linkErrors(media.links)).length) {
-      toast.error("Corrige les liens invalides avant d'enregistrer.");
+    if (!linksAreValid("d'enregistrer")) return;
+    onSave(draftInput(), closeComposer);
+  }
+
+  function publishEdited() {
+    if (!editing) return;
+    if (!title.trim()) {
+      setTitleError(MISSING_TITLE);
+      titleRef.current?.focus();
       return;
     }
-    onSave(
-      { id: editing?.id, title: title.trim(), body, links: toNewsLinks(media.links), media },
-      () => {
-        reset();
-        onComposerOpenChange(false);
-      },
-    );
+    setTitleError(undefined);
+    if (linksAreValid("de publier")) setPublishTarget(editing);
+  }
+
+  function publishRow(n: News) {
+    if (n.id === editing?.id) publishEdited();
+    else if (n.title.trim()) setPublishTarget(n);
+    else startEditing(n, MISSING_TITLE);
   }
 
   return (
@@ -200,7 +240,7 @@ export function NewsSection({
                   >
                     Supprimer
                   </DsButton>
-                  <DsButton variant="link" onClick={reset}>
+                  <DsButton variant="link" onClick={draftRows ? closeComposer : reset}>
                     Annuler
                   </DsButton>
                 </>
@@ -208,16 +248,47 @@ export function NewsSection({
               <DsButton type="submit" pending={saving}>
                 {saving ? "Enregistrement…" : "Enregistrer le brouillon"}
               </DsButton>
+              {editing && draftRows && (
+                <DsButton variant="confirm" disabled={publishing || saving} onClick={publishEdited}>
+                  Publier
+                </DsButton>
+              )}
             </div>
           </form>
           <div className="space-y-xs">
-            <h3 className={SUBTITLE}>Brouillon</h3>
-            {news.data && drafts.length === 0 && (
-              <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Aucun brouillon en cours.
-              </p>
-            )}
+            <h3 className={SUBTITLE}>{draftRows ? "Mes brouillons" : "Brouillon"}</h3>
+            {news.data &&
+              drafts.length === 0 &&
+              (draftRows ? (
+                <DsEmptyState>Aucun brouillon en cours.</DsEmptyState>
+              ) : (
+                <p className="font-body-sm text-body-sm text-on-surface-variant">
+                  Aucun brouillon en cours.
+                </p>
+              ))}
             {drafts.map((n) => {
+              if (draftRows) {
+                return (
+                  <DsListItem
+                    key={n.id}
+                    icon="draft"
+                    title={n.title || <span className="italic">Sans titre</span>}
+                    meta={`Créé le ${formatDay(n.created_at)} · ${formatDays(daysSince(n.created_at))}`}
+                    onClick={() => startEditing(n)}
+                    actions={
+                      draftRows === "open-publish" && (
+                        <DsButton
+                          variant="confirm"
+                          disabled={publishing}
+                          onClick={() => publishRow(n)}
+                        >
+                          Publier
+                        </DsButton>
+                      )
+                    }
+                  />
+                );
+              }
               const allowed = isAdmin || (n.author_email ?? "").toLowerCase() === email;
               return (
                 <DsListItem
@@ -270,27 +341,27 @@ export function NewsSection({
       </div>
       <ConfirmDialog
         open={!!publishTarget}
-        title={`Publier « ${publishTarget?.title} » ?`}
+        title={`Publier « ${publishesEdited ? title.trim() : publishTarget?.title} » ?`}
         description="Cette actu sera visible par tout le cabinet."
         confirmLabel="Publier"
         onCancel={() => setPublishTarget(null)}
         onConfirm={() => {
-          if (publishTarget) onPublish(publishTarget);
+          if (publishesEdited) onPublishEdited?.(draftInput(), closeComposer);
+          else if (publishTarget) onPublish(publishTarget);
           setPublishTarget(null);
         }}
       />
       <ConfirmDialog
         open={!!removeTarget}
         danger
-        title={`Supprimer le brouillon « ${removeTarget?.title} » ?`}
+        title={`Supprimer le brouillon « ${removeTarget?.title || "Sans titre"} » ?`}
         description="Tu ne pourras pas le récupérer."
         confirmLabel="Supprimer"
         onCancel={() => setRemoveTarget(null)}
         onConfirm={() => {
           if (removeTarget) onRemove(removeTarget);
           setRemoveTarget(null);
-          reset();
-          onComposerOpenChange(false);
+          closeComposer();
         }}
       />
     </DsSection>
