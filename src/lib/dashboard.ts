@@ -137,6 +137,14 @@ export async function publishDraftNews(id: string) {
   if (!data?.length) throw new Error("Vous n'avez pas le droit de publier cette actualité.");
 }
 
+/** Enregistre le brouillon ouvert dans le rédacteur, puis le publie. */
+export async function saveAndPublishDraftNews(
+  input: Parameters<typeof saveDraftNews>[0] & { id: string },
+) {
+  await saveDraftNews(input);
+  await publishDraftNews(input.id);
+}
+
 export async function deleteDraftNews(id: string, imagePath?: string | null) {
   await removeNewsImageFile(imagePath);
   const { data, error } = await db.from("news").delete().eq("id", id).select("id");

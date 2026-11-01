@@ -38,10 +38,6 @@ export function newsPublishedAt(n: News) {
   return n.published_at ?? n.created_at;
 }
 
-export function newsUpdatedAt(n: News) {
-  return n.updated_at ?? n.created_at;
-}
-
 export function publishedThisMonth(news: News[], email: string) {
   const month = parisMonth.format(new Date());
   return news.filter(

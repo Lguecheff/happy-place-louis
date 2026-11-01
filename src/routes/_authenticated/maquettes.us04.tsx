@@ -22,7 +22,6 @@ export const Route = createFileRoute("/_authenticated/maquettes/us04")({
 // ---------------------------------------------------------------------------
 
 type Scenario = "quatre" | "sans-titre" | "aucun" | "admin" | "collaborateur";
-type Variant = "open" | "open-publish";
 
 const KESHA = "kesha@fictif.test";
 const CLAIRE = "claire@fictif.test";
@@ -34,7 +33,7 @@ const SCENARIOS: { value: Scenario; label: string; name: string; email: string; 
     label: "4 brouillons",
     name: "Kesha",
     email: KESHA,
-    hint: "Du plus ancien au plus récent. Publie un brouillon : la ligne disparaît et les compteurs baissent.",
+    hint: "Du plus ancien au plus récent. Ouvre un brouillon et publie-le : la ligne disparaît et les compteurs baissent.",
   },
   {
     value: "sans-titre",
@@ -63,19 +62,6 @@ const SCENARIOS: { value: Scenario; label: string; name: string; email: string; 
     name: "Thomas",
     email: "thomas@fictif.test",
     hint: "Ni bloc, ni rédacteur, ni tuile de brouillons : il ne reste que les actus publiées.",
-  },
-];
-
-const VARIANTS: { value: Variant; label: string; hint: string }[] = [
-  {
-    value: "open",
-    label: "A : conforme à DESIGN.md",
-    hint: "Ligne cliquable sans bouton : on publie depuis le rédacteur.",
-  },
-  {
-    value: "open-publish",
-    label: "B : DsListItem étendu",
-    hint: "Ligne cliquable avec Publier à côté.",
   },
 ];
 
@@ -153,14 +139,12 @@ function ModulePlaceholder({ id, title }: { id: string; title: string }) {
 
 function Us04Mockup() {
   const [scenario, setScenario] = useState<Scenario>("quatre");
-  const [variant, setVariant] = useState<Variant>("open");
   const [news, setNews] = useState(() => newsFor("quatre"));
   const [composerOpen, setComposerOpen] = useState(false);
   const [reading, setReading] = useState<News | null>(null);
   const composerTitle = useRef<HTMLInputElement>(null);
 
   const current = SCENARIOS.find((s) => s.value === scenario) ?? SCENARIOS[0];
-  const currentVariant = VARIANTS.find((v) => v.value === variant) ?? VARIANTS[0];
   const canWrite = scenario !== "collaborateur";
   const publishedCount = publishedThisMonth(news, current.email);
 
@@ -208,22 +192,8 @@ function Us04Mockup() {
               ))}
             </select>
           </DsField>
-          <DsField id="maquette-ligne" label="Ligne (fictif)" className="w-full md:w-72">
-            <select
-              id="maquette-ligne"
-              className={DS_INPUT}
-              value={variant}
-              onChange={(e) => setVariant(e.target.value as Variant)}
-            >
-              {VARIANTS.map((v) => (
-                <option key={v.value} value={v.value}>
-                  {v.label}
-                </option>
-              ))}
-            </select>
-          </DsField>
           <p className="min-w-0 flex-1 basis-64 font-body-sm text-body-sm text-on-surface-variant">
-            {current.hint} {canWrite && currentVariant.hint}
+            {current.hint}
           </p>
         </div>
 
@@ -265,7 +235,6 @@ function Us04Mockup() {
             <NewsSection
               key={scenario}
               canWrite={canWrite}
-              isAdmin={scenario === "admin"}
               email={current.email}
               news={{ data: news, isError: false, isLoading: false }}
               publishedCount={publishedCount}
@@ -275,18 +244,13 @@ function Us04Mockup() {
               saving={false}
               publishing={false}
               removing={false}
-              draftRows={variant}
               onSave={(input, onSaved) => {
                 setNews((list) => applyDraft(input, list));
                 toast.success("Brouillon enregistré (fictif)");
                 onSaved();
               }}
-              onPublish={(n) => {
-                setNews((list) => publish(n.id, list));
-                toast.success("Actualité publiée (fictif)");
-              }}
-              onPublishEdited={(input, onPublished) => {
-                setNews((list) => publish(input.id ?? "", applyDraft(input, list)));
+              onPublish={(input, onPublished) => {
+                setNews((list) => publish(input.id, applyDraft(input, list)));
                 toast.success("Actualité publiée (fictif)");
                 onPublished();
               }}

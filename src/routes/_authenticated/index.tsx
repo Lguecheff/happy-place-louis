@@ -19,7 +19,7 @@ import { RejectModal } from "@/components/overview/RejectModal";
 import { RequestFormModal } from "@/components/overview/RequestFormModal";
 import { RequestsSection } from "@/components/overview/RequestsSection";
 import { TodayStrip } from "@/components/overview/TodayStrip";
-import { publishedThisMonth } from "@/components/overview/overview-utils";
+import { myDrafts, publishedThisMonth } from "@/components/overview/overview-utils";
 import { StatusButtons, type Status } from "@/components/status-actions";
 import { SubmissionReader } from "@/components/submission-reader";
 import { SubmissionThreadModal } from "@/components/submission-status-thread";
@@ -33,7 +33,7 @@ import {
   type News,
   type Submission,
   saveDraftNews,
-  publishDraftNews,
+  saveAndPublishDraftNews,
   deleteDraftNews,
   reviewSubmission,
   submitIdea,
@@ -157,7 +157,7 @@ function ManagerSpace() {
   });
 
   const publishDraft = useMutation({
-    mutationFn: publishDraftNews,
+    mutationFn: saveAndPublishDraftNews,
     onSuccess: () => {
       toast.success("Actualité publiée");
       qc.invalidateQueries({ queryKey: ["news"] });
@@ -247,10 +247,7 @@ function ManagerSpace() {
       myTeams.data &&
       blockers.data.filter((b) => !b.team || myTeams.data.includes(b.team));
   const publishedCount = publishedThisMonth(news.data ?? [], myEmail);
-  const drafts = (news.data ?? []).filter(
-    (n) =>
-      n.status === "brouillon" && (isAdmin || (n.author_email ?? "").toLowerCase() === myEmail),
-  ).length;
+  const drafts = myDrafts(news.data ?? [], myEmail).length;
 
   function openComposer() {
     flushSync(() => setComposerOpen(true));
@@ -259,6 +256,13 @@ function ManagerSpace() {
 
   function saveNews(input: DraftInput, onSaved: () => void) {
     saveDraft.mutate({ ...input, author: myName, author_email: myEmail }, { onSuccess: onSaved });
+  }
+
+  function publishNews(input: DraftInput & { id: string }, onPublished: () => void) {
+    publishDraft.mutate(
+      { ...input, author: myName, author_email: myEmail },
+      { onSuccess: onPublished },
+    );
   }
 
   return (
@@ -337,7 +341,6 @@ function ManagerSpace() {
             />
             <NewsSection
               canWrite={canReview}
-              isAdmin={isAdmin}
               email={myEmail}
               news={news}
               publishedCount={publishedCount}
@@ -348,7 +351,7 @@ function ManagerSpace() {
               publishing={publishDraft.isPending}
               removing={removeDraft.isPending}
               onSave={saveNews}
-              onPublish={(n) => publishDraft.mutate(n.id)}
+              onPublish={publishNews}
               onRemove={(n) => removeDraft.mutate(n)}
               onRead={setReadingNews}
             />
