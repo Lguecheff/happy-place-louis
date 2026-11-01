@@ -1,7 +1,15 @@
 import { useState, type RefObject } from "react";
 import { flushSync } from "react-dom";
 import { toast } from "sonner";
-import { DS_INPUT, DsButton, DsEmptyState, DsField, DsListItem, DsSection } from "@/components/ds";
+import {
+  DS_INPUT,
+  DsBadge,
+  DsButton,
+  DsEmptyState,
+  DsField,
+  DsListItem,
+  DsSection,
+} from "@/components/ds";
 import { NewsMediaEditor } from "@/components/news-media";
 import { ConfirmDialog } from "@/components/overview/ConfirmDialog";
 import {
@@ -36,6 +44,8 @@ export type DraftInput = {
 
 function MonthlyProgress({ count }: { count: number }) {
   const percent = Math.min(count / NEWS_MONTHLY_TARGET, 1) * 100;
+  const reached = count >= NEWS_MONTHLY_TARGET;
+  const text = `${count} sur ${NEWS_MONTHLY_TARGET} ${plural(count, "publiée")} ce mois-ci`;
   return (
     <div className="space-y-xs">
       <div
@@ -44,13 +54,19 @@ function MonthlyProgress({ count }: { count: number }) {
         aria-valuemin={0}
         aria-valuemax={NEWS_MONTHLY_TARGET}
         aria-valuenow={Math.min(count, NEWS_MONTHLY_TARGET)}
+        aria-valuetext={reached ? `${text}, cible atteinte` : text}
         className="h-2 w-full bg-surface-container-high"
       >
         <div className="h-full bg-secondary" style={{ width: `${percent}%` }} />
       </div>
-      <p className="font-body-sm text-body-sm text-on-surface-variant">
-        {count} sur {NEWS_MONTHLY_TARGET} {plural(count, "publiée")} ce mois-ci
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-xs">
+        <p className="font-body-sm text-body-sm text-on-surface-variant">{text}</p>
+        {reached && (
+          <DsBadge variant="status" icon="check">
+            Cible atteinte
+          </DsBadge>
+        )}
+      </div>
     </div>
   );
 }
@@ -74,7 +90,8 @@ export function NewsSection({
   canWrite: boolean;
   email: string;
   news: { data?: News[]; isError: boolean; isLoading: boolean };
-  publishedCount: number;
+  /** Sans valeur, le compteur du mois n'est pas affiché. */
+  publishedCount?: number;
   composerOpen: boolean;
   onComposerOpenChange: (open: boolean) => void;
   titleRef: RefObject<HTMLInputElement | null>;
@@ -160,7 +177,7 @@ export function NewsSection({
 
   return (
     <DsSection id="actus" title="Actualités du cabinet">
-      {canWrite && <MonthlyProgress count={publishedCount} />}
+      {canWrite && publishedCount !== undefined && <MonthlyProgress count={publishedCount} />}
       {canWrite && (
         <>
           <DsButton

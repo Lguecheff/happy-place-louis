@@ -27,7 +27,8 @@ export function TodayStrip({
   pending: Submission[] | undefined;
   blockers: Blocker[] | undefined;
   drafts: number;
-  publishedCount: number;
+  /** Sans valeur, l'indice des actus du mois n'est pas affiché. */
+  publishedCount?: number;
 }) {
   const waiting = pending?.length ?? 0;
   const critical = blockers?.filter((b) => b.severity === "critical") ?? [];
@@ -74,7 +75,11 @@ export function TodayStrip({
             <DsStatTile
               value={drafts}
               label={`${plural(drafts, "brouillon")} à publier`}
-              hint={`${publishedCount} ${plural(publishedCount, "actu")} ${plural(publishedCount, "publiée")} sur ${NEWS_MONTHLY_TARGET} ce mois-ci`}
+              hint={
+                publishedCount === undefined
+                  ? undefined
+                  : `${publishedCount} ${plural(publishedCount, "actu")} ${plural(publishedCount, "publiée")} sur ${NEWS_MONTHLY_TARGET} ce mois-ci`
+              }
               href="#actus"
               linkLabel="Voir les brouillons"
             />
