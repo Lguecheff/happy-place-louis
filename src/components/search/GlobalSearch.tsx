@@ -1,7 +1,10 @@
 import { Command as CommandPrimitive } from "cmdk";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { BlockerReader } from "@/components/blocker-reader";
 import { DS_INPUT, DsBadge, DsIcon } from "@/components/ds";
+import { MetricReader } from "@/components/metric-reader";
 import { NewsReader } from "@/components/news-reader";
+import { BlockerBadges } from "@/components/overview/BlockersSection";
 import { formatDay, newsPublishedAt, plural } from "@/components/overview/overview-utils";
 import { SubmissionReader } from "@/components/submission-reader";
 import { StatusChip } from "@/components/submission-status-thread";
@@ -12,7 +15,13 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import type { News, Submission } from "@/lib/dashboard";
+import {
+  formatMetricValue,
+  type Blocker,
+  type Metric,
+  type News,
+  type Submission,
+} from "@/lib/dashboard";
 import { cn } from "@/lib/utils";
 import {
   SEARCH_MAX_PER_TYPE,
@@ -64,7 +73,7 @@ function ResultRow({
   title: ReactNode;
   excerpt?: ReactNode;
   meta: string;
-  status: ReactNode;
+  status?: ReactNode;
   onSelect: () => void;
 }) {
   return (
@@ -86,7 +95,7 @@ function ResultRow({
         )}
         <span className="block font-body-sm text-body-sm text-on-surface-variant">{meta}</span>
       </span>
-      <span className="shrink-0">{status}</span>
+      {status && <span className="flex shrink-0 flex-col items-end gap-xs">{status}</span>}
     </CommandItem>
   );
 }
@@ -111,6 +120,8 @@ export function GlobalSearch({
   const [selected, setSelected] = useState("");
   const [readingNews, setReadingNews] = useState<News | null>(null);
   const [readingSubmission, setReadingSubmission] = useState<Submission | null>(null);
+  const [readingBlocker, setReadingBlocker] = useState<Blocker | null>(null);
+  const [readingMetric, setReadingMetric] = useState<Metric | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -124,12 +135,20 @@ export function GlobalSearch({
     () => (searchable && data ? searchAll(data, term) : null),
     [data, searchable, term],
   );
-  const total = results ? results.news.total + results.submissions.total : 0;
-  const firstValue = results?.news.items[0]
-    ? `actu-${results.news.items[0].id}`
-    : results?.submissions.items[0]
-      ? `demande-${results.submissions.items[0].id}`
-      : "";
+  const total = results
+    ? results.news.total +
+      results.submissions.total +
+      results.blockers.total +
+      results.metrics.total
+    : 0;
+  const firstValue = results
+    ? ([
+        ...results.news.items.map((n) => `actu-${n.id}`),
+        ...results.submissions.items.map((s) => `demande-${s.id}`),
+        ...results.blockers.items.map((b) => `blocage-${b.id}`),
+        ...results.metrics.items.map((m) => `kpi-${m.key}`),
+      ][0] ?? "")
+    : "";
 
   // cmdk ne filtre plus : la première ligne doit être choisie ici à chaque nouvelle liste.
   useEffect(() => setSelected(firstValue), [firstValue]);
@@ -169,6 +188,16 @@ export function GlobalSearch({
     setReadingSubmission(submission);
   }
 
+  function openBlocker(blocker: Blocker) {
+    setOpen(false);
+    setReadingBlocker(blocker);
+  }
+
+  function openMetric(metric: Metric) {
+    setOpen(false);
+    setReadingMetric(metric);
+  }
+
   return (
     <>
       <Command
@@ -200,7 +229,7 @@ export function GlobalSearch({
             setOpen(true);
           }}
           onClick={() => setOpen(true)}
-          placeholder="Rechercher une actu ou une demande"
+          placeholder="Rechercher dans Happy Place"
           className={cn(DS_INPUT, "truncate pl-10")}
         />
         <div
@@ -254,6 +283,47 @@ export function GlobalSearch({
                 ))}
               </CommandGroup>
             )}
+            {results && results.blockers.total > 0 && (
+              <CommandGroup
+                heading={<GroupHeading label="Points bloquants" total={results.blockers.total} />}
+                className="p-0"
+              >
+                {results.blockers.items.map((b) => (
+                  <ResultRow
+                    key={b.id}
+                    value={`blocage-${b.id}`}
+                    icon="flag"
+                    title={<Highlighted text={b.title} query={term} />}
+                    excerpt={
+                      b.description ? (
+                        <Highlighted text={excerptAround(b.description, term)} query={term} />
+                      ) : undefined
+                    }
+                    meta={`Point bloquant · Créé le ${formatDay(b.created_at)}`}
+                    status={<BlockerBadges blocker={b} />}
+                    onSelect={() => openBlocker(b)}
+                  />
+                ))}
+              </CommandGroup>
+            )}
+            {results && results.metrics.total > 0 && (
+              <CommandGroup
+                heading={<GroupHeading label="KPI" total={results.metrics.total} />}
+                className="p-0"
+              >
+                {results.metrics.items.map((m) => (
+                  <ResultRow
+                    key={m.key}
+                    value={`kpi-${m.key}`}
+                    icon="monitoring"
+                    title={<Highlighted text={m.label} query={term} />}
+                    excerpt={formatMetricValue(m.value, m.unit)}
+                    meta={`KPI · Mis à jour le ${formatDay(m.updated_at)}`}
+                    onSelect={() => openMetric(m)}
+                  />
+                ))}
+              </CommandGroup>
+            )}
           </CommandList>
         </div>
         <p role="status" className="sr-only">
@@ -269,6 +339,16 @@ export function GlobalSearch({
         submission={readingSubmission}
         hideAttachment={!!readingSubmission && canReadAttachment?.(readingSubmission) === false}
         onClose={() => setReadingSubmission(null)}
+        onCloseAutoFocus={focusInput}
+      />
+      <BlockerReader
+        blocker={readingBlocker}
+        onClose={() => setReadingBlocker(null)}
+        onCloseAutoFocus={focusInput}
+      />
+      <MetricReader
+        metric={readingMetric}
+        onClose={() => setReadingMetric(null)}
         onCloseAutoFocus={focusInput}
       />
     </>

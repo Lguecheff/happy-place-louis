@@ -18,6 +18,20 @@ import type { Blocker } from "@/lib/dashboard";
 
 const BLOCKER_STATUSES = ["OUVERT", "EN COURS", "SURVEILLANCE", "RÉSOLU"];
 
+/** Sévérité et statut d'un point bloquant, avec « Archivé » une fois résolu. */
+export function BlockerBadges({ blocker: b }: { blocker: Blocker }) {
+  const critical = b.severity === "critical";
+  return (
+    <>
+      <DsBadge variant={critical ? "critical" : "watch"} icon={critical ? "error" : "warning"}>
+        {severityLabel(b.severity)}
+      </DsBadge>
+      <DsBadge variant="status">{statusLabel(b.status)}</DsBadge>
+      {b.status === "RÉSOLU" && <DsBadge>Archivé</DsBadge>}
+    </>
+  );
+}
+
 function BlockerRow({
   blocker: b,
   canEdit,
@@ -36,13 +50,7 @@ function BlockerRow({
       title={
         <>
           <span className="mb-xs flex flex-wrap items-center gap-xs">
-            <DsBadge
-              variant={critical ? "critical" : "watch"}
-              icon={critical ? "error" : "warning"}
-            >
-              {severityLabel(b.severity)}
-            </DsBadge>
-            <DsBadge variant="status">{statusLabel(b.status)}</DsBadge>
+            <BlockerBadges blocker={b} />
             <DsBadge>{statusLabel(b.department)}</DsBadge>
           </span>
           {b.title}

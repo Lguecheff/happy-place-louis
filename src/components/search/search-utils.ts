@@ -1,11 +1,16 @@
 import { newsPublishedAt } from "@/components/overview/overview-utils";
-import type { News, Submission } from "@/lib/dashboard";
+import type { Blocker, Metric, News, Submission } from "@/lib/dashboard";
 
 export const SEARCH_MIN_LENGTH = 3;
 export const SEARCH_MAX_PER_TYPE = 20;
 const EXCERPT_RADIUS = 60;
 
-export type SearchData = { news: News[]; submissions: Submission[] };
+export type SearchData = {
+  news: News[];
+  submissions: Submission[];
+  blockers: Blocker[];
+  metrics: Metric[];
+};
 
 export type SearchGroup<T> = {
   /** Nombre réel de résultats, même au-delà de la limite affichée. */
@@ -16,6 +21,8 @@ export type SearchGroup<T> = {
 export type SearchResults = {
   news: SearchGroup<News>;
   submissions: SearchGroup<Submission>;
+  blockers: SearchGroup<Blocker>;
+  metrics: SearchGroup<Metric>;
 };
 
 export type TextPart = { text: string; match: boolean };
@@ -43,7 +50,10 @@ function group<T>(matches: T[], dateOf: (item: T) => string): SearchGroup<T> {
 }
 
 /** Les données sont déjà lues sous RLS ; seules les actus publiées restent cherchables. */
-export function searchAll({ news, submissions }: SearchData, query: string): SearchResults {
+export function searchAll(
+  { news, submissions, blockers, metrics }: SearchData,
+  query: string,
+): SearchResults {
   const term = normalizeText(query.trim());
   return {
     news: group(
@@ -55,6 +65,14 @@ export function searchAll({ news, submissions }: SearchData, query: string): Sea
     submissions: group(
       submissions.filter((s) => contains(s.content, term)),
       (s) => s.created_at,
+    ),
+    blockers: group(
+      blockers.filter((b) => contains(b.title, term) || contains(b.description, term)),
+      (b) => b.created_at,
+    ),
+    metrics: group(
+      metrics.filter((m) => contains(m.label, term)),
+      (m) => m.updated_at,
     ),
   };
 }

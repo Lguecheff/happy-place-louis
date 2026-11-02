@@ -56,6 +56,7 @@ export type Blocker = {
   team?: string | null;
   severity: string;
   status: string;
+  created_at: string;
   updated_at: string;
 };
 
@@ -67,6 +68,7 @@ export type Metric = {
   trend: "hausse" | "baisse" | "stable";
   previous_value: number | null;
   delta: number | string | null;
+  updated_at: string;
 };
 
 export const TREND_LABELS: Record<Metric["trend"], string> = {
@@ -74,6 +76,18 @@ export const TREND_LABELS: Record<Metric["trend"], string> = {
   baisse: "▼ En baisse",
   stable: "■ Stable",
 };
+
+const TREND_DIRECTIONS = { hausse: "up", baisse: "down", stable: "flat" } as const;
+
+/** Tendance d'un KPI pour `DsKpiTile` : le symbole de TREND_LABELS cède la place à sa flèche. */
+export function metricTrend(m: Metric) {
+  const trend = TREND_LABELS[m.trend].replace(/^\S+\s/, "");
+  const delta = deltaText(m);
+  return {
+    trend: delta ? `${trend} · ${delta}` : trend,
+    trendDirection: TREND_DIRECTIONS[m.trend],
+  };
+}
 
 export function deltaText(m: Pick<Metric, "delta" | "unit"> | undefined): string {
   if (!m || m.delta == null) return "";

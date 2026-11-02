@@ -23,7 +23,7 @@ export function useGlobalSearch({
   const data = useMemo(
     () =>
       news.data && submissions.data
-        ? { news: news.data, submissions: submissions.data }
+        ? { news: news.data, submissions: submissions.data, blockers: [], metrics: [] }
         : undefined,
     [news.data, submissions.data],
   );

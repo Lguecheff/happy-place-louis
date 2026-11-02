@@ -82,6 +82,8 @@ const BASE: SearchData = {
     submission("s3", 30, "Financer un afterwork d'équipe chaque trimestre.", "refusée"),
     submission("s4", 60, "Revoir les horaires d'astreinte de l'équipe.", "clôturée"),
   ],
+  blockers: [],
+  metrics: [],
 };
 
 const LIMITE: SearchData = {
@@ -91,6 +93,8 @@ const LIMITE: SearchData = {
   submissions: Array.from({ length: 20 }, (_, i) =>
     submission(`d${i}`, i + 1, `Demande de suivi de la mission n° ${i + 1}.`, "validée"),
   ),
+  blockers: [],
+  metrics: [],
 };
 
 // (fictif) Un admin lit les brouillons de tout le monde : ils arrivent dans les données, pas dans les résultats.

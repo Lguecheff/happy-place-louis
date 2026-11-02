@@ -2,24 +2,15 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useState } from "react";
 import { DS_INPUT, DsButton, DsField, DsIcon, DsKpiTile, DsSection } from "@/components/ds";
 import { DS_FOCUS } from "@/components/ds/focus";
-import { TREND_LABELS, deltaText, formatMetricValue, type Metric } from "@/lib/dashboard";
+import { formatMetricValue, metricTrend, type Metric } from "@/lib/dashboard";
 import { cn } from "@/lib/utils";
 
-/** La vue `metrics_with_trend` renvoie `updated_at`, que le type Metric ne déclare pas. */
-type DatedMetric = Metric & { updated_at?: string | null };
-
-const DIRECTIONS = { hausse: "up", baisse: "down", stable: "flat" } as const;
-
-function tileProps(metric: DatedMetric | undefined, onHelp: () => void) {
+function tileProps(metric: Metric | undefined, onHelp: () => void) {
   if (!metric) return { value: "—", onHelp };
-  // Le symbole de TREND_LABELS est remplacé par la flèche de la tuile.
-  const trend = TREND_LABELS[metric.trend].replace(/^\S+\s/, "");
-  const delta = deltaText(metric);
   return {
     value: formatMetricValue(metric.value, metric.unit),
-    trend: delta ? `${trend} · ${delta}` : trend,
-    trendDirection: DIRECTIONS[metric.trend],
-    updatedAt: metric.updated_at ?? undefined,
+    ...metricTrend(metric),
+    updatedAt: metric.updated_at,
     onHelp,
   };
 }
