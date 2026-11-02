@@ -41,6 +41,7 @@ export function OverviewHeader({
   exporting,
   onExport,
   search,
+  notifications,
 }: {
   isAdmin: boolean;
   name: string;
@@ -48,6 +49,7 @@ export function OverviewHeader({
   exporting: boolean;
   onExport: () => void;
   search: ReactNode;
+  notifications?: ReactNode;
 }) {
   return (
     <>
@@ -75,6 +77,7 @@ export function OverviewHeader({
         </ul>
       </nav>
       {search}
+      {notifications}
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label={`Menu du compte : ${name}, ${ROLE_LABELS[role]}`}

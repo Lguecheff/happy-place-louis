@@ -1,0 +1,44 @@
+import { formatDay, plural } from "@/components/overview/overview-utils";
+
+const MINUTE_MS = 60_000;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
+const RETENTION_DAYS = 30;
+
+export type AppNotification = {
+  id: string;
+  kind: "nouvelle_demande";
+  /** Vide quand la demande a été supprimée. */
+  submission_id: string | null;
+  message: string;
+  created_at: string;
+  read_at: string | null;
+};
+
+/** De la plus récente à la plus ancienne, 30 jours maximum. */
+export function visibleNotifications(notifications: AppNotification[]) {
+  const oldest = Date.now() - RETENTION_DAYS * DAY_MS;
+  return notifications
+    .filter((n) => new Date(n.created_at).getTime() >= oldest)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
+
+export function bellLabel(unread: number) {
+  return `Notifications, ${unread} ${plural(unread, "non lue")}`;
+}
+
+/** « il y a 5 min », puis la date au-delà de 24 h. */
+export function formatNotificationDate(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff >= DAY_MS) return formatDay(iso);
+  if (diff >= HOUR_MS) return `il y a ${Math.floor(diff / HOUR_MS)} h`;
+  if (diff >= MINUTE_MS) return `il y a ${Math.floor(diff / MINUTE_MS)} min`;
+  return "à l'instant";
+}
+
+/** Texte lu par les lecteurs d'écran à l'arrivée de nouvelles notifications. */
+export function arrivalAnnouncement(fresh: AppNotification[]) {
+  return fresh.length === 1
+    ? `Nouvelle notification : ${fresh[0].message}`
+    : `${fresh.length} nouvelles notifications`;
+}

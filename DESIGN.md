@@ -80,6 +80,18 @@ Props : `value`, `label` (ce que compte le chiffre, en toutes lettres : obligato
 <DsCount value={7} label="7 éléments à traiter" />
 ```
 
+### DsIconButton
+Props : `icon`, `label` (obligatoire, lu à la place de l'icône), `count`, + props natives. Bouton icône de 44 px, sans contour. `count` affiche une pastille sur l'icône : rien à 0, « 9+ » au-delà de 9. La pastille n'est pas lue : `label` doit dire ce qu'elle compte. Pour une action avec du texte, utilise `DsButton`.
+```tsx
+<DsIconButton icon="notifications" label="Notifications, 3 non lues" count={3} />
+```
+
+### DsPopover
+Props : `trigger`, `title`, `action`, `open`, `onOpenChange`, `children`, `className`. Panneau ancré à son déclencheur, avec un titre (h2) et au plus une action à droite. Entrée ouvre, Échap ferme et rend le focus au déclencheur. Pour un contenu à lire longuement ou une décision, utilise une fenêtre de lecture.
+```tsx
+<DsPopover trigger={<DsIconButton icon="tune" label="Ouvrir les réglages" />} title="Réglages">…</DsPopover>
+```
+
 ### DsFreshness
 Props : `at` (date ISO), `stale`. Affiche « Mis à jour il y a X » (via `timeAgo`). `stale` passe en couleur d'alerte avec icône d'avertissement.
 ```tsx

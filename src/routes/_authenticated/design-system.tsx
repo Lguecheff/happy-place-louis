@@ -9,8 +9,10 @@ import {
   DsEmptyState,
   DsFreshness,
   DsIcon,
+  DsIconButton,
   DsKpiTile,
   DsListItem,
+  DsPopover,
   DsSection,
   DsStatTile,
   toastUndo,
@@ -120,6 +122,26 @@ function DesignSystemPage() {
               À traiter
               <DsCount value={7} label="7 éléments à traiter" />
             </p>
+          </Demo>
+        </DsSection>
+
+        <DsSection id="boutons-icone" title="DsIconButton">
+          <Demo title="Sans pastille, avec pastille, au-delà de 9 (le libellé dit ce qui est compté)">
+            <DsIconButton icon="notifications" label="Notifications, 0 non lue" />
+            <DsIconButton icon="notifications" label="Notifications, 3 non lues" count={3} />
+            <DsIconButton icon="notifications" label="Notifications, 12 non lues" count={12} />
+          </Demo>
+        </DsSection>
+
+        <DsSection id="panneaux" title="DsPopover">
+          <Demo title="Panneau ancré à son déclencheur, avec une action à droite du titre">
+            <DsPopover
+              trigger={<DsButton icon="expand_more">Ouvrir le panneau</DsButton>}
+              title="Panneau"
+              action={<DsButton variant="link">Tout marquer comme lu</DsButton>}
+            >
+              <DsEmptyState>Aucune notification</DsEmptyState>
+            </DsPopover>
           </Demo>
         </DsSection>
 
