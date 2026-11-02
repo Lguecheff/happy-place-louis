@@ -57,7 +57,7 @@ Largeurs maximales : `max-w-xs` 20 rem, `max-w-sm` 24 rem, `max-w-md` 28 rem, `m
 
 ### DsButton
 Props : `variant` (`primary` | `secondary` | `confirm` | `link`, défaut `secondary`), `icon`, `pending`, `disabled`, `href` (rend un `<a>`), + props natives. Hauteur min. 44 px, libellé 14 px.
-`confirm` (contour épais) sert pour Valider et Publier. Un seul `primary` par écran.
+`confirm` (contour épais) sert pour Valider, Publier et Enregistrer les modifications d'un contenu déjà publié. Un seul `primary` par écran.
 ```tsx
 <DsButton variant="confirm" icon="check" onClick={valider}>Valider</DsButton>
 ```
