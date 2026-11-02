@@ -11,6 +11,7 @@ export function SubmissionReader({
   submission: s,
   statusLabel,
   onClose,
+  onCloseAutoFocus,
   onReject,
   onApprove,
   approving,
@@ -19,6 +20,8 @@ export function SubmissionReader({
   submission: Submission | null;
   statusLabel?: string;
   onClose: () => void;
+  /** Rend le focus à l'élément d'origine quand la fenêtre n'a pas de déclencheur. */
+  onCloseAutoFocus?: (event: Event) => void;
   onReject?: () => void;
   onApprove?: () => void;
   approving?: boolean;
@@ -31,6 +34,7 @@ export function SubmissionReader({
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50" />
         {s && (
           <DialogPrimitive.Content
+            onCloseAutoFocus={onCloseAutoFocus}
             className="fixed z-50 inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[min(48rem,calc(100vw-2rem))] h-dvh md:h-auto md:max-h-[85vh] flex flex-col bg-surface-container-lowest border border-outline shadow-lg focus:outline-none"
           >
             <div className="flex items-start justify-between gap-sm border-b border-outline-variant p-md">

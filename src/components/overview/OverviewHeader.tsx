@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { DS_INPUT, DsAvatar, DsIcon } from "@/components/ds";
 import { DS_FOCUS } from "@/components/ds/focus";
 import {
@@ -39,12 +40,15 @@ export function OverviewHeader({
   role,
   exporting,
   onExport,
+  search,
 }: {
   isAdmin: boolean;
   name: string;
   role: AppRole;
   exporting: boolean;
   onExport: () => void;
+  /** Barre de recherche ; sans valeur, le champ désactivé reste en place. */
+  search?: ReactNode;
 }) {
   return (
     <>
@@ -71,22 +75,24 @@ export function OverviewHeader({
           )}
         </ul>
       </nav>
-      <div className="relative min-w-0 flex-1">
-        <label htmlFor="recherche" className="sr-only">
-          Rechercher dans Happy Place
-        </label>
-        <DsIcon
-          name="search"
-          className="pointer-events-none absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant"
-        />
-        <input
-          id="recherche"
-          type="search"
-          disabled
-          placeholder="Rechercher une actu ou une demande"
-          className={cn(DS_INPUT, "truncate pl-10")}
-        />
-      </div>
+      {search ?? (
+        <div className="relative min-w-0 flex-1">
+          <label htmlFor="recherche" className="sr-only">
+            Rechercher dans Happy Place
+          </label>
+          <DsIcon
+            name="search"
+            className="pointer-events-none absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant"
+          />
+          <input
+            id="recherche"
+            type="search"
+            disabled
+            placeholder="Rechercher une actu ou une demande"
+            className={cn(DS_INPUT, "truncate pl-10")}
+          />
+        </div>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label={`Menu du compte : ${name}, ${ROLE_LABELS[role]}`}

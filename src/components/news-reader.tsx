@@ -6,13 +6,23 @@ import { newsPublishedAt } from "@/components/overview/overview-utils";
 import type { News } from "@/lib/dashboard";
 
 /** Fenêtre de lecture d'une actualité publiée (lecture seule, Échap, clic fond). */
-export function NewsReader({ news: n, onClose }: { news: News | null; onClose: () => void }) {
+export function NewsReader({
+  news: n,
+  onClose,
+  onCloseAutoFocus,
+}: {
+  news: News | null;
+  onClose: () => void;
+  /** Rend le focus à l'élément d'origine quand la fenêtre n'a pas de déclencheur. */
+  onCloseAutoFocus?: (event: Event) => void;
+}) {
   return (
     <DialogPrimitive.Root open={!!n} onOpenChange={(o) => !o && onClose()}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50" />
         {n && (
           <DialogPrimitive.Content
+            onCloseAutoFocus={onCloseAutoFocus}
             className="fixed z-50 inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[min(48rem,calc(100vw-2rem))] h-dvh md:h-auto md:max-h-[85vh] flex flex-col bg-surface-container-lowest border border-outline shadow-lg focus:outline-none"
           >
             <div className="flex items-start justify-between gap-sm border-b border-outline-variant p-md">
