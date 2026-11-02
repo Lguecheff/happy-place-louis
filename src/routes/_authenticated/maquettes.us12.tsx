@@ -4,13 +4,10 @@ import { toast } from "sonner";
 import { BrandHeader } from "@/components/brand-header";
 import { DS_INPUT, DsButton, DsField } from "@/components/ds";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
-import {
-  arrivalAnnouncement,
-  type AppNotification,
-} from "@/components/notifications/notification-utils";
+import { arrivalAnnouncement } from "@/components/notifications/notification-utils";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
-import type { Submission } from "@/lib/dashboard";
+import type { AppNotification, Submission } from "@/lib/dashboard";
 
 export const Route = createFileRoute("/_authenticated/maquettes/us12")({
   head: () => ({
@@ -44,7 +41,6 @@ function mockNotification(
     id,
     kind: "nouvelle_demande",
     submission_id,
-    // Texte construit par la base en phase 2 ; « (fictif) » marque le jeu de données.
     message: `Nouvelle demande de ${author} (${team}) (fictif)`,
     created_at,
     read_at: read ? created_at : null,

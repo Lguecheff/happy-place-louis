@@ -3,14 +3,13 @@ import { toast } from "sonner";
 import { DsButton, DsIconButton, DsPopover } from "@/components/ds";
 import { ReaderDialog } from "@/components/reader-dialog";
 import { SubmissionReader } from "@/components/submission-reader";
-import type { Submission } from "@/lib/dashboard";
+import type { AppNotification, Submission } from "@/lib/dashboard";
 import { NotificationPanel } from "./NotificationPanel";
 import {
   arrivalAnnouncement,
   bellLabel,
   formatNotificationDate,
   visibleNotifications,
-  type AppNotification,
 } from "./notification-utils";
 
 const ANNOUNCEMENT_MS = 5_000;
@@ -43,6 +42,7 @@ export function NotificationBell({
   onMarkRead,
   onMarkAllRead,
   loadSubmission,
+  canReadAttachment,
 }: {
   /** Sans valeur tant que le premier chargement n'est pas terminé. */
   notifications: AppNotification[] | undefined;
@@ -50,6 +50,8 @@ export function NotificationBell({
   onMarkAllRead: () => void;
   /** Renvoie `null` si la demande n'est plus lisible. */
   loadSubmission: (id: string) => Promise<Submission | null>;
+  /** Sans valeur, la pièce jointe de la demande est proposée. */
+  canReadAttachment?: (submission: Submission) => boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [reading, setReading] = useState<Submission | null>(null);
@@ -106,6 +108,7 @@ export function NotificationBell({
       </p>
       <SubmissionReader
         submission={reading}
+        hideAttachment={!!reading && canReadAttachment?.(reading) === false}
         onClose={() => setReading(null)}
         onCloseAutoFocus={focusBell}
       />

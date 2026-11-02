@@ -1,6 +1,7 @@
 import { DsBadge, DsEmptyState, DsListItem } from "@/components/ds";
+import type { AppNotification } from "@/lib/dashboard";
 import { cn } from "@/lib/utils";
-import { formatNotificationDate, type AppNotification } from "./notification-utils";
+import { formatNotificationDate } from "./notification-utils";
 
 /** Contenu du panneau « Notifications » : une ligne cliquable par notification. */
 export function NotificationPanel({

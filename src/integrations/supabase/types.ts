@@ -350,6 +350,54 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          blocker_id: string | null
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["notification_kind"]
+          message: string
+          read_at: string | null
+          recipient_email: string
+          submission_id: string | null
+        }
+        Insert: {
+          blocker_id?: string | null
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["notification_kind"]
+          message: string
+          read_at?: string | null
+          recipient_email: string
+          submission_id?: string | null
+        }
+        Update: {
+          blocker_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["notification_kind"]
+          message?: string
+          read_at?: string | null
+          recipient_email?: string
+          submission_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "blockers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submission_status_history: {
         Row: {
           changed_at: string
@@ -541,6 +589,7 @@ export type Database = {
       blocker_status: "OUVERT" | "EN COURS" | "SURVEILLANCE" | "RÉSOLU"
       news_audience: "équipe" | "entreprise"
       news_status: "brouillon" | "publiée"
+      notification_kind: "nouvelle_demande"
       rejection_category:
         | "à clarifier"
         | "en désaccord avec les process"
@@ -679,6 +728,7 @@ export const Constants = {
       blocker_status: ["OUVERT", "EN COURS", "SURVEILLANCE", "RÉSOLU"],
       news_audience: ["équipe", "entreprise"],
       news_status: ["brouillon", "publiée"],
+      notification_kind: ["nouvelle_demande"],
       rejection_category: [
         "à clarifier",
         "en désaccord avec les process",

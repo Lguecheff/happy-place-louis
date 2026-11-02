@@ -1,5 +1,5 @@
 import { loadBrowserLib } from "@/lib/browser-lib";
-import type { Database, Json } from "@/integrations/supabase/types";
+import type { Database, Json, Tables } from "@/integrations/supabase/types";
 import type { NewsAudience, NewsAudienceValue } from "@/lib/news-audience";
 import {
   applyNewsImage,
@@ -791,6 +791,47 @@ export async function fetchMyDepartureNotices(email: string): Promise<DepartureN
 export async function markDepartureNoticeDownloaded(id: string) {
   const { error } = await supabase.rpc("mark_departure_notice_downloaded", { _id: id });
   if (error) throw error;
+}
+
+export type AppNotification = Pick<
+  Tables<"notifications">,
+  "id" | "kind" | "submission_id" | "message" | "created_at" | "read_at"
+>;
+
+export async function fetchMyNotifications(email: string): Promise<AppNotification[]> {
+  const since = new Date(Date.now() - 30 * 86400000).toISOString();
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("id, kind, submission_id, message, created_at, read_at")
+    .eq("recipient_email", email.toLowerCase())
+    .gte("created_at", since)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function markNotificationRead(id: string) {
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function markAllNotificationsRead(email: string) {
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("recipient_email", email.toLowerCase())
+    .is("read_at", null);
+  if (error) throw error;
+}
+
+/** `null` si la demande est supprimée ou si la RLS ne la laisse plus lire. */
+export async function fetchReadableSubmission(id: string): Promise<Submission | null> {
+  const { data, error } = await supabase.from("submissions").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data as Submission | null;
 }
 
 export async function downloadDepartureZip(notice: DepartureNotice) {

@@ -1,19 +1,10 @@
 import { formatDay, plural } from "@/components/overview/overview-utils";
+import type { AppNotification } from "@/lib/dashboard";
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
 const RETENTION_DAYS = 30;
-
-export type AppNotification = {
-  id: string;
-  kind: "nouvelle_demande";
-  /** Vide quand la demande a été supprimée. */
-  submission_id: string | null;
-  message: string;
-  created_at: string;
-  read_at: string | null;
-};
 
 /** De la plus récente à la plus ancienne, 30 jours maximum. */
 export function visibleNotifications(notifications: AppNotification[]) {

@@ -11,6 +11,7 @@ import { DsButton, toastUndo } from "@/components/ds";
 import { DS_FOCUS } from "@/components/ds/focus";
 import { rejectionErrorMessage } from "@/components/expandable-card";
 import { NewsReader } from "@/components/news-reader";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { BlockersSection } from "@/components/overview/BlockersSection";
 import { KpiSection } from "@/components/overview/KpiSection";
 import {
@@ -318,6 +319,11 @@ function ManagerSpace() {
           exporting={exportReport.isPending}
           onExport={() => exportReport.mutate()}
           search={<GlobalSearch {...search} canEditNews={canEditNews} onEditNews={editNews} />}
+          notifications={
+            myEmail && (
+              <NotificationCenter email={myEmail} canReadAttachment={search.canReadAttachment} />
+            )
+          }
         />
       </BrandHeader>
       <main
