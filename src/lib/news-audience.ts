@@ -20,6 +20,13 @@ export function editableAudience(value: NewsAudienceValue, teams: string[]): New
   return { audience: "équipe", teams: kept.length || teams.length > 1 ? kept : teams };
 }
 
+/** Reprend le public d'une actu publiée : rien n'est choisi à la place de l'auteur. */
+export function publishedAudience(value: NewsAudienceValue, teams: string[]): NewsAudienceValue {
+  if (value.audience !== "équipe") return value;
+  const kept = value.teams.filter((t) => teams.includes(t));
+  return kept.length ? { audience: "équipe", teams: kept } : emptyAudience();
+}
+
 export function audienceLabel({ audience, teams }: NewsAudienceValue) {
   return audience === "entreprise" ? "Toute l'entreprise" : teams.join(", ");
 }

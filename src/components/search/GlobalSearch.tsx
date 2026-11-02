@@ -104,12 +104,17 @@ function ResultRow({
 export function GlobalSearch({
   source,
   canReadAttachment,
+  canEditNews,
+  onEditNews,
   defaultQuery = "",
   className,
 }: {
   source: SearchSource;
   /** Sans valeur, la pièce jointe d'une demande est proposée à tout le monde. */
   canReadAttachment?: (submission: Submission) => boolean;
+  /** Sans `onEditNews`, les actus restent en lecture seule. */
+  canEditNews?: (news: News) => boolean;
+  onEditNews?: (news: News) => void;
   /** Terme déjà saisi à l'ouverture de la page (panneau ouvert et champ actif). */
   defaultQuery?: string;
   className?: string;
@@ -334,6 +339,11 @@ export function GlobalSearch({
         news={readingNews}
         onClose={() => setReadingNews(null)}
         onCloseAutoFocus={focusInput}
+        onEdit={
+          readingNews && onEditNews && canEditNews?.(readingNews)
+            ? () => onEditNews(readingNews)
+            : undefined
+        }
       />
       <SubmissionReader
         submission={readingSubmission}

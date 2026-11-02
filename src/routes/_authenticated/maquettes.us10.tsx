@@ -154,24 +154,19 @@ function Us10Mockup() {
   const [news, setNews] = useState(NEWS);
   const [reading, setReading] = useState<News | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
-  const [lastSave, setLastSave] = useState<string | null>(null);
   const composerTitle = useRef<HTMLInputElement>(null);
   const section = useRef<NewsSectionHandle>(null);
 
   const profile = PROFILES.find((p) => p.value === profileValue) ?? PROFILES[0];
-  const canEdit = !!reading && canEditPublishedNews(reading, profile.role, profile.email);
+  const canEditNews = (n: News) => canEditPublishedNews(n, profile.role, profile.email);
+  const editNews = (n: News) => section.current?.editPublished(n);
 
   /** Comme la base : l'auteur, le statut et la date de publication ne sont pas touchés. */
   function saveEdit(input: DraftInput & { id: string }, onSaved: () => void) {
-    const { id, title, body, links, media, audience } = input;
+    const { id, title, body, links, audience } = input;
     const updated_at = new Date().toISOString();
     setNews((list) =>
       list.map((n) => (n.id === id ? { ...n, title, body, links, updated_at, ...audience } : n)),
-    );
-    setLastSave(
-      media.file
-        ? `Enregistré, avec l'image « ${media.file.name} » : elle s'affichera au branchement.`
-        : "Enregistré.",
     );
     toast.success("Actu modifiée (fictif)");
     onSaved();
@@ -189,6 +184,8 @@ function Us10Mockup() {
           search={
             <GlobalSearch
               key={profile.value}
+              canEditNews={canEditNews}
+              onEditNews={editNews}
               source={{
                 data: { news, submissions: [], blockers: [], metrics: [] },
                 isError: false,
@@ -209,7 +206,6 @@ function Us10Mockup() {
                 setProfileValue(e.target.value);
                 setReading(null);
                 setComposerOpen(false);
-                setLastSave(null);
               }}
             >
               {PROFILES.map((p) => (
@@ -225,10 +221,9 @@ function Us10Mockup() {
             </p>
             <p>
               Pour tester une erreur : vide le titre, décoche toutes les équipes du public, ou
-              choisis une image de plus de 5 Mo. Cherche « fictif » dans la barre de recherche : la
-              fenêtre reste en lecture seule.
+              choisis une image de plus de 5 Mo. Cherche « fictif » dans la barre de recherche : les
+              mêmes droits s'appliquent, et une image enregistrée ne s'affiche pas ici.
             </p>
-            {lastSave && <p role="status">{lastSave}</p>}
           </div>
         </div>
         <NewsSection
@@ -255,7 +250,7 @@ function Us10Mockup() {
       <NewsReader
         news={reading}
         onClose={() => setReading(null)}
-        onEdit={canEdit ? () => section.current?.editPublished(reading) : undefined}
+        onEdit={reading && canEditNews(reading) ? () => editNews(reading) : undefined}
       />
     </div>
   );

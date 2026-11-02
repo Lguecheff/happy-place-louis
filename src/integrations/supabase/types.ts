@@ -522,6 +522,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      save_published_news: {
+        Args: {
+          _audience: Database["public"]["Enums"]["news_audience"]
+          _body: string
+          _image_path: string | null
+          _links: Json
+          _news_id: string
+          _teams?: string[]
+          _title: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "collaborateur"

@@ -20,8 +20,10 @@ import {
   deleteNews,
   fetchAllNews,
   fetchSelectableTeams,
+  isNewsUnchanged,
   timeAgo,
   updateNews,
+  updatePublishedNews,
   type News,
   type NewsInput,
 } from "@/lib/dashboard";
@@ -68,8 +70,18 @@ function ManageNews() {
   const onError = (e: unknown) => toast.error((e as Error).message);
 
   const save = useMutation({
-    mutationFn: (input: NewsInput) =>
-      editing ? updateNews(editing.id, input, audience, media) : createNews(input, audience, media),
+    mutationFn: (input: NewsInput) => {
+      if (!editing) return createNews(input, audience, media);
+      if (editing.status !== "publiée") return updateNews(editing.id, input, audience, media);
+      return updatePublishedNews({
+        id: editing.id,
+        title: input.title,
+        body: input.body,
+        links: input.links ?? [],
+        media,
+        audience,
+      });
+    },
     onSuccess: () => {
       toast.success(editing ? "Actualité modifiée" : "Actualité créée");
       close();
@@ -106,7 +118,8 @@ function ManageNews() {
       setErrors(res.errors);
       return;
     }
-    setErrors({});
+    const published = editing?.status === "publiée";
+    setErrors(published && media.rejectedImage ? { image: media.rejectedImage } : {});
     setShowLinkErrs(true);
     if (Object.keys(linkErrors(media.links)).length) return;
     const missing = res.data.status === "publiée" ? audienceError(audience) : undefined;
@@ -115,7 +128,14 @@ function ManageNews() {
       audienceInput.current?.focus();
       return;
     }
-    save.mutate({ ...res.data, links: toNewsLinks(media.links) });
+    if (published && media.rejectedImage) return;
+    const input = { ...res.data, links: toNewsLinks(media.links) };
+    if (published && isNewsUnchanged(editing, { ...input, media, audience })) {
+      toast.info("Aucune modification à enregistrer.");
+      close();
+      return;
+    }
+    save.mutate(input);
   }
 
   return (
@@ -238,6 +258,7 @@ function ManageNews() {
               <TextInput
                 value={form.author}
                 maxLength={80}
+                disabled={!!editing}
                 onChange={(e) => setForm({ ...form, author: e.target.value })}
               />
             </Field>

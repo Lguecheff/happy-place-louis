@@ -13,7 +13,11 @@ import { rejectionErrorMessage } from "@/components/expandable-card";
 import { NewsReader } from "@/components/news-reader";
 import { BlockersSection } from "@/components/overview/BlockersSection";
 import { KpiSection } from "@/components/overview/KpiSection";
-import { NewsSection, type DraftInput } from "@/components/overview/NewsSection";
+import {
+  NewsSection,
+  type DraftInput,
+  type NewsSectionHandle,
+} from "@/components/overview/NewsSection";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
 import { RejectModal } from "@/components/overview/RejectModal";
 import { RequestFormModal } from "@/components/overview/RequestFormModal";
@@ -21,7 +25,11 @@ import { RequestsSection } from "@/components/overview/RequestsSection";
 import { TodayStrip } from "@/components/overview/TodayStrip";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
 import { useGlobalSearch } from "@/components/search/use-global-search";
-import { myDrafts, publishedThisMonth } from "@/components/overview/overview-utils";
+import {
+  canEditPublishedNews,
+  myDrafts,
+  publishedThisMonth,
+} from "@/components/overview/overview-utils";
 import { StatusButtons, type Status } from "@/components/status-actions";
 import { SubmissionReader } from "@/components/submission-reader";
 import { SubmissionThreadModal } from "@/components/submission-status-thread";
@@ -38,6 +46,7 @@ import {
   saveDraftNews,
   saveAndPublishDraftNews,
   deleteDraftNews,
+  updatePublishedNews,
   reviewSubmission,
   submitIdea,
   updateBlockerStatus,
@@ -96,6 +105,7 @@ function ManagerSpace() {
   const accountName = [firstName, profile.data?.last_name].filter(Boolean).join(" ") || metaName;
   const myName = metaName || myEmail;
   const composerTitle = useRef<HTMLInputElement>(null);
+  const newsSection = useRef<NewsSectionHandle>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [requestOpen, setRequestOpen] = useState(false);
   const myTeams = useQuery({
@@ -170,6 +180,15 @@ function ManagerSpace() {
     mutationFn: saveAndPublishDraftNews,
     onSuccess: () => {
       toast.success("Actualité publiée");
+      qc.invalidateQueries({ queryKey: ["news"] });
+    },
+    onError,
+  });
+
+  const editPublished = useMutation({
+    mutationFn: updatePublishedNews,
+    onSuccess: () => {
+      toast.success("Actualité modifiée");
       qc.invalidateQueries({ queryKey: ["news"] });
     },
     onError,
@@ -277,6 +296,9 @@ function ManagerSpace() {
     );
   }
 
+  const canEditNews = (n: News) => canEditPublishedNews(n, role, myEmail);
+  const editNews = (n: News) => newsSection.current?.editPublished(n);
+
   return (
     <div className="bg-background text-on-surface font-body-md min-h-screen flex flex-col">
       <a
@@ -295,7 +317,7 @@ function ManagerSpace() {
           role={role}
           exporting={exportReport.isPending}
           onExport={() => exportReport.mutate()}
-          search={<GlobalSearch {...search} />}
+          search={<GlobalSearch {...search} canEditNews={canEditNews} onEditNews={editNews} />}
         />
       </BrandHeader>
       <main
@@ -353,6 +375,7 @@ function ManagerSpace() {
               onChangeStatus={changeStatus}
             />
             <NewsSection
+              editRef={newsSection}
               canWrite={canReview}
               email={myEmail}
               news={news}
@@ -376,6 +399,8 @@ function ManagerSpace() {
               onPublish={publishNews}
               onRemove={(n) => removeDraft.mutate(n)}
               onRead={setReadingNews}
+              savingEdit={editPublished.isPending}
+              onSaveEdit={(input, onSaved) => editPublished.mutate(input, { onSuccess: onSaved })}
             />
           </div>
           <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-md">
@@ -408,7 +433,11 @@ function ManagerSpace() {
           onClose={() => setThreadOf(null)}
         />
       )}
-      <NewsReader news={readingNews} onClose={() => setReadingNews(null)} />
+      <NewsReader
+        news={readingNews}
+        onClose={() => setReadingNews(null)}
+        onEdit={readingNews && canEditNews(readingNews) ? () => editNews(readingNews) : undefined}
+      />
       <SubmissionReader
         submission={reading}
         onClose={() => setReading(null)}

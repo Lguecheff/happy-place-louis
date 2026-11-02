@@ -1,7 +1,15 @@
 import { loadBrowserLib } from "@/lib/browser-lib";
 import type { Database, Json } from "@/integrations/supabase/types";
 import type { NewsAudience, NewsAudienceValue } from "@/lib/news-audience";
-import { applyNewsImage, removeNewsImageFile, type MediaDraft, type NewsLink } from "@/lib/news-media";
+import {
+  applyNewsImage,
+  mediaFromNews,
+  removeNewsImageFile,
+  saveWithNewsImage,
+  toNewsLinks,
+  type MediaDraft,
+  type NewsLink,
+} from "@/lib/news-media";
 import { supabase } from "@/integrations/supabase/client";
 
 export const db = supabase;
@@ -190,6 +198,51 @@ export async function saveAndPublishDraftNews(
 ) {
   await saveDraftNews(input);
   await publishDraftNews(input.id);
+}
+
+export type PublishedNewsInput = {
+  id: string;
+  title: string;
+  body: string;
+  links: NewsLink[];
+  media: MediaDraft;
+  audience: NewsAudienceValue;
+};
+
+/** Modifie une actu publiée : elle reste publiée, avec le même auteur et la même date de publication. */
+export async function updatePublishedNews(input: PublishedNewsInput) {
+  const { id, title, body, links, media, audience } = input;
+  await saveWithNewsImage(id, media, async (imagePath) => {
+    const { error } = await db.rpc("save_published_news", {
+      _news_id: id,
+      _title: title,
+      _body: body,
+      _links: links as unknown as Json,
+      _image_path: imagePath,
+      _audience: audience.audience as NewsAudience,
+      _teams: audience.teams,
+    });
+    if (error) throw error;
+  });
+}
+
+/** Évite de marquer « Modifiée le » une actu enregistrée sans aucun changement. */
+export function isNewsUnchanged(n: News, input: Omit<PublishedNewsInput, "id">) {
+  const content = (
+    title: string,
+    body: string,
+    links: NewsLink[],
+    { audience, teams }: NewsAudienceValue,
+  ) => JSON.stringify([title, body, links, audience, [...teams].sort()]);
+  return (
+    !input.media.file &&
+    !input.media.removeExisting &&
+    content(input.title.trim(), input.body.trim(), input.links, input.audience) ===
+      content(n.title.trim(), (n.body ?? "").trim(), toNewsLinks(mediaFromNews(n).links), {
+        audience: n.audience ?? null,
+        teams: n.teams ?? [],
+      })
+  );
 }
 
 export async function deleteDraftNews(id: string, imagePath?: string | null) {
@@ -456,6 +509,7 @@ export async function createNews(
   if (input.status === "publiée") await publishDraftNews(data.id);
 }
 
+/** Admin : modifie un brouillon, et ne le publie qu'à la fin pour qu'il n'affiche pas « Modifiée le ». */
 export async function updateNews(
   id: string,
   input: NewsInput,
@@ -463,9 +517,13 @@ export async function updateNews(
   media?: MediaDraft,
 ) {
   await saveNewsAudience(id, audience);
-  const { error } = await db.from("news").update(newsRow(input)).eq("id", id);
+  const { error } = await db
+    .from("news")
+    .update(newsRow({ ...input, status: "brouillon" }))
+    .eq("id", id);
   if (error) throw error;
   if (media) await applyNewsImage(id, media);
+  if (input.status === "publiée") await publishDraftNews(id);
 }
 
 export async function deleteNews(id: string, imagePath?: string | null) {

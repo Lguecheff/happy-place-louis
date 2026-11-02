@@ -24,13 +24,14 @@ import {
   newsModifiedAt,
   newsPublishedAt,
 } from "@/components/overview/overview-utils";
-import { timeAgo, type News } from "@/lib/dashboard";
-import type { FieldErrors } from "@/lib/manage-schemas";
+import { isNewsUnchanged, timeAgo, type News } from "@/lib/dashboard";
+import { newsContentSchema, validate, type FieldErrors } from "@/lib/manage-schemas";
 import {
   audienceError,
   audienceSentence,
   editableAudience,
   emptyAudience,
+  publishedAudience,
   type NewsAudienceValue,
 } from "@/lib/news-audience";
 import {
@@ -56,25 +57,6 @@ export type DraftInput = {
 
 /** Ouvre le rédacteur sur une actu publiée depuis l'extérieur de la section (fenêtre de lecture). */
 export type NewsSectionHandle = { editPublished: (n: News) => void };
-
-/** Évite de marquer « Modifiée le » une actu enregistrée sans aucun changement. */
-function isUnchanged(n: News, input: DraftInput) {
-  const content = (
-    title: string,
-    body: string,
-    links: NewsLink[],
-    { audience, teams }: NewsAudienceValue,
-  ) => JSON.stringify([title, body, links, audience, [...teams].sort()]);
-  return (
-    !input.media.file &&
-    !input.media.removeExisting &&
-    content(input.title, input.body, input.links, input.audience) ===
-      content(n.title.trim(), n.body ?? "", toNewsLinks(mediaFromNews(n).links), {
-        audience: n.audience ?? null,
-        teams: n.teams ?? [],
-      })
-  );
-}
 
 function MonthlyProgress({ count }: { count: number }) {
   const percent = Math.min(count / NEWS_MONTHLY_TARGET, 1) * 100;
@@ -160,6 +142,7 @@ export function NewsSection({
   const [showLinkErrs, setShowLinkErrs] = useState(false);
   const [audience, setAudience] = useState<NewsAudienceValue>(emptyAudience);
   const [titleError, setTitleError] = useState<string | undefined>();
+  const [bodyError, setBodyError] = useState<string | undefined>();
   const [audienceErr, setAudienceErr] = useState<string | undefined>();
   const [editErrors, setEditErrors] = useState<FieldErrors>({});
   const audienceInput = useRef<HTMLInputElement>(null);
@@ -181,6 +164,7 @@ export function NewsSection({
     setAudience(emptyAudience());
     setShowLinkErrs(false);
     setTitleError(undefined);
+    setBodyError(undefined);
     setAudienceErr(undefined);
     setEditErrors({});
   }
@@ -192,11 +176,12 @@ export function NewsSection({
     setTitle(n.title);
     setBody(n.body ?? "");
     setMedia(mediaFromNews(n));
-    setAudience(
-      editableAudience({ audience: n.audience ?? null, teams: n.teams ?? [] }, audienceTeams),
-    );
+    const saved = { audience: n.audience ?? null, teams: n.teams ?? [] };
+    if (n.status !== "publiée") setAudience(editableAudience(saved, audienceTeams));
+    else setAudience(audienceTeamsNotice ? saved : publishedAudience(saved, audienceTeams));
     setShowLinkErrs(false);
     setTitleError(undefined);
+    setBodyError(undefined);
     setAudienceErr(undefined);
     setEditErrors({});
     flushSync(() => onComposerOpenChange(true));
@@ -226,23 +211,27 @@ export function NewsSection({
     return false;
   }
 
+  /** Mêmes règles que /manage/news. */
+  function contentErrors(status: "brouillon" | "publiée"): FieldErrors {
+    const result = validate(newsContentSchema, { title, body, status });
+    const errors = result.ok ? {} : result.errors;
+    setTitleError(errors.title);
+    setBodyError(errors.body);
+    return errors;
+  }
+
   function save(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim() && !body.trim()) {
-      setTitleError("Saisis un titre ou un texte.");
-      return;
-    }
-    setTitleError(undefined);
+    if (Object.keys(contentErrors("brouillon")).length) return;
     if (!linksAreValid("d'enregistrer")) return;
     onSave(draftInput(), closeComposer);
   }
 
   function publish() {
-    const noTitle = !title.trim();
+    const content = contentErrors("publiée");
     const missing = audienceError(audience);
-    setTitleError(noTitle ? "Ajoute un titre pour publier." : undefined);
     setAudienceErr(missing);
-    if (noTitle) titleRef.current?.focus();
+    if (Object.keys(content).length) titleRef.current?.focus();
     else if (missing) audienceInput.current?.focus();
     else if (linksAreValid("de publier")) setConfirmPublish(true);
   }
@@ -251,23 +240,23 @@ export function NewsSection({
   function saveEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!editing) return;
-    const noTitle = !title.trim();
+    const content = contentErrors("publiée");
     const missing = audienceError(audience);
     const badLinks = Object.keys(linkErrors(media.links)).length > 0;
-    setTitleError(noTitle ? "Ajoute un titre." : undefined);
-    setAudienceErr(missing);
-    setShowLinkErrs(true);
-    setEditErrors({
-      ...(noTitle && { title: "Ajoute un titre." }),
+    const errors = {
+      ...content,
       ...(missing && { audience: missing }),
       ...(badLinks && { links: "Corrige les liens invalides." }),
       ...(media.rejectedImage && { image: media.rejectedImage }),
-    });
-    if (noTitle) titleRef.current?.focus();
+    };
+    setAudienceErr(missing);
+    setShowLinkErrs(true);
+    setEditErrors(errors);
+    if (Object.keys(content).length) titleRef.current?.focus();
     else if (missing) audienceInput.current?.focus();
-    if (noTitle || missing || badLinks || media.rejectedImage) return;
+    if (Object.keys(errors).length) return;
     const input = { ...draftInput(), id: editing.id };
-    if (isUnchanged(editing, input)) {
+    if (isNewsUnchanged(editing, input)) {
       toast.info("Aucune modification à enregistrer.");
       closeComposer();
       return;
@@ -318,7 +307,7 @@ export function NewsSection({
                 onChange={(e) => setTitle(e.target.value)}
               />
             </DsField>
-            <DsField id="actu-contenu" label="Contenu">
+            <DsField id="actu-contenu" label="Contenu" error={bodyError}>
               <textarea
                 id="actu-contenu"
                 rows={4}

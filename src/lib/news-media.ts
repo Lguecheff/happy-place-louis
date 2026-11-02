@@ -80,17 +80,22 @@ export function linkDisplay(l: NewsLink): string {
   }
 }
 
+async function uploadNewsImage(newsId: string, file: File) {
+  const err = imageError(file);
+  if (err) throw new Error(err);
+  const path = `${newsId}/${crypto.randomUUID()}.${EXT[file.type]}`;
+  const { error } = await supabase.storage
+    .from(NEWS_MEDIA_BUCKET)
+    .upload(path, file, { contentType: file.type });
+  if (error) throw new Error(`L'image n'a pas pu être envoyée : ${error.message}`);
+  return path;
+}
+
 /** Envoie / remplace / retire l'image après l'enregistrement de l'actualité, puis supprime l'ancien fichier. */
 export async function applyNewsImage(newsId: string, media: MediaDraft) {
   const old = media.existingPath;
   if (media.file) {
-    const err = imageError(media.file);
-    if (err) throw new Error(err);
-    const path = `${newsId}/${crypto.randomUUID()}.${EXT[media.file.type]}`;
-    const { error: upErr } = await supabase.storage
-      .from(NEWS_MEDIA_BUCKET)
-      .upload(path, media.file, { contentType: media.file.type });
-    if (upErr) throw new Error(`L'image n'a pas pu être envoyée : ${upErr.message}`);
+    const path = await uploadNewsImage(newsId, media.file);
     const { error } = await supabase.from("news").update({ image_path: path }).eq("id", newsId);
     if (error) {
       await supabase.storage.from(NEWS_MEDIA_BUCKET).remove([path]);
@@ -102,6 +107,27 @@ export async function applyNewsImage(newsId: string, media: MediaDraft) {
     if (error) throw error;
     await supabase.storage.from(NEWS_MEDIA_BUCKET).remove([old]);
   }
+}
+
+/**
+ * Actu publiée : envoie d'abord le fichier, puis `save` enregistre tout en une transaction.
+ * Si `save` échoue, le nouveau fichier est retiré et l'actu garde son image.
+ */
+export async function saveWithNewsImage(
+  newsId: string,
+  media: MediaDraft,
+  save: (imagePath: string | null) => Promise<void>,
+) {
+  const old = media.existingPath;
+  const uploaded = media.file ? await uploadNewsImage(newsId, media.file) : null;
+  const path = uploaded ?? (media.removeExisting ? null : old);
+  try {
+    await save(path);
+  } catch (error) {
+    if (uploaded) await supabase.storage.from(NEWS_MEDIA_BUCKET).remove([uploaded]);
+    throw error;
+  }
+  if (old && old !== path) await supabase.storage.from(NEWS_MEDIA_BUCKET).remove([old]);
 }
 
 /** Supprime le fichier image d'une actualité (avant la suppression de la ligne, tant que les droits s'appliquent). */
