@@ -82,6 +82,20 @@ INSERT INTO public.news (title, body, author, status, audience, created_at) VALU
 ('Lancement du vivier Data & IA', 'Centralisation en cours de nos candidats Data Engineer, ML Engineer et AI Product Manager qualifiés.', 'Pôle Data & IA', 'publiée', 'entreprise', now() - interval '18 days'),
 ('Bilan du marché tech — septembre 2026', 'La demande reste soutenue sur les profils cybersécurité, cloud et data. Le délai moyen de recrutement observé ce mois-ci est de 31 jours.', 'Direction Conseil', 'publiée', 'entreprise', now() - interval '18 days');
 
+-- 3 bis. Actualités ciblées (US9). Sans author_email, personne n'en est l'auteur : seul le public compte.
+WITH targeted(title, body, author, age, teams) AS (
+  VALUES
+    ('Refonte du parcours candidat', 'Les premiers écrans sont prêts : relecture en équipe jeudi matin.', 'Sophie Marchand', interval '1 hour', ARRAY['Product']),
+    ('Campagne de notoriété du printemps', 'Le calendrier des prises de parole est à relire avant vendredi.', 'Karim Haddad', interval '2 hours', ARRAY['Marketing', 'Direction Commerciale']),
+    ('Nouveau référentiel des compétences data', 'Une première version est à relire avec les équipes concernées.', 'Julie Moreau', interval '3 hours', ARRAY['People', 'Pôle Data et IA'])
+), created AS (
+  INSERT INTO public.news (title, body, author, status, audience, created_at)
+  SELECT title, body, author, 'publiée'::public.news_status, 'équipe'::public.news_audience, now() - age FROM targeted
+  RETURNING id, title
+)
+INSERT INTO public.news_teams (news_id, team)
+SELECT c.id, unnest(t.teams) FROM created c JOIN targeted t ON t.title = c.title;
+
 -- 4. Soumissions (idées et demandes des équipes)
 INSERT INTO public.submissions (author_name, team, content, status, created_at) VALUES
 ('Thomas Diallo',  'Direction Commerciale', 'Réserver les points de qualification client aux seuls consultants seniors.', 'validée', now() - interval '23 days'),
