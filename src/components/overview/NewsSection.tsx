@@ -1,6 +1,7 @@
-import { useRef, useState, type RefObject } from "react";
+import { useImperativeHandle, useRef, useState, type RefObject } from "react";
 import { flushSync } from "react-dom";
 import { toast } from "sonner";
+import { ErrorSummary } from "@/components/manage/crud-ui";
 import {
   DS_INPUT,
   DsBadge,
@@ -20,9 +21,11 @@ import {
   formatDay,
   formatDays,
   myDrafts,
+  newsModifiedAt,
   newsPublishedAt,
 } from "@/components/overview/overview-utils";
 import { timeAgo, type News } from "@/lib/dashboard";
+import type { FieldErrors } from "@/lib/manage-schemas";
 import {
   audienceError,
   audienceSentence,
@@ -50,6 +53,28 @@ export type DraftInput = {
   media: MediaDraft;
   audience: NewsAudienceValue;
 };
+
+/** Ouvre le rédacteur sur une actu publiée depuis l'extérieur de la section (fenêtre de lecture). */
+export type NewsSectionHandle = { editPublished: (n: News) => void };
+
+/** Évite de marquer « Modifiée le » une actu enregistrée sans aucun changement. */
+function isUnchanged(n: News, input: DraftInput) {
+  const content = (
+    title: string,
+    body: string,
+    links: NewsLink[],
+    { audience, teams }: NewsAudienceValue,
+  ) => JSON.stringify([title, body, links, audience, [...teams].sort()]);
+  return (
+    !input.media.file &&
+    !input.media.removeExisting &&
+    content(input.title, input.body, input.links, input.audience) ===
+      content(n.title.trim(), n.body ?? "", toNewsLinks(mediaFromNews(n).links), {
+        audience: n.audience ?? null,
+        teams: n.teams ?? [],
+      })
+  );
+}
 
 function MonthlyProgress({ count }: { count: number }) {
   const percent = Math.min(count / NEWS_MONTHLY_TARGET, 1) * 100;
@@ -98,6 +123,9 @@ export function NewsSection({
   onPublish,
   onRemove,
   onRead,
+  editRef,
+  savingEdit = false,
+  onSaveEdit,
 }: {
   canWrite: boolean;
   email: string;
@@ -120,6 +148,10 @@ export function NewsSection({
   onPublish: (input: DraftInput & { id: string }, onPublished: () => void) => void;
   onRemove: (n: News) => void;
   onRead: (n: News) => void;
+  editRef?: RefObject<NewsSectionHandle | null>;
+  savingEdit?: boolean;
+  /** Enregistre la modification d'une actu publiée, qui reste publiée. */
+  onSaveEdit?: (input: DraftInput & { id: string }, onSaved: () => void) => void;
 }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -129,10 +161,13 @@ export function NewsSection({
   const [audience, setAudience] = useState<NewsAudienceValue>(emptyAudience);
   const [titleError, setTitleError] = useState<string | undefined>();
   const [audienceErr, setAudienceErr] = useState<string | undefined>();
+  const [editErrors, setEditErrors] = useState<FieldErrors>({});
   const audienceInput = useRef<HTMLInputElement>(null);
   const [confirmPublish, setConfirmPublish] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<News | null>(null);
   const linkErrs = showLinkErrs ? linkErrors(media.links) : {};
+  const editingPublished = editing?.status === "publiée";
+  const busy = saving || savingEdit;
   const drafts = myDrafts(news.data ?? [], email);
   const published = (news.data?.filter((n) => n.status === "publiée") ?? []).sort((a, b) =>
     newsPublishedAt(b).localeCompare(newsPublishedAt(a)),
@@ -147,7 +182,10 @@ export function NewsSection({
     setShowLinkErrs(false);
     setTitleError(undefined);
     setAudienceErr(undefined);
+    setEditErrors({});
   }
+
+  useImperativeHandle(editRef, () => ({ editPublished: startEditing }));
 
   function startEditing(n: News) {
     setEditing(n);
@@ -160,6 +198,7 @@ export function NewsSection({
     setShowLinkErrs(false);
     setTitleError(undefined);
     setAudienceErr(undefined);
+    setEditErrors({});
     flushSync(() => onComposerOpenChange(true));
     titleRef.current?.focus();
   }
@@ -208,27 +247,66 @@ export function NewsSection({
     else if (linksAreValid("de publier")) setConfirmPublish(true);
   }
 
+  /** Mêmes règles que la publication. En cas d'erreur, rien n'est envoyé : l'actu ne change pas. */
+  function saveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editing) return;
+    const noTitle = !title.trim();
+    const missing = audienceError(audience);
+    const badLinks = Object.keys(linkErrors(media.links)).length > 0;
+    setTitleError(noTitle ? "Ajoute un titre." : undefined);
+    setAudienceErr(missing);
+    setShowLinkErrs(true);
+    setEditErrors({
+      ...(noTitle && { title: "Ajoute un titre." }),
+      ...(missing && { audience: missing }),
+      ...(badLinks && { links: "Corrige les liens invalides." }),
+      ...(media.rejectedImage && { image: media.rejectedImage }),
+    });
+    if (noTitle) titleRef.current?.focus();
+    else if (missing) audienceInput.current?.focus();
+    if (noTitle || missing || badLinks || media.rejectedImage) return;
+    const input = { ...draftInput(), id: editing.id };
+    if (isUnchanged(editing, input)) {
+      toast.info("Aucune modification à enregistrer.");
+      closeComposer();
+      return;
+    }
+    onSaveEdit?.(input, closeComposer);
+  }
+
   return (
     <DsSection id="actus" title="Actualités du cabinet">
       {canWrite && publishedCount !== undefined && <MonthlyProgress count={publishedCount} />}
       {canWrite && (
         <>
-          <DsButton
-            icon="edit"
-            aria-expanded={composerOpen}
-            aria-controls="redacteur-actu"
-            className="w-full"
-            onClick={() => onComposerOpenChange(!composerOpen)}
-          >
-            Rédiger une actualité
-          </DsButton>
+          {!editingPublished && (
+            <DsButton
+              icon="edit"
+              aria-expanded={composerOpen}
+              aria-controls="redacteur-actu"
+              className="w-full"
+              onClick={() => onComposerOpenChange(!composerOpen)}
+            >
+              Rédiger une actualité
+            </DsButton>
+          )}
           <form
             id="redacteur-actu"
             hidden={!composerOpen}
             className="space-y-md"
-            onSubmit={save}
+            onSubmit={editingPublished ? saveEdit : save}
             noValidate
           >
+            {editingPublished && (
+              <div className="space-y-xs">
+                <h3 className={SUBTITLE}>Modifier une actu publiée</h3>
+                <p className="font-body-sm text-body-sm text-on-surface-variant">
+                  Elle reste publiée. Sa date de publication et son auteur ne changent pas.
+                </p>
+                <ErrorSummary errors={editErrors} />
+              </div>
+            )}
             <DsField id="actu-titre" label="Titre" error={titleError}>
               <input
                 id="actu-titre"
@@ -254,7 +332,7 @@ export function NewsSection({
               value={media}
               onChange={setMedia}
               linkErrs={linkErrs}
-              disabled={saving}
+              disabled={busy}
               title={title}
             />
             <NewsAudienceField
@@ -264,7 +342,7 @@ export function NewsSection({
               teamsNotice={audienceTeamsNotice}
               value={audience}
               error={audienceErr}
-              disabled={saving}
+              disabled={busy}
               firstInputRef={audienceInput}
               onChange={(value) => {
                 setAudience(value);
@@ -272,33 +350,46 @@ export function NewsSection({
               }}
             />
             <div className="flex flex-wrap items-center justify-end gap-xs">
-              {editing && (
+              {editingPublished ? (
                 <>
-                  <DsButton
-                    variant="link"
-                    className="mr-auto text-error"
-                    disabled={removing}
-                    onClick={() => setRemoveTarget(editing)}
-                  >
-                    Supprimer
-                  </DsButton>
                   <DsButton variant="link" onClick={closeComposer}>
                     Annuler
                   </DsButton>
+                  <DsButton type="submit" variant="confirm" pending={savingEdit}>
+                    {savingEdit ? "Enregistrement…" : "Enregistrer les modifications"}
+                  </DsButton>
                 </>
-              )}
-              <DsButton type="submit" pending={saving}>
-                {saving ? "Enregistrement…" : "Enregistrer le brouillon"}
-              </DsButton>
-              {editing && (
-                <DsButton
-                  variant="confirm"
-                  pending={publishing}
-                  disabled={saving}
-                  onClick={publish}
-                >
-                  Publier
-                </DsButton>
+              ) : (
+                <>
+                  {editing && (
+                    <>
+                      <DsButton
+                        variant="link"
+                        className="mr-auto text-error"
+                        disabled={removing}
+                        onClick={() => setRemoveTarget(editing)}
+                      >
+                        Supprimer
+                      </DsButton>
+                      <DsButton variant="link" onClick={closeComposer}>
+                        Annuler
+                      </DsButton>
+                    </>
+                  )}
+                  <DsButton type="submit" pending={saving}>
+                    {saving ? "Enregistrement…" : "Enregistrer le brouillon"}
+                  </DsButton>
+                  {editing && (
+                    <DsButton
+                      variant="confirm"
+                      pending={publishing}
+                      disabled={saving}
+                      onClick={publish}
+                    >
+                      Publier
+                    </DsButton>
+                  )}
+                </>
               )}
             </div>
           </form>
@@ -330,22 +421,26 @@ export function NewsSection({
         {news.data && published.length === 0 && (
           <DsEmptyState>Aucune actu publiée pour le moment.</DsEmptyState>
         )}
-        {published.slice(0, RECENT_NEWS).map((n) => (
-          <DsListItem
-            key={n.id}
-            icon="article"
-            title={n.title}
-            meta={
-              <>
-                <span className="block">
-                  Publiée {timeAgo(newsPublishedAt(n))} · Par {n.author}
-                </span>
-                <NewsAudienceBadge news={n} className="mt-xs" />
-              </>
-            }
-            onClick={() => onRead(n)}
-          />
-        ))}
+        {published.slice(0, RECENT_NEWS).map((n) => {
+          const modifiedAt = newsModifiedAt(n);
+          return (
+            <DsListItem
+              key={n.id}
+              icon="article"
+              title={n.title}
+              meta={
+                <>
+                  <span className="block">
+                    Publiée {timeAgo(newsPublishedAt(n))} · Par {n.author}
+                    {modifiedAt && ` · Modifiée le ${formatDay(modifiedAt)}`}
+                  </span>
+                  <NewsAudienceBadge news={n} className="mt-xs" />
+                </>
+              }
+              onClick={() => onRead(n)}
+            />
+          );
+        })}
       </div>
       <ConfirmDialog
         open={confirmPublish}

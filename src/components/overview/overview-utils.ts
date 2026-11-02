@@ -1,3 +1,4 @@
+import type { AppRole } from "@/lib/auth";
 import type { News, Submission } from "@/lib/dashboard";
 
 /** Cible d'actus publiées par mois (North Star, décision du 2026-10-28). */
@@ -36,6 +37,21 @@ const parisMonth = new Intl.DateTimeFormat("fr-FR", {
 /** Réservé aux actus publiées : la base renseigne toujours leur date de publication. */
 export function newsPublishedAt(n: News) {
   return n.published_at as string;
+}
+
+/** Date de modification d'une actu publiée, absente si elle n'a pas changé depuis sa publication. */
+export function newsModifiedAt({ updated_at, published_at }: News) {
+  if (!updated_at || !published_at) return null;
+  return new Date(updated_at) > new Date(published_at) ? updated_at : null;
+}
+
+/** Affichage seulement : la base applique la même règle (un admin, ou le manager auteur). */
+export function canEditPublishedNews(n: News, role: AppRole | null, email: string) {
+  if (n.status !== "publiée") return false;
+  return (
+    role === "admin" ||
+    (role === "manager" && (n.author_email ?? "").toLowerCase() === email.toLowerCase())
+  );
 }
 
 export function publishedThisMonth(news: News[], email: string) {

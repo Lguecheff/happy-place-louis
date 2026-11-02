@@ -1,29 +1,44 @@
+import { useRef } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { DsButton } from "@/components/ds";
 import { Linkify } from "@/components/linkify";
 import { formatExactDate } from "@/components/expandable-card";
 import { NewsImage, NewsLinks } from "@/components/news-media";
 import { NewsAudienceBadge } from "@/components/news/NewsAudienceBadge";
-import { newsPublishedAt } from "@/components/overview/overview-utils";
+import { formatDay, newsModifiedAt, newsPublishedAt } from "@/components/overview/overview-utils";
 import type { News } from "@/lib/dashboard";
 
-/** Fenêtre de lecture d'une actualité publiée (lecture seule, Échap, clic fond). */
+/** Fenêtre de lecture d'une actualité publiée (Échap, clic fond). Lecture seule sans `onEdit`. */
 export function NewsReader({
   news: n,
   onClose,
   onCloseAutoFocus,
+  onEdit,
 }: {
   news: News | null;
   onClose: () => void;
   /** Rend le focus à l'élément d'origine quand la fenêtre n'a pas de déclencheur. */
   onCloseAutoFocus?: (event: Event) => void;
+  /** Affiche « Modifier ». Appelé une fois la fenêtre fermée, pour que le focus aille au rédacteur. */
+  onEdit?: () => void;
 }) {
+  const editOnClose = useRef(false);
+  const modifiedAt = n && newsModifiedAt(n);
   return (
     <DialogPrimitive.Root open={!!n} onOpenChange={(o) => !o && onClose()}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50" />
         {n && (
           <DialogPrimitive.Content
-            onCloseAutoFocus={onCloseAutoFocus}
+            onCloseAutoFocus={(event) => {
+              if (editOnClose.current) {
+                editOnClose.current = false;
+                event.preventDefault();
+                onEdit?.();
+              } else {
+                onCloseAutoFocus?.(event);
+              }
+            }}
             className="fixed z-50 inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[min(48rem,calc(100vw-2rem))] h-dvh md:h-auto md:max-h-[85vh] flex flex-col bg-surface-container-lowest border border-outline shadow-lg focus:outline-none"
           >
             <div className="flex items-start justify-between gap-sm border-b border-outline-variant p-md">
@@ -33,6 +48,7 @@ export function NewsReader({
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Description className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
                   Publiée le {formatExactDate(newsPublishedAt(n))} · Par {n.author}
+                  {modifiedAt && ` · Modifiée le ${formatDay(modifiedAt)}`}
                 </DialogPrimitive.Description>
                 <NewsAudienceBadge news={n} />
               </div>
@@ -40,7 +56,9 @@ export function NewsReader({
                 aria-label="Fermer"
                 className="inline-flex size-11 shrink-0 items-center justify-center text-on-surface-variant hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <span aria-hidden="true" className="material-symbols-outlined">close</span>
+                <span aria-hidden="true" className="material-symbols-outlined">
+                  close
+                </span>
               </DialogPrimitive.Close>
             </div>
             <div className="flex-1 overflow-y-auto p-md space-y-md">
@@ -52,6 +70,19 @@ export function NewsReader({
               )}
               <NewsLinks links={n.links} />
             </div>
+            {onEdit && (
+              <div className="flex justify-end border-t border-outline-variant p-md">
+                <DsButton
+                  icon="edit"
+                  onClick={() => {
+                    editOnClose.current = true;
+                    onClose();
+                  }}
+                >
+                  Modifier
+                </DsButton>
+              </div>
+            )}
           </DialogPrimitive.Content>
         )}
       </DialogPrimitive.Portal>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -59,7 +59,6 @@ export function NewsMediaEditor({
   title: string;
 }) {
   const input = useRef<HTMLInputElement>(null);
-  const [imgError, setImgError] = useState<string | null>(null);
   const preview = useMemo(() => (value.file ? URL.createObjectURL(value.file) : null), [value.file]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
   const showExisting = !value.file && value.existingPath && !value.removeExisting;
@@ -81,9 +80,12 @@ export function NewsMediaEditor({
           e.target.value = "";
           if (!f) return;
           const err = imageError(f);
-          setImgError(err);
-          if (err) { toast.error(err); return; }
-          onChange({ ...value, file: f });
+          if (err) {
+            toast.error(err);
+            onChange({ ...value, rejectedImage: err });
+            return;
+          }
+          onChange({ ...value, file: f, rejectedImage: null });
         }}
       />
       {hasImage && (
@@ -106,7 +108,19 @@ export function NewsMediaEditor({
           </div>
         </div>
       )}
-      {imgError && <p role="alert" className="text-body-sm text-error">{imgError}</p>}
+      {value.rejectedImage && (
+        <div className="flex flex-wrap items-center gap-sm">
+          <p role="alert" className="text-body-sm text-error">{value.rejectedImage}</p>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange({ ...value, rejectedImage: null })}
+            className="min-h-11 font-label-md text-label-md normal-case tracking-normal text-primary underline disabled:opacity-50"
+          >
+            Ignorer cette image
+          </button>
+        </div>
+      )}
 
       {value.links.map((l, i) => (
         <div key={i} className="space-y-1 min-w-0">

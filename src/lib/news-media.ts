@@ -14,6 +14,8 @@ export type MediaDraft = {
   file: File | null;
   existingPath: string | null;
   removeExisting: boolean;
+  /** Dernière image refusée à la sélection : bloque l'enregistrement d'une actu publiée. */
+  rejectedImage?: string | null;
 };
 
 export const emptyMedia = (): MediaDraft => ({ links: [], file: null, existingPath: null, removeExisting: false });
