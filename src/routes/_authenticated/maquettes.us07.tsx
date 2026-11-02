@@ -2,9 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BrandHeader } from "@/components/brand-header";
-import { DS_INPUT, DsButton, DsField } from "@/components/ds";
-import { BlockersSection } from "@/components/overview/BlockersSection";
-import { KpiSection } from "@/components/overview/KpiSection";
+import { DS_INPUT, DsField } from "@/components/ds";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
 import type { SearchData } from "@/components/search/search-utils";
@@ -181,8 +179,6 @@ const SCENARIOS: { value: Scenario; label: string; query: string; hint: string }
   },
 ];
 
-const notWired = () => toast.info("Non branché dans la maquette (fictif).");
-
 // ---------------------------------------------------------------------------
 // Présentation
 // ---------------------------------------------------------------------------
@@ -199,7 +195,7 @@ function Us07Mockup() {
           name="Gontran (fictif)"
           role="collaborateur"
           exporting={false}
-          onExport={notWired}
+          onExport={() => toast.info("Non branché dans la maquette (fictif).")}
           search={
             <GlobalSearch
               key={scenario}
@@ -210,20 +206,6 @@ function Us07Mockup() {
         />
       </BrandHeader>
       <main className="flex-grow w-full max-w-interface mx-auto p-sm md:p-md space-y-md">
-        <div className="flex flex-wrap items-end justify-between gap-sm">
-          <div className="min-w-0 space-y-xs">
-            <h1 className="font-headline-lg text-headline-lg text-primary wrap-anywhere">
-              Bonjour Gontran (fictif)
-            </h1>
-            <p className="font-body-md text-body-md text-on-surface-variant">
-              Voici ce qui demande ton attention aujourd'hui.
-            </p>
-          </div>
-          <DsButton variant="primary" aria-haspopup="dialog" onClick={notWired}>
-            Faire une demande
-          </DsButton>
-        </div>
-
         <div className="flex flex-wrap items-end gap-sm border border-dashed border-outline-variant p-sm">
           <DsField id="maquette-etat" label="Maquette (fictif)" className="w-full md:w-72">
             <select
@@ -242,28 +224,6 @@ function Us07Mockup() {
           <p className="min-w-0 flex-1 basis-64 font-body-sm text-body-sm text-on-surface-variant">
             {current.hint}
           </p>
-        </div>
-
-        <div className="flex flex-wrap items-start gap-md">
-          <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-md">
-            <BlockersSection
-              blockers={{
-                data: DATA.blockers.filter((b) => b.status !== "RÉSOLU"),
-                isError: false,
-              }}
-              canEdit={false}
-              onStatusChange={notWired}
-              onOpenArchive={notWired}
-            />
-          </div>
-          <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-md">
-            <KpiSection
-              metrics={{ data: DATA.metrics, isError: false }}
-              canEditNps={false}
-              savingNps={false}
-              onSaveNps={notWired}
-            />
-          </div>
         </div>
       </main>
     </div>
