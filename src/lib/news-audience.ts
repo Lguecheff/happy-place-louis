@@ -12,6 +12,14 @@ export function audienceError({ audience, teams }: NewsAudienceValue) {
   return undefined;
 }
 
+/** Reprend le public d'un brouillon, sans les équipes que l'auteur ne peut plus cibler. */
+export function editableAudience(value: NewsAudienceValue, teams: string[]): NewsAudienceValue {
+  if (value.audience !== "équipe") return value;
+  if (!teams.length) return emptyAudience();
+  const kept = value.teams.filter((t) => teams.includes(t));
+  return { audience: "équipe", teams: kept.length || teams.length > 1 ? kept : teams };
+}
+
 export function audienceLabel({ audience, teams }: NewsAudienceValue) {
   return audience === "entreprise" ? "Toute l'entreprise" : teams.join(", ");
 }

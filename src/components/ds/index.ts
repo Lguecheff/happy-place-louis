@@ -1,6 +1,7 @@
 export { DsAvatar } from "./ds-avatar";
 export { DsBadge, type DsBadgeVariant } from "./ds-badge";
 export { DsButton, type DsButtonVariant } from "./ds-button";
+export { DsChoice, DsChoiceGroup } from "./ds-choice";
 export { DsCount } from "./ds-count";
 export { DsEmptyState } from "./ds-empty-state";
 export { DS_INPUT, DsField } from "./ds-field";

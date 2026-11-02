@@ -29,6 +29,7 @@ import {
   fetchBlockers,
   fetchMetrics,
   fetchNews,
+  fetchSelectableTeams,
   fetchSubmissions,
   fetchMySubmissions,
   exportMyRecentSubmissions,
@@ -109,6 +110,12 @@ function ManagerSpace() {
       return (data ?? []).map((t) => t.team).sort();
     },
   });
+  const selectableTeams = useQuery({
+    queryKey: ["teams", "selectable"],
+    enabled: isAdmin,
+    queryFn: fetchSelectableTeams,
+  });
+  const audienceTeams = isAdmin ? selectableTeams : myTeams;
   const search = useGlobalSearch({ role, email: myEmail, managerTeams: myTeams.data ?? [] });
   const [rejecting, setRejecting] = useState<Submission | null>(null);
   const [reading, setReading] = useState<Submission | null>(null);
@@ -349,6 +356,15 @@ function ManagerSpace() {
               canWrite={canReview}
               email={myEmail}
               news={news}
+              audienceTeams={audienceTeams.data ?? []}
+              audienceScope={isAdmin ? "all" : "mine"}
+              audienceTeamsNotice={
+                audienceTeams.isLoading
+                  ? "Chargement des équipes…"
+                  : audienceTeams.isError
+                    ? "Les équipes sont indisponibles."
+                    : undefined
+              }
               publishedCount={publishedCount}
               composerOpen={composerOpen}
               onComposerOpenChange={setComposerOpen}

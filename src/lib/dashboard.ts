@@ -1,5 +1,6 @@
 import { loadBrowserLib } from "@/lib/browser-lib";
 import type { Database, Json } from "@/integrations/supabase/types";
+import type { NewsAudience, NewsAudienceValue } from "@/lib/news-audience";
 import { applyNewsImage, removeNewsImageFile, type MediaDraft, type NewsLink } from "@/lib/news-media";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,6 +22,9 @@ export type News = {
   published_at?: string | null;
   image_path?: string | null;
   links?: unknown;
+  /** Vide tant que l'auteur d'un brouillon n'a pas choisi (migration 20261102090000_public_des_actus). */
+  audience?: NewsAudience | null;
+  teams?: string[];
 };
 
 export type Submission = {
@@ -107,13 +111,40 @@ export function formatMetricValue(value: number | string, unit: string | null): 
   return `${formatted}${unit ?? ""}`;
 }
 
+function toNews({
+  news_teams,
+  ...news
+}: Database["public"]["Tables"]["news"]["Row"] & { news_teams: { team: string }[] }): News {
+  return { ...news, teams: news_teams.map((t) => t.team).sort() };
+}
+
 export async function fetchNews(): Promise<News[]> {
   const { data, error } = await db
     .from("news")
-    .select("*")
+    .select("*, news_teams(team)")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as News[];
+  return (data ?? []).map(toNews);
+}
+
+/** Équipes qu'un admin peut cibler : tout le référentiel, sauf « Admin ». */
+export async function fetchSelectableTeams() {
+  const { data, error } = await db
+    .from("teams")
+    .select("name")
+    .eq("is_reserved", false)
+    .order("name");
+  if (error) throw error;
+  return data.map((t) => t.name);
+}
+
+async function saveNewsAudience(id: string, { audience, teams }: NewsAudienceValue) {
+  const { error } = await db.rpc("save_news_audience", {
+    _news_id: id,
+    _audience: audience,
+    _teams: teams,
+  });
+  if (error) throw error;
 }
 
 export async function saveDraftNews(input: {
@@ -124,6 +155,7 @@ export async function saveDraftNews(input: {
   author_email: string;
   links: NewsLink[];
   media: MediaDraft;
+  audience: NewsAudienceValue;
 }) {
   const payload = {
     title: input.title,
@@ -137,6 +169,7 @@ export async function saveDraftNews(input: {
     ? await db.from("news").update(payload).eq("id", input.id).select("id").single()
     : await db.from("news").insert(payload).select("id").single();
   if (error) throw error;
+  await saveNewsAudience(data.id, input.audience);
   await applyNewsImage(data.id, input.media);
 }
 
@@ -396,24 +429,40 @@ export type MetricInput = {
 export async function fetchAllNews(): Promise<News[]> {
   const { data, error } = await db
     .from("news")
-    .select("*")
+    .select("*, news_teams(team)")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as News[];
+  return (data ?? []).map(toNews);
 }
 
 function newsRow(input: NewsInput) {
   return { ...input, links: (input.links ?? []) as unknown as Json, status: input.status as Enums["news_status"] };
 }
 
-/** Admin : crée l'actualité (pour obtenir son id), puis envoie l'image. */
-export async function createNews(input: NewsInput, media?: MediaDraft) {
-  const { data, error } = await db.from("news").insert(newsRow(input)).select("id").single();
+/** Admin : crée un brouillon (pour obtenir son id), enregistre le public, l'image, puis publie. */
+export async function createNews(
+  input: NewsInput,
+  audience: NewsAudienceValue,
+  media?: MediaDraft,
+) {
+  const { data, error } = await db
+    .from("news")
+    .insert(newsRow({ ...input, status: "brouillon" }))
+    .select("id")
+    .single();
   if (error) throw error;
+  await saveNewsAudience(data.id, audience);
   if (media) await applyNewsImage(data.id, media);
+  if (input.status === "publiée") await publishDraftNews(data.id);
 }
 
-export async function updateNews(id: string, input: NewsInput, media?: MediaDraft) {
+export async function updateNews(
+  id: string,
+  input: NewsInput,
+  audience: NewsAudienceValue,
+  media?: MediaDraft,
+) {
+  await saveNewsAudience(id, audience);
   const { error } = await db.from("news").update(newsRow(input)).eq("id", id);
   if (error) throw error;
   if (media) await applyNewsImage(id, media);

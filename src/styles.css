@@ -91,6 +91,12 @@
 
   --container-interface: 88rem;
 
+  /* Sans ces valeurs, max-w-xs à max-w-lg prennent les espacements ci-dessus (max-w-lg = 32 px). */
+  --max-width-xs: 20rem;
+  --max-width-sm: 24rem;
+  --max-width-md: 28rem;
+  --max-width-lg: 32rem;
+
   --shadow-sm: 0 1px 0 0 var(--outline);
 }
 

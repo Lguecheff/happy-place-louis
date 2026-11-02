@@ -1,49 +1,13 @@
-import type { ReactNode, RefObject } from "react";
-import { DS_FOCUS } from "@/components/ds/focus";
+import type { RefObject } from "react";
+import { DsChoice, DsChoiceGroup } from "@/components/ds";
 import type { NewsAudienceValue } from "@/lib/news-audience";
-import { cn } from "@/lib/utils";
-
-const LABEL = "font-label-md text-label-md normal-case tracking-normal text-on-surface-variant";
-
-function Option({
-  selected,
-  disabled,
-  children,
-}: {
-  selected: boolean;
-  disabled?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <label
-      className={cn(
-        "flex min-h-11 items-start gap-sm border p-sm",
-        selected ? "border-primary bg-surface-container" : "border-outline-variant",
-        disabled ? "cursor-not-allowed bg-surface-container" : "cursor-pointer",
-      )}
-    >
-      {children}
-    </label>
-  );
-}
-
-function OptionText({ label, hint }: { label: string; hint?: string }) {
-  return (
-    <span className="min-w-0">
-      <span className="block font-body-md text-body-md text-on-surface wrap-anywhere">{label}</span>
-      {hint && (
-        <span className="block font-body-sm text-body-sm text-on-surface-variant wrap-anywhere">
-          {hint}
-        </span>
-      )}
-    </span>
-  );
-}
 
 /** Champ « Public » d'une actu. `teams` : les équipes que l'auteur peut cibler. */
 export function NewsAudienceField({
   id,
   teams,
+  scope = "mine",
+  teamsNotice,
   value,
   onChange,
   error,
@@ -52,6 +16,10 @@ export function NewsAudienceField({
 }: {
   id: string;
   teams: string[];
+  /** « mine » : les équipes de l'auteur. « all » : l'admin choisit dans le référentiel. */
+  scope?: "mine" | "all";
+  /** Remplace le choix des équipes tant qu'elles ne sont pas disponibles (chargement, erreur). */
+  teamsNotice?: string;
   value: NewsAudienceValue;
   onChange: (value: NewsAudienceValue) => void;
   error?: string;
@@ -59,9 +27,15 @@ export function NewsAudienceField({
   /** Pour ramener le focus sur le champ quand le public manque à la publication. */
   firstInputRef?: RefObject<HTMLInputElement | null>;
 }) {
+  const mine = scope === "mine";
   const noTeam = teams.length === 0;
-  const pickTeams = teams.length > 1;
+  const teamsDisabled = noTeam || !!teamsNotice;
+  const pickTeams = !teamsDisabled && (!mine || teams.length > 1);
   const onTeam = value.audience === "équipe";
+  const noTeamHint = mine
+    ? "Aucune équipe ne t'est rattachée : tu peux publier pour toute l'entreprise."
+    : "Aucune équipe dans le référentiel.";
+  const teamHint = teamsNotice ?? (noTeam ? noTeamHint : pickTeams ? undefined : teams[0]);
 
   function toggleTeam(team: string, checked: boolean) {
     const picked = checked ? [...value.teams, team] : value.teams.filter((t) => t !== team);
@@ -69,63 +43,38 @@ export function NewsAudienceField({
   }
 
   return (
-    <fieldset id={id} className="min-w-0 space-y-xs">
-      <legend className={cn(LABEL, "mb-xs")}>Public</legend>
-      <Option selected={onTeam} disabled={noTeam}>
-        <input
-          ref={noTeam ? undefined : firstInputRef}
-          type="radio"
-          name={`${id}-choix`}
-          className={cn("mt-1 accent-primary", DS_FOCUS)}
-          checked={onTeam}
-          disabled={noTeam || disabled}
-          onChange={() => onChange({ audience: "équipe", teams: pickTeams ? [] : teams })}
-        />
-        <OptionText
-          label="Mon équipe"
-          hint={
-            noTeam
-              ? "Aucune équipe ne t'est rattachée : tu peux publier pour toute l'entreprise."
-              : pickTeams
-                ? undefined
-                : teams[0]
-          }
-        />
-      </Option>
+    <DsChoiceGroup id={id} legend="Public" error={error}>
+      <DsChoice
+        inputRef={teamsDisabled ? undefined : firstInputRef}
+        name={`${id}-choix`}
+        label={mine ? "Mon équipe" : "Des équipes"}
+        hint={teamHint}
+        checked={onTeam}
+        disabled={teamsDisabled || disabled}
+        onChange={() => onChange({ audience: "équipe", teams: pickTeams ? [] : teams })}
+      />
       {onTeam && pickTeams && (
-        <fieldset className="min-w-0 space-y-xs pl-lg">
-          <legend className={cn(LABEL, "mb-xs")}>Équipes concernées</legend>
+        <DsChoiceGroup legend="Équipes concernées" className="pl-lg">
           {teams.map((team) => (
-            <Option key={team} selected={value.teams.includes(team)}>
-              <input
-                type="checkbox"
-                className={cn("mt-1 accent-primary", DS_FOCUS)}
-                checked={value.teams.includes(team)}
-                disabled={disabled}
-                onChange={(e) => toggleTeam(team, e.target.checked)}
-              />
-              <OptionText label={team} />
-            </Option>
+            <DsChoice
+              key={team}
+              type="checkbox"
+              label={team}
+              checked={value.teams.includes(team)}
+              disabled={disabled}
+              onChange={(e) => toggleTeam(team, e.target.checked)}
+            />
           ))}
-        </fieldset>
+        </DsChoiceGroup>
       )}
-      <Option selected={value.audience === "entreprise"}>
-        <input
-          ref={noTeam ? firstInputRef : undefined}
-          type="radio"
-          name={`${id}-choix`}
-          className={cn("mt-1 accent-primary", DS_FOCUS)}
-          checked={value.audience === "entreprise"}
-          disabled={disabled}
-          onChange={() => onChange({ audience: "entreprise", teams: [] })}
-        />
-        <OptionText label="Toute l'entreprise" />
-      </Option>
-      {error && (
-        <p role="alert" className="font-body-sm text-body-sm text-error">
-          {error}
-        </p>
-      )}
-    </fieldset>
+      <DsChoice
+        inputRef={teamsDisabled ? firstInputRef : undefined}
+        name={`${id}-choix`}
+        label="Toute l'entreprise"
+        checked={value.audience === "entreprise"}
+        disabled={disabled}
+        onChange={() => onChange({ audience: "entreprise", teams: [] })}
+      />
+    </DsChoiceGroup>
   );
 }

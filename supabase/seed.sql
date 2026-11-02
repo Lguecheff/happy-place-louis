@@ -69,18 +69,18 @@ JOIN public.allowed_users u ON u.email = m.email
 ON CONFLICT DO NOTHING;
 
 -- 3. Actualités
-INSERT INTO public.news (title, body, author, status, created_at) VALUES
-('Meet-up candidats Cloud & DevOps', 'Une rencontre candidats et entreprises est organisée le 6 novembre autour des métiers Platform Engineering, SRE et Cloud.', 'Communauté Tech', 'publiée', now() - interval '31 days'),
-('Trois consultants rejoignent le cabinet', 'Bienvenue à Inès, spécialisée Product & Design, Mathieu sur le pôle Cloud et Nora sur les profils Data.', 'People & Culture', 'publiée', now() - interval '29 days'),
-('Observatoire des salaires IT 2026', 'La synthèse des rémunérations par métier, niveau d’expérience et région est disponible pour préparer les briefs clients.', 'Pôle Études', 'publiée', now() - interval '27 days'),
-('Partenariat avec l’école Ada Tech School', 'Le cabinet accompagnera les promotions sur les simulations d’entretien, la préparation du portfolio et la mise en relation avec nos clients.', 'Relations Écoles', 'publiée', now() - interval '25 days'),
-('Priorités commerciales du quatrième trimestre', 'Nos priorités : développer les comptes SaaS B2B, accélérer les mandats Data & IA et maintenir un suivi candidat hebdomadaire.', 'Direction Commerciale', 'publiée', now() - interval '23 days'),
-('Nouvelle grille d’évaluation des compétences tech', 'La nouvelle trame d’entretien couvre désormais l’expertise technique, la collaboration, l’impact produit et les attentes managériales.', 'Direction Recrutement', 'publiée', now() - interval '21 days'),
-('Petit-déjeuner CTO : attirer les profils pénuriques', 'Rendez-vous avec nos clients CTO et DRH pour partager les pratiques qui accélèrent les recrutements sur les métiers en tension.', 'Relations Clients', 'publiée', now() - interval '20 days'),
-('Migration vers notre nouvel ATS', 'Le déploiement du nouvel outil de suivi des candidatures est prévu dans trois semaines. Une reprise des dossiers actifs sera réalisée en amont.', 'Opérations', 'publiée', now() - interval '19 days'),
-('Renforcement du pôle Cybersécurité', 'Deux consultants spécialisés rejoignent l’équipe pour accompagner les recrutements SOC, GRC et sécurité cloud.', 'Direction Recrutement', 'publiée', now() - interval '19 days'),
-('Lancement du vivier Data & IA', 'Centralisation en cours de nos candidats Data Engineer, ML Engineer et AI Product Manager qualifiés.', 'Pôle Data & IA', 'publiée', now() - interval '18 days'),
-('Bilan du marché tech — septembre 2026', 'La demande reste soutenue sur les profils cybersécurité, cloud et data. Le délai moyen de recrutement observé ce mois-ci est de 31 jours.', 'Direction Conseil', 'publiée', now() - interval '18 days');
+INSERT INTO public.news (title, body, author, status, audience, created_at) VALUES
+('Meet-up candidats Cloud & DevOps', 'Une rencontre candidats et entreprises est organisée le 6 novembre autour des métiers Platform Engineering, SRE et Cloud.', 'Communauté Tech', 'publiée', 'entreprise', now() - interval '31 days'),
+('Trois consultants rejoignent le cabinet', 'Bienvenue à Inès, spécialisée Product & Design, Mathieu sur le pôle Cloud et Nora sur les profils Data.', 'People & Culture', 'publiée', 'entreprise', now() - interval '29 days'),
+('Observatoire des salaires IT 2026', 'La synthèse des rémunérations par métier, niveau d’expérience et région est disponible pour préparer les briefs clients.', 'Pôle Études', 'publiée', 'entreprise', now() - interval '27 days'),
+('Partenariat avec l’école Ada Tech School', 'Le cabinet accompagnera les promotions sur les simulations d’entretien, la préparation du portfolio et la mise en relation avec nos clients.', 'Relations Écoles', 'publiée', 'entreprise', now() - interval '25 days'),
+('Priorités commerciales du quatrième trimestre', 'Nos priorités : développer les comptes SaaS B2B, accélérer les mandats Data & IA et maintenir un suivi candidat hebdomadaire.', 'Direction Commerciale', 'publiée', 'entreprise', now() - interval '23 days'),
+('Nouvelle grille d’évaluation des compétences tech', 'La nouvelle trame d’entretien couvre désormais l’expertise technique, la collaboration, l’impact produit et les attentes managériales.', 'Direction Recrutement', 'publiée', 'entreprise', now() - interval '21 days'),
+('Petit-déjeuner CTO : attirer les profils pénuriques', 'Rendez-vous avec nos clients CTO et DRH pour partager les pratiques qui accélèrent les recrutements sur les métiers en tension.', 'Relations Clients', 'publiée', 'entreprise', now() - interval '20 days'),
+('Migration vers notre nouvel ATS', 'Le déploiement du nouvel outil de suivi des candidatures est prévu dans trois semaines. Une reprise des dossiers actifs sera réalisée en amont.', 'Opérations', 'publiée', 'entreprise', now() - interval '19 days'),
+('Renforcement du pôle Cybersécurité', 'Deux consultants spécialisés rejoignent l’équipe pour accompagner les recrutements SOC, GRC et sécurité cloud.', 'Direction Recrutement', 'publiée', 'entreprise', now() - interval '19 days'),
+('Lancement du vivier Data & IA', 'Centralisation en cours de nos candidats Data Engineer, ML Engineer et AI Product Manager qualifiés.', 'Pôle Data & IA', 'publiée', 'entreprise', now() - interval '18 days'),
+('Bilan du marché tech — septembre 2026', 'La demande reste soutenue sur les profils cybersécurité, cloud et data. Le délai moyen de recrutement observé ce mois-ci est de 31 jours.', 'Direction Conseil', 'publiée', 'entreprise', now() - interval '18 days');
 
 -- 4. Soumissions (idées et demandes des équipes)
 INSERT INTO public.submissions (author_name, team, content, status, created_at) VALUES

@@ -245,6 +245,7 @@ function Us05Mockup() {
               canWrite={canWrite}
               email={current.email}
               news={{ data: news, isError: false, isLoading: false }}
+              audienceTeams={["Product"]}
               publishedCount={publishedCount}
               composerOpen={composerOpen}
               onComposerOpenChange={setComposerOpen}

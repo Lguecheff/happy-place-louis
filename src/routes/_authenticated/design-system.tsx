@@ -3,6 +3,8 @@ import { BrandHeader } from "@/components/brand-header";
 import {
   DsBadge,
   DsButton,
+  DsChoice,
+  DsChoiceGroup,
   DsCount,
   DsEmptyState,
   DsFreshness,
@@ -230,6 +232,30 @@ function DesignSystemPage() {
               Afficher le message
             </DsButton>
           </Demo>
+        </DsSection>
+
+        <DsSection id="choix" title="DsChoiceGroup et DsChoice">
+          <div className="grid gap-md md:grid-cols-2">
+            <DsChoiceGroup legend="Boutons radio">
+              <DsChoice
+                name="catalogue-radio"
+                label="Coché"
+                hint="Avec une précision"
+                defaultChecked
+              />
+              <DsChoice name="catalogue-radio" label="Non coché" />
+              <DsChoice
+                name="catalogue-radio"
+                label="Désactivé"
+                hint="Explique pourquoi"
+                disabled
+              />
+            </DsChoiceGroup>
+            <DsChoiceGroup legend="Cases à cocher" error="Choisis au moins une équipe.">
+              <DsChoice type="checkbox" label="Product" />
+              <DsChoice type="checkbox" label="Marketing" />
+            </DsChoiceGroup>
+          </div>
         </DsSection>
 
         <DsSection id="icones" title="DsIcon">

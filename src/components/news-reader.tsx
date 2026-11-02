@@ -2,6 +2,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Linkify } from "@/components/linkify";
 import { formatExactDate } from "@/components/expandable-card";
 import { NewsImage, NewsLinks } from "@/components/news-media";
+import { NewsAudienceBadge } from "@/components/news/NewsAudienceBadge";
 import { newsPublishedAt } from "@/components/overview/overview-utils";
 import type { News } from "@/lib/dashboard";
 
@@ -26,13 +27,14 @@ export function NewsReader({
             className="fixed z-50 inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[min(48rem,calc(100vw-2rem))] h-dvh md:h-auto md:max-h-[85vh] flex flex-col bg-surface-container-lowest border border-outline shadow-lg focus:outline-none"
           >
             <div className="flex items-start justify-between gap-sm border-b border-outline-variant p-md">
-              <div className="min-w-0">
+              <div className="min-w-0 space-y-xs">
                 <DialogPrimitive.Title className="font-headline-sm text-headline-sm text-primary wrap-anywhere">
                   {n.title}
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Description className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
                   Publiée le {formatExactDate(newsPublishedAt(n))} · Par {n.author}
                 </DialogPrimitive.Description>
+                <NewsAudienceBadge news={n} />
               </div>
               <DialogPrimitive.Close
                 aria-label="Fermer"

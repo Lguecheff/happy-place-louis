@@ -277,6 +277,7 @@ export type Database = {
       }
       news: {
         Row: {
+          audience: Database["public"]["Enums"]["news_audience"] | null
           author: string
           author_email: string | null
           body: string | null
@@ -290,6 +291,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          audience?: Database["public"]["Enums"]["news_audience"] | null
           author?: string
           author_email?: string | null
           body?: string | null
@@ -303,6 +305,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          audience?: Database["public"]["Enums"]["news_audience"] | null
           author?: string
           author_email?: string | null
           body?: string | null
@@ -316,6 +319,36 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      news_teams: {
+        Row: {
+          news_id: string
+          team: string
+        }
+        Insert: {
+          news_id: string
+          team: string
+        }
+        Update: {
+          news_id?: string
+          team?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "news_teams_news_id_fkey"
+            columns: ["news_id"]
+            isOneToOne: false
+            referencedRelation: "news"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "news_teams_team_fkey"
+            columns: ["team"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["name"]
+          },
+        ]
       }
       submission_status_history: {
         Row: {
@@ -481,11 +514,20 @@ export type Database = {
         Args: { _id: string }
         Returns: undefined
       }
+      save_news_audience: {
+        Args: {
+          _audience: Database["public"]["Enums"]["news_audience"] | null
+          _news_id: string
+          _teams?: string[]
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "collaborateur"
       blocker_severity: "critical" | "warning" | "info"
       blocker_status: "OUVERT" | "EN COURS" | "SURVEILLANCE" | "RÉSOLU"
+      news_audience: "équipe" | "entreprise"
       news_status: "brouillon" | "publiée"
       rejection_category:
         | "à clarifier"
@@ -623,6 +665,7 @@ export const Constants = {
       app_role: ["admin", "manager", "collaborateur"],
       blocker_severity: ["critical", "warning", "info"],
       blocker_status: ["OUVERT", "EN COURS", "SURVEILLANCE", "RÉSOLU"],
+      news_audience: ["équipe", "entreprise"],
       news_status: ["brouillon", "publiée"],
       rejection_category: [
         "à clarifier",

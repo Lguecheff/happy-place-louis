@@ -51,6 +51,8 @@ Polices : Bodoni Moda (titres, chiffres), Inter Tight (texte), Space Grotesk (é
 
 Tokens : `xs` 8 px, `sm` 12 px, `md` 20 px, `lg` 32 px (`p-md`, `gap-sm`, `space-y-xs`…). Cartes : `p-md`. Ligne de liste et tuile : `p-sm`. Entre cartes : `gap-md`. Largeur de page : `max-w-interface`.
 
+Largeurs maximales : `max-w-xs` 20 rem, `max-w-sm` 24 rem, `max-w-md` 28 rem, `max-w-lg` 32 rem. Elles sont fixées dans `src/styles.css`, car Tailwind prendrait sinon les espacements du même nom (`max-w-lg` = 32 px).
+
 ## 5. Composants (`import { … } from "@/components/ds"`)
 
 ### DsButton
@@ -126,6 +128,16 @@ Props : `id`, `label`, `error`, `children`. Relie le libellé au champ par `html
 <DsField id="titre" label="Titre" error={erreur}>
   <input id="titre" className={DS_INPUT} />
 </DsField>
+```
+
+### DsChoiceGroup et DsChoice
+`DsChoiceGroup` : `id`, `legend`, `error`, `children`. Un fieldset et sa legend, pour un groupe de boutons radio ou de cases à cocher : `DsField` reste réservé à un champ seul.
+`DsChoice` : `type` (`radio` | `checkbox`, défaut `radio`), `label`, `hint`, `inputRef`, + props natives de l'input. Ligne cliquable de 44 px minimum, surlignée quand elle est cochée.
+```tsx
+<DsChoiceGroup legend="Public" error={erreur}>
+  <DsChoice name="public" label="Mon équipe" hint="Product" checked={choix === "équipe"} onChange={…} />
+  <DsChoice name="public" label="Toute l'entreprise" checked={choix === "entreprise"} onChange={…} />
+</DsChoiceGroup>
 ```
 
 ### DsIcon

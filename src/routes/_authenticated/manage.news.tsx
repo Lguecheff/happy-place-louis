@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ConfirmDelete,
@@ -13,16 +13,19 @@ import {
   TextArea,
   TextInput,
 } from "@/components/manage/crud-ui";
+import { NewsAudienceField } from "@/components/news/NewsAudienceField";
 import { newsSchema, validate, type FieldErrors } from "@/lib/manage-schemas";
 import {
   createNews,
   deleteNews,
   fetchAllNews,
+  fetchSelectableTeams,
   timeAgo,
   updateNews,
   type News,
   type NewsInput,
 } from "@/lib/dashboard";
+import { audienceError, emptyAudience, type NewsAudienceValue } from "@/lib/news-audience";
 import { NewsImage, NewsLinks, NewsMediaEditor } from "@/components/news-media";
 import { emptyMedia, linkErrors, mediaFromNews, toNewsLinks, type MediaDraft } from "@/lib/news-media";
 
@@ -55,14 +58,18 @@ function ManageNews() {
   const [toDelete, setToDelete] = useState<News | null>(null);
   const [media, setMedia] = useState<MediaDraft>(emptyMedia);
   const [showLinkErrs, setShowLinkErrs] = useState(false);
+  const [audience, setAudience] = useState<NewsAudienceValue>(emptyAudience);
+  const [audienceErr, setAudienceErr] = useState<string | undefined>();
+  const audienceInput = useRef<HTMLInputElement>(null);
 
+  const teams = useQuery({ queryKey: ["teams", "selectable"], queryFn: fetchSelectableTeams });
   const list = useQuery({ queryKey: ["news", "all"], queryFn: fetchAllNews, retry: false });
   const invalidate = () => qc.invalidateQueries({ queryKey: ["news"] });
   const onError = (e: unknown) => toast.error((e as Error).message);
 
   const save = useMutation({
     mutationFn: (input: NewsInput) =>
-      editing ? updateNews(editing.id, input, media) : createNews(input, media),
+      editing ? updateNews(editing.id, input, audience, media) : createNews(input, audience, media),
     onSuccess: () => {
       toast.success(editing ? "Actualité modifiée" : "Actualité créée");
       close();
@@ -87,6 +94,8 @@ function ManageNews() {
     setErrors({});
     setMedia(emptyMedia());
     setShowLinkErrs(false);
+    setAudience(emptyAudience());
+    setAudienceErr(undefined);
   }
 
   function submit(e: React.FormEvent) {
@@ -100,6 +109,12 @@ function ManageNews() {
     setErrors({});
     setShowLinkErrs(true);
     if (Object.keys(linkErrors(media.links)).length) return;
+    const missing = res.data.status === "publiée" ? audienceError(audience) : undefined;
+    setAudienceErr(missing);
+    if (missing) {
+      audienceInput.current?.focus();
+      return;
+    }
     save.mutate({ ...res.data, links: toNewsLinks(media.links) });
   }
 
@@ -115,6 +130,8 @@ function ManageNews() {
             setErrors({});
             setMedia(emptyMedia());
             setShowLinkErrs(false);
+            setAudience(emptyAudience());
+            setAudienceErr(undefined);
             setForm({ ...empty });
           }}
           className="px-md py-xs bg-primary text-on-primary font-label-md text-label-md"
@@ -151,6 +168,8 @@ function ManageNews() {
                 setErrors({});
                 setMedia(mediaFromNews(n));
                 setShowLinkErrs(false);
+                setAudience({ audience: n.audience ?? null, teams: n.teams ?? [] });
+                setAudienceErr(undefined);
                 setForm({
                   title: n.title,
                   body: n.body ?? "",
@@ -195,6 +214,26 @@ function ManageNews() {
                 title={form.title}
               />
             </Field>
+            <NewsAudienceField
+              id="gestion-actu-public"
+              teams={teams.data ?? []}
+              scope="all"
+              teamsNotice={
+                teams.isLoading
+                  ? "Chargement des équipes…"
+                  : teams.isError
+                    ? "Les équipes sont indisponibles."
+                    : undefined
+              }
+              value={audience}
+              error={audienceErr}
+              disabled={save.isPending}
+              firstInputRef={audienceInput}
+              onChange={(value) => {
+                setAudience(value);
+                setAudienceErr(undefined);
+              }}
+            />
             <Field label="Auteur" error={errors.author}>
               <TextInput
                 value={form.author}
