@@ -187,6 +187,16 @@ export async function fetchManagedSubmissions(): Promise<Submission[]> {
   return (data ?? []) as Submission[];
 }
 
+/** Toutes les demandes que la RLS laisse lire, pour la recherche : ni filtre ni limite ici. */
+export async function fetchSearchableSubmissions(): Promise<Submission[]> {
+  const { data, error } = await db
+    .from("submissions")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as Submission[];
+}
+
 export async function fetchMySubmissions(email: string): Promise<Submission[]> {
   const { data, error } = await db
     .from("submissions")

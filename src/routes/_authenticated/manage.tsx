@@ -3,6 +3,8 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BrandHeader } from "@/components/brand-header";
+import { GlobalSearch } from "@/components/search/GlobalSearch";
+import { useGlobalSearch } from "@/components/search/use-global-search";
 import { processAttachmentDeletionQueue } from "@/lib/dashboard";
 
 export const Route = createFileRoute("/_authenticated/manage")({
@@ -39,6 +41,8 @@ const tabs = [
 
 function ManageLayout() {
   const qc = useQueryClient();
+  const { role, email } = Route.useRouteContext();
+  const search = useGlobalSearch({ role, email: email ?? "", managerTeams: [] });
   // Suppression silencieuse des pièces jointes échues, une fois par chargement de /manage
   useEffect(() => {
     processAttachmentDeletionQueue()
@@ -51,7 +55,11 @@ function ManageLayout() {
   }, [qc]);
   return (
     <div className="bg-background text-on-surface font-body-md min-h-screen">
-      <BrandHeader />
+      <BrandHeader
+        search={
+          <GlobalSearch {...search} className="order-last min-w-full xl:order-none xl:min-w-0" />
+        }
+      />
       <main className="w-full max-w-interface mx-auto p-sm md:p-md space-y-md">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-sm">
           <div className="space-y-1">

@@ -19,6 +19,8 @@ import { RejectModal } from "@/components/overview/RejectModal";
 import { RequestFormModal } from "@/components/overview/RequestFormModal";
 import { RequestsSection } from "@/components/overview/RequestsSection";
 import { TodayStrip } from "@/components/overview/TodayStrip";
+import { GlobalSearch } from "@/components/search/GlobalSearch";
+import { useGlobalSearch } from "@/components/search/use-global-search";
 import { myDrafts, publishedThisMonth } from "@/components/overview/overview-utils";
 import { StatusButtons, type Status } from "@/components/status-actions";
 import { SubmissionReader } from "@/components/submission-reader";
@@ -107,6 +109,7 @@ function ManagerSpace() {
       return (data ?? []).map((t) => t.team).sort();
     },
   });
+  const search = useGlobalSearch({ role, email: myEmail, managerTeams: myTeams.data ?? [] });
   const [rejecting, setRejecting] = useState<Submission | null>(null);
   const [reading, setReading] = useState<Submission | null>(null);
   const [threadOf, setThreadOf] = useState<Submission | null>(null);
@@ -285,6 +288,7 @@ function ManagerSpace() {
           role={role}
           exporting={exportReport.isPending}
           onExport={() => exportReport.mutate()}
+          search={<GlobalSearch {...search} />}
         />
       </BrandHeader>
       <main

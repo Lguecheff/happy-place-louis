@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BrandHeader } from "@/components/brand-header";
-import { DS_INPUT, DsButton, DsField, DsSection } from "@/components/ds";
+import { DS_INPUT, DsField } from "@/components/ds";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
 import type { SearchData } from "@/components/search/search-utils";
@@ -164,16 +164,6 @@ const SCENARIOS: {
 // Présentation
 // ---------------------------------------------------------------------------
 
-function ModulePlaceholder({ id, title }: { id: string; title: string }) {
-  return (
-    <DsSection id={id} title={title} className="bg-surface-container">
-      <p className="font-body-sm text-body-sm text-on-surface-variant">
-        Module existant, non modifié (fictif).
-      </p>
-    </DsSection>
-  );
-}
-
 function Us06Mockup() {
   const [scenario, setScenario] = useState<Scenario>("resultats");
   const current = SCENARIOS.find((s) => s.value === scenario) ?? SCENARIOS[0];
@@ -215,34 +205,6 @@ function Us06Mockup() {
           <p className="min-w-0 flex-1 basis-64 font-body-sm text-body-sm text-on-surface-variant">
             {current.hint}
           </p>
-        </div>
-
-        <div className="flex flex-wrap items-end justify-between gap-sm">
-          <div className="min-w-0 space-y-xs">
-            <h1 className="font-headline-lg text-headline-lg text-primary">
-              Bonjour {current.name}
-            </h1>
-            <p className="font-body-md text-body-md text-on-surface-variant">
-              Voici ce qui demande ton attention aujourd'hui.
-            </p>
-          </div>
-          <DsButton
-            variant="primary"
-            onClick={() => toast.info("Non branché dans la maquette (fictif).")}
-          >
-            Faire une demande
-          </DsButton>
-        </div>
-
-        <div className="flex flex-wrap items-start gap-md">
-          <div className="flex min-w-0 flex-[999_1_620px] flex-col gap-md">
-            <ModulePlaceholder id="demandes" title="Demandes" />
-            <ModulePlaceholder id="actus" title="Actualités" />
-          </div>
-          <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-md">
-            <ModulePlaceholder id="blocages" title="Points bloquants" />
-            <ModulePlaceholder id="indicateurs" title="Indicateurs" />
-          </div>
         </div>
       </main>
     </div>

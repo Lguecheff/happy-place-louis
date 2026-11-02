@@ -12,6 +12,7 @@ export function SubmissionReader({
   statusLabel,
   onClose,
   onCloseAutoFocus,
+  hideAttachment,
   onReject,
   onApprove,
   approving,
@@ -22,6 +23,8 @@ export function SubmissionReader({
   onClose: () => void;
   /** Rend le focus à l'élément d'origine quand la fenêtre n'a pas de déclencheur. */
   onCloseAutoFocus?: (event: Event) => void;
+  /** Le lecteur n'a pas accès au PDF : pas de lien qui échouerait. */
+  hideAttachment?: boolean;
   onReject?: () => void;
   onApprove?: () => void;
   approving?: boolean;
@@ -57,7 +60,9 @@ export function SubmissionReader({
               <p className="font-body-md text-body-md text-on-surface whitespace-pre-line wrap-anywhere">
                 <Linkify text={s.content} />
               </p>
-              <AttachmentLink path={s.attachment_path} name={s.attachment_name} />
+              {!hideAttachment && (
+                <AttachmentLink path={s.attachment_path} name={s.attachment_name} />
+              )}
               {s.status === "refusée" && s.rejection_category && (
                 <div className="p-sm bg-error-container text-on-error-container text-body-sm wrap-anywhere">
                   <p className="font-bold">Motif : {s.rejection_category}</p>

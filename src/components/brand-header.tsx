@@ -3,8 +3,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import sharkLogo from "@/assets/bigger-boat-shark.png";
 import { supabase } from "@/integrations/supabase/client";
 
-/** `children` remplace la zone de droite (navigation et compte de la vue d'ensemble). */
-export function BrandHeader({ children }: { children?: ReactNode }) {
+/** `children` remplace la zone de droite (navigation et compte de la vue d'ensemble). `search` s'ajoute avant elle. */
+export function BrandHeader({ children, search }: { children?: ReactNode; search?: ReactNode }) {
   // Version élèves : lien « Changer de rôle » visible dès qu'on est connecté.
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [signedIn, setSignedIn] = useState(false);
@@ -28,6 +28,7 @@ export function BrandHeader({ children }: { children?: ReactNode }) {
           />
           <span className="font-label-md text-lg font-bold uppercase text-primary">Bigger Boat</span>
         </Link>
+        {search}
         {children ?? (
           <div className="flex items-center gap-md">
             {signedIn && pathname !== "/choisir-role" && (

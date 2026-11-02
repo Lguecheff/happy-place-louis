@@ -94,11 +94,16 @@ function ResultRow({
 /** Barre de recherche de l'en-tête. Le filtre se fait ici, sur les données lues sous RLS. */
 export function GlobalSearch({
   source,
+  canReadAttachment,
   defaultQuery = "",
+  className,
 }: {
   source: SearchSource;
+  /** Sans valeur, la pièce jointe d'une demande est proposée à tout le monde. */
+  canReadAttachment?: (submission: Submission) => boolean;
   /** Terme déjà saisi à l'ouverture de la page (panneau ouvert et champ actif). */
   defaultQuery?: string;
+  className?: string;
 }) {
   const [query, setQuery] = useState(defaultQuery);
   const [term, setTerm] = useState(defaultQuery);
@@ -177,7 +182,10 @@ export function GlobalSearch({
         onBlur={(e) => {
           if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false);
         }}
-        className="relative h-auto min-w-0 flex-1 overflow-visible rounded-none bg-transparent"
+        className={cn(
+          "relative h-auto min-w-0 flex-1 overflow-visible rounded-none bg-transparent",
+          className,
+        )}
       >
         <DsIcon
           name="search"
@@ -259,6 +267,7 @@ export function GlobalSearch({
       />
       <SubmissionReader
         submission={readingSubmission}
+        hideAttachment={!!readingSubmission && canReadAttachment?.(readingSubmission) === false}
         onClose={() => setReadingSubmission(null)}
         onCloseAutoFocus={focusInput}
       />
