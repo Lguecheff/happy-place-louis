@@ -4,11 +4,12 @@ import { DsIcon } from "./ds-icon";
 
 export type DsBadgeVariant = "critical" | "watch" | "status" | "neutral";
 
+// Bordure sur toutes les variantes (transparente sauf status) : même hauteur partout.
 const VARIANTS: Record<DsBadgeVariant, string> = {
-  critical: "bg-error-container text-on-error-container",
-  watch: "bg-tertiary-fixed text-on-tertiary-fixed",
-  status: "border border-primary bg-transparent text-primary",
-  neutral: "bg-surface-container-highest text-on-surface",
+  critical: "border-transparent bg-error-container text-on-error-container",
+  watch: "border-transparent bg-tertiary-fixed text-on-tertiary-fixed",
+  status: "border-primary bg-transparent text-primary",
+  neutral: "border-transparent bg-surface-container-highest text-on-surface",
 };
 
 type DsBadgeProps = {
@@ -24,12 +25,13 @@ export function DsBadge({ variant = "neutral", children, icon, className }: DsBa
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 px-xs py-0.5 font-label-md text-label-md normal-case tracking-normal",
+        "inline-flex items-center gap-1 border px-xs py-0.5 font-label-md text-label-md normal-case tracking-normal",
         VARIANTS[variant],
         className,
       )}
     >
-      {icon && <DsIcon name={icon} className="text-base" />}
+      {/* `!` : la feuille Google des icônes (24 px, hors couche) l'emporte sinon sur text-sm. */}
+      {icon && <DsIcon name={icon} className="text-sm! leading-none!" />}
       {children}
     </span>
   );
