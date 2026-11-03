@@ -105,9 +105,21 @@ Props : `state` (`idle` | `saving` | `saved` | `error`), `at` (heure du dernier 
 ```
 
 ### DsKpiTile
-Props : `label`, `value`, `valueFont` (`display` | `headline`), `trend`, `trendDirection` (`up` | `down` | `flat`), `updatedAt`, `stale`, `helpHref` (lien) ou `onHelp` (bouton qui ouvre une fenêtre), `helpLabel`, `children` (ajout en bas de tuile).
+Props : `label`, `value`, `valueFont` (`display` | `headline`), `trend`, `trendDirection` (`up` | `down` | `flat`), `updatedAt`, `stale`, `helpHref` (lien) ou `onHelp` (bouton qui ouvre une fenêtre), `helpLabel`, `definition` (`{ definition, impact }` : le libellé devient focusable, souligné en pointillés, et ouvre une `DsTooltip` avec `DsKpiDefinition`), `children` (ajout en bas de tuile). Avec `definition`, garde `onHelp` ou `helpHref` : c'est le seul accès aux textes sur un écran tactile.
 ```tsx
 <DsKpiTile label="Taux de placement" value="78,4 %" trend="+2,1 points sur 30 jours" trendDirection="up" updatedAt={iso} helpHref="/aide#placement" />
+```
+
+### DsTooltip
+Props : `content`, `children` (le déclencheur, qui doit pouvoir recevoir le focus), `className`. Infobulle sous le déclencheur, au survol et au focus clavier ; Échap la ferme ; elle est lue comme description du déclencheur. Elle ne s'ouvre pas au toucher : son contenu doit aussi être accessible par un bouton ou un lien à côté. Pas d'action dans une infobulle : pour un contenu avec action, utilise `DsPopover`.
+```tsx
+<DsTooltip content="Mis à jour chaque nuit."><span tabIndex={0}>Fraîcheur</span></DsTooltip>
+```
+
+### DsKpiDefinition
+Props : `definition`, `impact`, `className`. Les deux textes d'un KPI, « Ce que ça mesure » et « Ce que ça change pour toi » ; un texte vide affiche « Définition à venir. » (`KPI_DEFINITION_EMPTY`). Sert dans l'infobulle de `DsKpiTile`, sa fenêtre d'aide et la vue de lecture d'un KPI.
+```tsx
+<DsKpiDefinition definition={metric.definition} impact={metric.impact} />
 ```
 
 ### DsListItem

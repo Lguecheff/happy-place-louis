@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { DsFreshness } from "./ds-freshness";
 import { DsIcon } from "./ds-icon";
+import { DsKpiDefinition, type DsKpiDefinitionTexts } from "./ds-kpi-definition";
+import { DsTooltip } from "./ds-tooltip";
 import { DS_FOCUS } from "./focus";
 
 const ARROWS = { up: "arrow_upward", down: "arrow_downward", flat: "arrow_forward" } as const;
@@ -22,6 +24,8 @@ type DsKpiTileProps = {
   /** Même libellé en bouton, pour ouvrir une fenêtre. */
   onHelp?: () => void;
   helpLabel?: string;
+  /** Textes de l'indicateur : avec eux, le libellé ouvre une infobulle au survol et au focus. */
+  definition?: DsKpiDefinitionTexts;
   /** Contenu ajouté en bas de tuile (ex. champ de modification). */
   children?: ReactNode;
   className?: string;
@@ -43,6 +47,7 @@ export function DsKpiTile({
   helpHref,
   onHelp,
   helpLabel = "Comprendre cet indicateur",
+  definition,
   children,
   className,
 }: DsKpiTileProps) {
@@ -54,7 +59,18 @@ export function DsKpiTile({
       )}
     >
       <p className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
-        {label}
+        {definition ? (
+          <DsTooltip content={<DsKpiDefinition {...definition} />}>
+            <span
+              tabIndex={0}
+              className={cn("cursor-help underline decoration-dotted underline-offset-4", DS_FOCUS)}
+            >
+              {label}
+            </span>
+          </DsTooltip>
+        ) : (
+          label
+        )}
       </p>
       <p
         className={cn(

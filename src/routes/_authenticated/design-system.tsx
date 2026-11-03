@@ -10,12 +10,14 @@ import {
   DsFreshness,
   DsIcon,
   DsIconButton,
+  DsKpiDefinition,
   DsKpiTile,
   DsListItem,
   DsPopover,
   DsSaveStatus,
   DsSection,
   DsStatTile,
+  DsTooltip,
   toastUndo,
 } from "@/components/ds";
 
@@ -173,6 +175,10 @@ function DesignSystemPage() {
               trendDirection="up"
               updatedAt={ago(35)}
               helpHref="#kpi"
+              definition={{
+                definition: "Part des candidats placés en mission sur 30 jours.",
+                impact: "S'il baisse, tes demandes qui aident les candidats passent en premier.",
+              }}
             />
             <DsKpiTile
               label="Missions actives"
@@ -192,6 +198,23 @@ function DesignSystemPage() {
               helpHref="#kpi"
             />
           </div>
+        </DsSection>
+
+        <DsSection id="infobulles" title="DsTooltip et DsKpiDefinition">
+          <Demo title="Infobulle au survol et au focus (Échap ferme), jamais au toucher">
+            <DsTooltip
+              content={<p className="font-body-sm text-body-sm">Mis à jour chaque nuit.</p>}
+            >
+              <DsButton variant="link">Survoler ou atteindre avec Tab</DsButton>
+            </DsTooltip>
+          </Demo>
+          <Demo title="Textes d'un KPI, dont un vide">
+            <DsKpiDefinition
+              className="max-w-xs"
+              definition="Nombre de missions en cours aujourd'hui."
+              impact=""
+            />
+          </Demo>
         </DsSection>
 
         <DsSection id="lignes" title="DsListItem">

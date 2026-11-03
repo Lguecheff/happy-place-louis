@@ -1,4 +1,4 @@
-import { DsKpiTile } from "@/components/ds";
+import { DsKpiDefinition, DsKpiTile } from "@/components/ds";
 import { formatDay } from "@/components/overview/overview-utils";
 import { ReaderDialog } from "@/components/reader-dialog";
 import { formatMetricValue, metricTrend, type Metric } from "@/lib/dashboard";
@@ -26,6 +26,7 @@ export function MetricReader({
         value={formatMetricValue(m.value, m.unit)}
         {...metricTrend(m)}
       />
+      <DsKpiDefinition definition={m.definition} impact={m.impact} />
     </ReaderDialog>
   );
 }

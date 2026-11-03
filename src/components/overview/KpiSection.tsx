@@ -1,17 +1,29 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useState } from "react";
-import { DS_INPUT, DsButton, DsField, DsIcon, DsKpiTile, DsSection } from "@/components/ds";
+import {
+  DS_INPUT,
+  DsButton,
+  DsField,
+  DsIcon,
+  DsKpiDefinition,
+  DsKpiTile,
+  DsSection,
+} from "@/components/ds";
 import { DS_FOCUS } from "@/components/ds/focus";
 import { formatMetricValue, metricTrend, type Metric } from "@/lib/dashboard";
 import { cn } from "@/lib/utils";
 
+type Help = { label: string; metric?: Metric };
+
 function tileProps(metric: Metric | undefined, onHelp: () => void) {
-  if (!metric) return { value: "—", onHelp };
+  const definition = { definition: metric?.definition, impact: metric?.impact };
+  if (!metric) return { value: "—", onHelp, definition };
   return {
     value: formatMetricValue(metric.value, metric.unit),
     ...metricTrend(metric),
     updatedAt: metric.updated_at,
     onHelp,
+    definition,
   };
 }
 
@@ -27,7 +39,7 @@ export function KpiSection({
   onSaveNps: (value: number) => void;
 }) {
   const [nps, setNps] = useState("");
-  const [help, setHelp] = useState<string | null>(null);
+  const [help, setHelp] = useState<Help | null>(null);
   const metric = (key: string) => metrics.data?.find((m) => m.key === key);
   const npsMetric = metric("nps");
   const npsValue = nps !== "" ? nps : (npsMetric?.value ?? "");
@@ -40,16 +52,22 @@ export function KpiSection({
       <div className="grid gap-sm sm:grid-cols-2">
         <DsKpiTile
           label="Taux de placement"
-          {...tileProps(metric("training_kpi"), () => setHelp("Taux de placement"))}
+          {...tileProps(metric("training_kpi"), () =>
+            setHelp({ label: "Taux de placement", metric: metric("training_kpi") }),
+          )}
         />
         <DsKpiTile
           label="Missions actives"
-          {...tileProps(metric("active_users"), () => setHelp("Missions actives"))}
+          {...tileProps(metric("active_users"), () =>
+            setHelp({ label: "Missions actives", metric: metric("active_users") }),
+          )}
         />
         <DsKpiTile
           className="sm:col-span-2"
           label={npsMetric?.label ?? "NPS candidats"}
-          {...tileProps(npsMetric, () => setHelp(npsMetric?.label ?? "NPS candidats"))}
+          {...tileProps(npsMetric, () =>
+            setHelp({ label: npsMetric?.label ?? "NPS candidats", metric: npsMetric }),
+          )}
         >
           {canEditNps && (
             <form
@@ -85,7 +103,7 @@ export function KpiSection({
           <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-50 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 space-y-sm border border-outline bg-surface-container-lowest p-md focus:outline-none">
             <div className="flex items-start justify-between gap-sm">
               <DialogPrimitive.Title className="font-headline-sm text-headline-sm text-primary">
-                {help}
+                {help?.label}
               </DialogPrimitive.Title>
               <DialogPrimitive.Close
                 aria-label="Fermer"
@@ -97,8 +115,13 @@ export function KpiSection({
                 <DsIcon name="close" />
               </DialogPrimitive.Close>
             </div>
-            <DialogPrimitive.Description className="font-body-md text-body-md text-on-surface">
-              [définition à valider]
+            <DialogPrimitive.Description asChild>
+              <div>
+                <DsKpiDefinition
+                  definition={help?.metric?.definition}
+                  impact={help?.metric?.impact}
+                />
+              </div>
             </DialogPrimitive.Description>
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>

@@ -8,10 +8,16 @@ export { DS_INPUT, DsField } from "./ds-field";
 export { DsFreshness } from "./ds-freshness";
 export { DsIcon } from "./ds-icon";
 export { DsIconButton } from "./ds-icon-button";
+export {
+  DsKpiDefinition,
+  KPI_DEFINITION_EMPTY,
+  type DsKpiDefinitionTexts,
+} from "./ds-kpi-definition";
 export { DsKpiTile } from "./ds-kpi-tile";
 export { DsListItem } from "./ds-list-item";
 export { DsPopover } from "./ds-popover";
 export { DsSaveStatus, type DsSaveState } from "./ds-save-status";
 export { DsSection } from "./ds-section";
 export { DsStatTile } from "./ds-stat-tile";
+export { DsTooltip } from "./ds-tooltip";
 export { toastUndo } from "./ds-toast-undo";

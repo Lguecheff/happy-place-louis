@@ -81,6 +81,10 @@ export type Metric = {
   previous_value: number | null;
   delta: number | string | null;
   updated_at: string;
+  /** « Ce que ça mesure » (US18). */
+  definition?: string | null;
+  /** « Ce que ça change pour toi » (US18). */
+  impact?: string | null;
 };
 
 export const TREND_LABELS: Record<Metric["trend"], string> = {
