@@ -626,6 +626,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      simuler_point_bloquant_a_revoir: {
+        Args: { _blocker_id: string }
+        Returns: number
+      }
       save_published_news: {
         Args: {
           _audience: Database["public"]["Enums"]["news_audience"]
@@ -650,6 +654,7 @@ export type Database = {
         | "changement_statut"
         | "resume_hebdo"
         | "changement_statut_suivi"
+        | "point_bloquant_a_revoir"
       rejection_category:
         | "à clarifier"
         | "en désaccord avec les process"
@@ -793,6 +798,7 @@ export const Constants = {
         "changement_statut",
         "resume_hebdo",
         "changement_statut_suivi",
+        "point_bloquant_a_revoir",
       ],
       rejection_category: [
         "à clarifier",

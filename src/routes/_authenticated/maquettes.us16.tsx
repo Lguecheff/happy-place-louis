@@ -1,26 +1,42 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { BlockerReader } from "@/components/blocker-reader";
 import { BrandHeader } from "@/components/brand-header";
-import { DS_INPUT, DsField } from "@/components/ds";
+import {
+  DS_INPUT,
+  DsButton,
+  DsEmptyState,
+  DsField,
+  DsFreshness,
+  DsListItem,
+  DsSection,
+} from "@/components/ds";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import {
   DEFAULT_CHANNELS,
+  notificationKindsFor,
   type NotificationChannel,
-  type NotificationKindDef,
   type PreferenceKind,
   type PreferenceValues,
 } from "@/components/notifications/notification-kinds";
-import { BLOCKER_REVIEW_KIND } from "@/components/notifications/notification-utils";
+import { useNotificationPreferences } from "@/components/notifications/useNotificationPreferences";
 import { BlockersSection } from "@/components/overview/BlockersSection";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
+import { plural, statusLabel } from "@/components/overview/overview-utils";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
-import type { AppNotification, Blocker } from "@/lib/dashboard";
+import {
+  fetchBlockers,
+  simulateStaleBlocker,
+  type AppNotification,
+  type Blocker,
+} from "@/lib/dashboard";
 
 export const Route = createFileRoute("/_authenticated/maquettes/us16")({
   head: () => ({
-    meta: [{ title: "Happy Place · Maquette des points bloquants à revoir" }],
+    meta: [{ title: "Happy Place · Points bloquants à revoir (maquette et simulation)" }],
   }),
   component: Us16Mockup,
 });
@@ -35,19 +51,6 @@ const SAVE_DELAY_MS = 400;
 const VIEWER = "Olivia Laurent (fictif)";
 
 const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
-
-// La valeur d'enum n'existe pas encore en base : elle arrive avec la migration de la phase 2.
-const REVIEW_KIND = BLOCKER_REVIEW_KIND as string as PreferenceKind;
-
-/** Ligne prévue au catalogue des préférences (phase 2), pour le rôle admin seulement. */
-const ADMIN_KINDS: NotificationKindDef[] = [
-  {
-    kind: REVIEW_KIND,
-    label: "Point bloquant à revoir",
-    roles: ["admin"],
-    channels: ["in_app", "by_email"],
-  },
-];
 
 const CONTRACTS: Blocker = {
   id: "b1",
@@ -97,11 +100,11 @@ const reviewNotification = (
   blockerId: string | null,
 ): AppNotification => ({
   id,
-  kind: REVIEW_KIND,
+  kind: "point_bloquant_a_revoir",
   submission_id: null,
   blocker_id: blockerId,
   message: reviewMessage(blocker, days),
-  // Passage quotidien de la nuit (phase 2).
+  // Passage quotidien de la nuit.
   created_at: ago(7 * HOUR_MS),
   read_at: null,
   actor_name: null,
@@ -113,6 +116,8 @@ type MockState = {
   note: string;
   blockers: Blocker[];
   notifications: AppNotification[];
+  /** Vraies données : vraie cloche et simulation en base. */
+  live?: boolean;
 };
 
 const STATES: MockState[] = [
@@ -140,6 +145,14 @@ const STATES: MockState[] = [
     blockers: [CONTRACTS, ATS, ONBOARDING],
     notifications: [],
   },
+  {
+    value: "simulation",
+    label: "Simulation (vraies données)",
+    note: "Pour la présentation : « Simuler 4 jours sans mise à jour » fait comme si le point n'avait pas bougé depuis 4 jours et lance le passage quotidien. La vraie cloche reçoit la notification en temps réel. Relancer sans modifier le point ne crée rien ; modifie-le d'abord.",
+    blockers: [],
+    notifications: [],
+    live: true,
+  },
 ];
 
 const notWired = () => toast.info("Non branché dans la maquette (fictif).");
@@ -149,6 +162,9 @@ const notWired = () => toast.info("Non branché dans la maquette (fictif).");
 // ---------------------------------------------------------------------------
 
 function Us16Mockup() {
+  const { role, email } = Route.useRouteContext();
+  const myEmail = (email ?? "").toLowerCase();
+  const livePreferences = useNotificationPreferences(myEmail, role);
   const [stateValue, setStateValue] = useState(STATES[0].value);
   const state = STATES.find((s) => s.value === stateValue) ?? STATES[0];
   const [blockers, setBlockers] = useState(state.blockers);
@@ -202,11 +218,15 @@ function Us16Mockup() {
       <BrandHeader>
         <OverviewHeader
           isAdmin
-          name={VIEWER}
-          role="admin"
+          name={state.live ? myEmail : VIEWER}
+          role={state.live ? role : "admin"}
           exporting={false}
           onExport={notWired}
-          preferences={{ kinds: ADMIN_KINDS, values, onChange: savePreference }}
+          preferences={
+            state.live
+              ? livePreferences
+              : { kinds: notificationKindsFor("admin"), values, onChange: savePreference }
+          }
           search={
             <GlobalSearch
               source={{
@@ -217,18 +237,22 @@ function Us16Mockup() {
             />
           }
           notifications={
-            <div ref={bellRef} className="contents">
-              <NotificationBell
-                key={state.value}
-                notifications={notifications}
-                onMarkRead={markRead}
-                onMarkAllRead={markAllRead}
-                loadSubmission={async () => null}
-                onOpenSubmission={() => {}}
-                loadBlocker={async (id) => blockers.find((b) => b.id === id) ?? null}
-                onOpenBlocker={setReading}
-              />
-            </div>
+            state.live ? (
+              myEmail && <NotificationCenter email={myEmail} />
+            ) : (
+              <div ref={bellRef} className="contents">
+                <NotificationBell
+                  key={state.value}
+                  notifications={notifications}
+                  onMarkRead={markRead}
+                  onMarkAllRead={markAllRead}
+                  loadSubmission={async () => null}
+                  onOpenSubmission={() => {}}
+                  loadBlocker={async (id) => blockers.find((b) => b.id === id) ?? null}
+                  onOpenBlocker={setReading}
+                />
+              </div>
+            )
           }
         />
       </BrandHeader>
@@ -254,19 +278,23 @@ function Us16Mockup() {
         </div>
         <div className="space-y-xs">
           <h1 className="font-headline-lg text-headline-lg text-primary wrap-anywhere">
-            Bonjour Olivia (fictif)
+            {state.live ? "Bonjour" : "Bonjour Olivia (fictif)"}
           </h1>
           <p className="font-body-md text-body-md text-on-surface-variant">
             Voici ce qui demande ton attention aujourd'hui.
           </p>
         </div>
         <div className="max-w-lg">
-          <BlockersSection
-            blockers={{ data: blockers, isError: false }}
-            canEdit
-            onStatusChange={changeStatus}
-            onOpenArchive={notWired}
-          />
+          {state.live ? (
+            <Simulation isAdmin={role === "admin"} />
+          ) : (
+            <BlockersSection
+              blockers={{ data: blockers, isError: false }}
+              canEdit
+              onStatusChange={changeStatus}
+              onOpenArchive={notWired}
+            />
+          )}
         </div>
       </main>
       <BlockerReader
@@ -275,5 +303,62 @@ function Us16Mockup() {
         onCloseAutoFocus={focusBell}
       />
     </div>
+  );
+}
+
+/** Simulation pour la présentation, sur les vrais points bloquants non résolus. */
+function Simulation({ isAdmin }: { isAdmin: boolean }) {
+  const qc = useQueryClient();
+  const blockers = useQuery({ queryKey: ["blockers"], queryFn: fetchBlockers, enabled: isAdmin });
+  const simulate = useMutation({
+    mutationFn: simulateStaleBlocker,
+    onSuccess: (count) => {
+      if (count > 0)
+        toast.success(`${count} ${plural(count, "notification")} ${plural(count, "créée")}`);
+      else
+        toast.info(
+          "Aucune nouvelle notification : ce point a déjà été signalé depuis sa dernière modification, ou « Dans l'app » est décoché.",
+        );
+      qc.invalidateQueries({ queryKey: ["blockers"] });
+    },
+    onError: (e: unknown) => toast.error((e as Error).message),
+  });
+
+  return (
+    <DsSection id="simulation" title="Simulation pour la présentation">
+      {!isAdmin ? (
+        <DsEmptyState>
+          La simulation est réservée aux admins : change de rôle pour l'essayer.
+        </DsEmptyState>
+      ) : blockers.isError ? (
+        <DsEmptyState>Les points bloquants sont indisponibles.</DsEmptyState>
+      ) : blockers.data?.length === 0 ? (
+        <DsEmptyState>Aucun point bloquant non résolu à simuler.</DsEmptyState>
+      ) : (
+        <ul className="space-y-xs">
+          {blockers.data?.map((b) => (
+            <li key={b.id}>
+              <DsListItem
+                icon="report"
+                title={b.title}
+                meta={statusLabel(b.status)}
+                actions={
+                  <DsButton
+                    icon="fast_forward"
+                    pending={simulate.isPending && simulate.variables === b.id}
+                    disabled={simulate.isPending}
+                    onClick={() => simulate.mutate(b.id)}
+                  >
+                    Simuler 4 jours sans mise à jour
+                  </DsButton>
+                }
+              >
+                <DsFreshness at={b.updated_at} />
+              </DsListItem>
+            </li>
+          ))}
+        </ul>
+      )}
+    </DsSection>
   );
 }

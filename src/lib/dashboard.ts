@@ -381,6 +381,22 @@ export async function fetchBlockers(): Promise<Blocker[]> {
   return (data ?? []) as Blocker[];
 }
 
+/** Point bloquant, résolu compris ; `null` s'il a été supprimé. */
+export async function fetchBlocker(id: string): Promise<Blocker | null> {
+  const { data, error } = await db.from("blockers").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data as Blocker | null;
+}
+
+/** Démo (US16) : fait comme si le point n'avait pas bougé depuis 4 jours et lance le passage quotidien. */
+export async function simulateStaleBlocker(id: string): Promise<number> {
+  const { data, error } = await supabase.rpc("simuler_point_bloquant_a_revoir", {
+    _blocker_id: id,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function fetchResolvedBlockers(): Promise<Blocker[]> {
   const { data, error } = await db
     .from("blockers")
@@ -806,12 +822,10 @@ export type AppNotification = Pick<
 >;
 
 export async function fetchMyNotifications(email: string): Promise<AppNotification[]> {
-  const since = new Date(Date.now() - 30 * 86400000).toISOString();
   const { data, error } = await supabase
     .from("notifications")
     .select("id, kind, submission_id, blocker_id, message, created_at, read_at, actor_name")
     .eq("recipient_email", email.toLowerCase())
-    .gte("created_at", since)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];

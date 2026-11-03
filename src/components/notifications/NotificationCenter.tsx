@@ -1,20 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { BlockerReader } from "@/components/blocker-reader";
 import { SubmissionThreadModal } from "@/components/submission-status-thread";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  fetchBlocker,
   fetchMyNotifications,
   fetchReadableSubmission,
   markAllNotificationsRead,
   markNotificationRead,
+  type Blocker,
   type Submission,
 } from "@/lib/dashboard";
 import { NotificationBell } from "./NotificationBell";
 
 /**
  * Cloche branchée sur les notifications de `email`, lues sous RLS et tenues à jour en temps réel.
- * Sans `onOpenSubmission`, une notification ouvre le suivi de sa demande en lecture seule.
+ * Sans `onOpenSubmission`, une notification ouvre le suivi de sa demande en lecture seule ;
+ * celle d'un point bloquant ouvre sa fenêtre de lecture (US7).
  */
 export function NotificationCenter({
   email,
@@ -24,6 +28,7 @@ export function NotificationCenter({
   onOpenSubmission?: (submission: Submission) => void;
 }) {
   const [threadOf, setThreadOf] = useState<Submission | null>(null);
+  const [blocker, setBlocker] = useState<Blocker | null>(null);
   const recipient = email.toLowerCase();
   const qc = useQueryClient();
 
@@ -74,10 +79,13 @@ export function NotificationCenter({
         onMarkAllRead={() => markAllRead.mutate()}
         loadSubmission={fetchReadableSubmission}
         onOpenSubmission={onOpenSubmission ?? setThreadOf}
+        loadBlocker={fetchBlocker}
+        onOpenBlocker={setBlocker}
       />
       {threadOf && (
         <SubmissionThreadModal submission={threadOf} onClose={() => setThreadOf(null)} />
       )}
+      <BlockerReader blocker={blocker} onClose={() => setBlocker(null)} />
     </>
   );
 }
