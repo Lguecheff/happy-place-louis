@@ -106,6 +106,7 @@ export function GlobalSearch({
   canReadAttachment,
   canEditNews,
   onEditNews,
+  renderFollow,
   defaultQuery = "",
   className,
 }: {
@@ -115,6 +116,8 @@ export function GlobalSearch({
   /** Sans `onEditNews`, les actus restent en lecture seule. */
   canEditNews?: (news: News) => boolean;
   onEditNews?: (news: News) => void;
+  /** Suivi d'une demande ouverte (`SubmissionFollow`) ; sans valeur, pas de suivi. */
+  renderFollow?: (submission: Submission) => ReactNode;
   /** Terme déjà saisi à l'ouverture de la page (panneau ouvert et champ actif). */
   defaultQuery?: string;
   className?: string;
@@ -350,6 +353,7 @@ export function GlobalSearch({
         hideAttachment={!!readingSubmission && canReadAttachment?.(readingSubmission) === false}
         onClose={() => setReadingSubmission(null)}
         onCloseAutoFocus={focusInput}
+        follow={readingSubmission && renderFollow?.(readingSubmission)}
       />
       <BlockerReader
         blocker={readingBlocker}

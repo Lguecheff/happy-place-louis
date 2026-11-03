@@ -181,11 +181,14 @@ export function SubmissionThreadView({
 export function SubmissionThreadModal({
   submission,
   actions,
+  follow,
   onClose,
 }: {
   submission: Submission;
   /** Actions de statut réservées aux managers : reçoivent le statut courant. Sans elles, le fil est en lecture seule. */
   actions?: (currentStatus: string) => ReactNode;
+  /** Suivi de la demande (`SubmissionFollow`). */
+  follow?: ReactNode;
   onClose: () => void;
 }) {
   const q = useQuery({
@@ -201,6 +204,7 @@ export function SubmissionThreadModal({
       steps={steps}
       readOnly={!actions}
       actions={actions?.(steps[0]?.new_status ?? submission.status)}
+      follow={follow}
       loading={q.isLoading}
       error={q.isError}
       onClose={onClose}

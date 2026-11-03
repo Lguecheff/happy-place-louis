@@ -33,6 +33,7 @@ import {
   publishedThisMonth,
 } from "@/components/overview/overview-utils";
 import { StatusButtons, type Status } from "@/components/status-actions";
+import { SubmissionFollow } from "@/components/notifications/FollowButton";
 import { SubmissionReader } from "@/components/submission-reader";
 import { SubmissionThreadModal } from "@/components/submission-status-thread";
 import {
@@ -235,6 +236,10 @@ function ManagerSpace() {
     return role === "manager" && (myTeams.data ?? []).includes(s.team);
   }
 
+  function followOf(s: Submission) {
+    return <SubmissionFollow key={s.id} submissionId={s.id} email={myEmail} role={role} />;
+  }
+
   function openThread(s: Submission, editable: boolean) {
     setThreadEditable(editable);
     setThreadOf(s);
@@ -326,7 +331,14 @@ function ManagerSpace() {
           exporting={exportReport.isPending}
           onExport={() => exportReport.mutate()}
           preferences={notificationPreferences}
-          search={<GlobalSearch {...search} canEditNews={canEditNews} onEditNews={editNews} />}
+          search={
+            <GlobalSearch
+              {...search}
+              canEditNews={canEditNews}
+              onEditNews={editNews}
+              renderFollow={followOf}
+            />
+          }
           notifications={
             myEmail && (
               <NotificationCenter
@@ -440,6 +452,7 @@ function ManagerSpace() {
       {threadOf && !rejecting && (
         <SubmissionThreadModal
           submission={threadOf}
+          follow={followOf(threadOf)}
           actions={
             canReview && threadEditable
               ? (current) => (
@@ -458,6 +471,7 @@ function ManagerSpace() {
       <SubmissionReader
         submission={reading}
         onClose={() => setReading(null)}
+        follow={reading && followOf(reading)}
         onReject={
           reading && canReview && reading.status !== "refusée"
             ? () => startReject(reading)

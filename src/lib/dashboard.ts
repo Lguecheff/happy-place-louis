@@ -864,6 +864,33 @@ export async function saveNotificationPreference(
   if (error) throw error;
 }
 
+/** Source du suivi de la demande par `email` (« auteur », « manager », « volontaire »), `null` sans suivi. */
+export async function fetchMyFollow(submissionId: string, email: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("submission_followers")
+    .select("source")
+    .eq("submission_id", submissionId)
+    .eq("follower_email", email.toLowerCase())
+    .maybeSingle();
+  if (error) throw error;
+  return data?.source ?? null;
+}
+
+/** La base refuse un admin, une demande illisible et la suppression d'un suivi d'auteur. */
+export async function setMyFollow(submissionId: string, email: string, follow: boolean) {
+  const follower_email = email.toLowerCase();
+  const { error } = follow
+    ? await supabase
+        .from("submission_followers")
+        .insert({ submission_id: submissionId, follower_email, source: "volontaire" })
+    : await supabase
+        .from("submission_followers")
+        .delete()
+        .eq("submission_id", submissionId)
+        .eq("follower_email", follower_email);
+  if (error) throw error;
+}
+
 /** `null` si la demande est supprimée ou si la RLS ne la laisse plus lire. */
 export async function fetchReadableSubmission(id: string): Promise<Submission | null> {
   const { data, error } = await supabase.from("submissions").select("*").eq("id", id).maybeSingle();

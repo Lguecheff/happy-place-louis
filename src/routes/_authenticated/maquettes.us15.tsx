@@ -223,7 +223,6 @@ function Us15Mockup() {
     />
   );
   const s = state.submission;
-  const canReview = state.role !== "collaborateur";
   const firstName = state.viewer.split(" ")[0];
 
   return (
@@ -306,23 +305,7 @@ function Us15Mockup() {
           />
         </DsSection>
       </main>
-      <SubmissionReader
-        submission={reading}
-        onClose={() => setReading(null)}
-        follow={follow}
-        onReject={canReview && s.status !== "refusée" ? notWired : undefined}
-        statusActions={
-          canReview
-            ? [
-                { label: "Valider", status: "validée" },
-                { label: "Clôturer", status: "clôturée" },
-                { label: "Remettre en attente", status: "en attente" },
-              ]
-                .filter((a) => a.status !== s.status)
-                .map((a) => ({ label: a.label, onClick: notWired }))
-            : undefined
-        }
-      />
+      <SubmissionReader submission={reading} onClose={() => setReading(null)} follow={follow} />
       {threadOf && (
         <SubmissionThreadView
           content={threadOf.content}

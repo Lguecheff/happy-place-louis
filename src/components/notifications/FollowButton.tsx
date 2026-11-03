@@ -1,4 +1,8 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { DsButton, DsIcon } from "@/components/ds";
+import { fetchMyFollow, setMyFollow } from "@/lib/dashboard";
+import type { AppRole } from "./notification-kinds";
 
 /** D'où vient le suivi : l'auteur suit d'office, le manager de l'équipe aussi, les autres le choisissent. */
 export type FollowSource = "auteur" | "manager" | "volontaire";
@@ -48,5 +52,48 @@ export function FollowButton({ source, isAdmin, pending, onChange }: FollowButto
             : "Suis-la pour recevoir une alerte à chaque changement d'état."}
       </p>
     </div>
+  );
+}
+
+/** Suivi de `submissionId` par `email`, lu et modifié sous RLS ; le bouton change sans attendre la base. */
+export function SubmissionFollow({
+  submissionId,
+  email,
+  role,
+}: {
+  submissionId: string;
+  email: string;
+  role: AppRole;
+}) {
+  const qc = useQueryClient();
+  const isAdmin = role === "admin";
+  const key = ["submission_followers", submissionId, email.toLowerCase()];
+  const follow = useQuery({
+    queryKey: key,
+    queryFn: () => fetchMyFollow(submissionId, email),
+    enabled: !isAdmin && !!email,
+  });
+  const change = useMutation({
+    mutationFn: (next: boolean) => setMyFollow(submissionId, email, next),
+    onMutate: async (next) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<string | null>(key);
+      qc.setQueryData(key, next ? "volontaire" : null);
+      return { previous };
+    },
+    onError: (_error, _next, context) => {
+      qc.setQueryData(key, context?.previous ?? null);
+      toast.error("Impossible de modifier le suivi de la demande.");
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
+
+  if (isAdmin || follow.isLoading || follow.isError) return null;
+  return (
+    <FollowButton
+      source={(follow.data ?? null) as FollowSource | null}
+      pending={change.isPending}
+      onChange={(next) => change.mutate(next)}
+    />
   );
 }
