@@ -38,6 +38,7 @@ const managerNotifications = (): AppNotification[] => [
     message: "Nouvelle demande de Gontran Martin (Product) (fictif)",
     created_at: new Date(Date.now() - 5 * MINUTE_MS).toISOString(),
     read_at: null,
+    actor_name: null,
   },
 ];
 

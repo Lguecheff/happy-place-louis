@@ -173,6 +173,18 @@ export function SubmissionThreadView({
   );
 }
 
+/** Fil seul d'une demande, lu dans la base : pour la fenêtre de lecture. */
+export function SubmissionThreadSteps({ submissionId }: { submissionId: string }) {
+  const q = useQuery({
+    queryKey: ["submissions", "history", submissionId],
+    queryFn: () => fetchSubmissionHistory(submissionId),
+    retry: false,
+  });
+  if (q.isLoading) return <p className="text-body-sm text-on-surface-variant">Chargement…</p>;
+  if (q.isError) return <p className="text-body-sm text-error">Impossible de charger le suivi.</p>;
+  return <StatusThread steps={sortSteps(q.data ?? [])} />;
+}
+
 /** Fil d'une demande, lu dans la base (limité par les règles d'accès : seules les demandes lisibles ont un fil). */
 export function SubmissionThreadModal({
   submission,

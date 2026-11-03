@@ -28,9 +28,12 @@ export const NOTIFICATION_KINDS: NotificationKindDef[] = [
   },
   {
     kind: "changement_statut",
-    label: "Changement de statut de mes demandes",
+    label: "Changement d'état de mes demandes",
     roles: ["collaborateur", "manager"],
     channels: ["in_app", "by_email"],
+    // La base ignore « Dans l'app » décoché pour l'auteur (US14).
+    locked: ["in_app"],
+    lockedHint: "Toujours active pour tes propres demandes.",
   },
   {
     kind: "resume_hebdo",

@@ -376,6 +376,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          actor_name: string | null
           blocker_id: string | null
           created_at: string
           id: string
@@ -386,6 +387,7 @@ export type Database = {
           submission_id: string | null
         }
         Insert: {
+          actor_name?: string | null
           blocker_id?: string | null
           created_at?: string
           id?: string
@@ -396,6 +398,7 @@ export type Database = {
           submission_id?: string | null
         }
         Update: {
+          actor_name?: string | null
           blocker_id?: string | null
           created_at?: string
           id?: string
@@ -415,6 +418,35 @@ export type Database = {
           },
           {
             foreignKeyName: "notifications_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submission_followers: {
+        Row: {
+          created_at: string
+          follower_email: string
+          source: string
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_email: string
+          source: string
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          follower_email?: string
+          source?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_followers_submission_id_fkey"
             columns: ["submission_id"]
             isOneToOne: false
             referencedRelation: "submissions"

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { SubmissionThreadSteps } from "@/components/submission-status-thread";
 import { supabase } from "@/integrations/supabase/client";
 import {
   fetchMyNotifications,
@@ -68,6 +69,7 @@ export function NotificationCenter({
       onMarkAllRead={() => markAllRead.mutate()}
       loadSubmission={fetchReadableSubmission}
       canReadAttachment={canReadAttachment}
+      thread={(submission) => <SubmissionThreadSteps submissionId={submission.id} />}
     />
   );
 }

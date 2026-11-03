@@ -8,7 +8,6 @@ import {
   DEFAULT_CHANNELS,
   notificationKindsFor,
   type NotificationChannel,
-  type NotificationKindDef,
   type PreferenceKind,
   type PreferenceValues,
 } from "@/components/notifications/notification-kinds";
@@ -207,18 +206,6 @@ const STATES: MockState[] = [
   },
 ];
 
-/** Ligne US14 du catalogue, appliquée à la maquette seulement : le vrai catalogue change en phase 2. */
-const US14_KINDS: NotificationKindDef[] = notificationKindsFor("collaborateur").map((k) =>
-  k.kind === "changement_statut"
-    ? {
-        ...k,
-        label: "Changement d'état de mes demandes",
-        locked: ["in_app"],
-        lockedHint: "Toujours active pour tes propres demandes.",
-      }
-    : k,
-);
-
 function notificationsFor(state: MockState): AppNotification[] {
   return state.alerts.map((a, i) => ({
     id: `${state.value}-${i}`,
@@ -289,7 +276,11 @@ function Us14Mockup() {
           role="collaborateur"
           exporting={false}
           onExport={() => toast.info("Non branché dans la maquette (fictif).")}
-          preferences={{ kinds: US14_KINDS, values, onChange: savePreference }}
+          preferences={{
+            kinds: notificationKindsFor("collaborateur"),
+            values,
+            onChange: savePreference,
+          }}
           search={
             <GlobalSearch
               source={{

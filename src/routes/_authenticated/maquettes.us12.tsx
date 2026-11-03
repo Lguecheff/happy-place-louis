@@ -44,6 +44,7 @@ function mockNotification(
     message: `Nouvelle demande de ${author} (${team}) (fictif)`,
     created_at,
     read_at: read ? created_at : null,
+    actor_name: null,
   };
 }
 
