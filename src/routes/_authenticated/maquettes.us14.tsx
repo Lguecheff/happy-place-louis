@@ -242,6 +242,7 @@ function notificationsFor(state: MockState): AppNotification[] {
     id: `${state.value}-${i}`,
     kind: state.author ? "changement_statut_suivi" : "changement_statut",
     submission_id: SUBMISSION_ID,
+    blocker_id: null,
     message: `${a.message} (fictif)`,
     actor_name: a.actor,
     created_at: a.at,

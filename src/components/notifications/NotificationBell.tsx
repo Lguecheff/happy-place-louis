@@ -2,12 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { DsButton, DsIconButton, DsPopover } from "@/components/ds";
 import { ReaderDialog } from "@/components/reader-dialog";
-import type { AppNotification, Submission } from "@/lib/dashboard";
+import type { AppNotification, Blocker, Submission } from "@/lib/dashboard";
 import { NotificationPanel } from "./NotificationPanel";
 import {
   arrivalAnnouncement,
   bellLabel,
   formatNotificationDate,
+  isBlockerNotification,
   visibleNotifications,
 } from "./notification-utils";
 
@@ -35,13 +36,15 @@ function useArrivalAnnouncement(notifications: AppNotification[] | undefined) {
   return announcement;
 }
 
-/** Cloche de l'en-tête et son panneau ; une notification ouvre le suivi de sa demande. */
+/** Cloche de l'en-tête et son panneau ; une notification ouvre le suivi de sa demande ou son point bloquant. */
 export function NotificationBell({
   notifications,
   onMarkRead,
   onMarkAllRead,
   loadSubmission,
   onOpenSubmission,
+  loadBlocker = async () => null,
+  onOpenBlocker = () => {},
 }: {
   /** Sans valeur tant que le premier chargement n'est pas terminé. */
   notifications: AppNotification[] | undefined;
@@ -51,6 +54,10 @@ export function NotificationBell({
   loadSubmission: (id: string) => Promise<Submission | null>;
   /** Ouvre le suivi de la demande, comme « Voir le suivi ». */
   onOpenSubmission: (submission: Submission) => void;
+  /** Renvoie `null` si le point bloquant n'existe plus. */
+  loadBlocker?: (id: string) => Promise<Blocker | null>;
+  /** Ouvre le point bloquant dans sa fenêtre de lecture (US7). */
+  onOpenBlocker?: (blocker: Blocker) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [unavailable, setUnavailable] = useState<AppNotification | null>(null);
@@ -63,6 +70,13 @@ export function NotificationBell({
     setOpen(false);
     if (!notification.read_at) onMarkRead(notification.id);
     try {
+      if (isBlockerNotification(notification)) {
+        const { blocker_id: id } = notification;
+        const blocker = id ? await loadBlocker(id) : null;
+        if (blocker) onOpenBlocker(blocker);
+        else setUnavailable(notification);
+        return;
+      }
       const { submission_id: id } = notification;
       const submission = id ? await loadSubmission(id) : null;
       if (submission) onOpenSubmission(submission);
@@ -106,13 +120,19 @@ export function NotificationBell({
       </p>
       {unavailable && (
         <ReaderDialog
-          title="Demande indisponible"
+          title={
+            isBlockerNotification(unavailable)
+              ? "Point bloquant indisponible"
+              : "Demande indisponible"
+          }
           subtitle={formatNotificationDate(unavailable.created_at)}
           onClose={() => setUnavailable(null)}
           onCloseAutoFocus={focusBell}
         >
           <p className="font-body-md text-body-md text-on-surface">
-            Cette demande n'est plus disponible.
+            {isBlockerNotification(unavailable)
+              ? "Ce point bloquant n'est plus disponible."
+              : "Cette demande n'est plus disponible."}
           </p>
         </ReaderDialog>
       )}

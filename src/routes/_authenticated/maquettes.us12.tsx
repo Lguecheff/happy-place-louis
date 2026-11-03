@@ -42,6 +42,7 @@ function mockNotification(
     id,
     kind: "nouvelle_demande",
     submission_id,
+    blocker_id: null,
     message: `Nouvelle demande de ${author} (${team}) (fictif)`,
     created_at,
     read_at: read ? created_at : null,

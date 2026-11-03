@@ -35,6 +35,7 @@ const managerNotifications = (): AppNotification[] => [
     id: "n1",
     kind: "nouvelle_demande",
     submission_id: "n1",
+    blocker_id: null,
     message: "Nouvelle demande de Gontran Martin (Product) (fictif)",
     created_at: new Date(Date.now() - 5 * MINUTE_MS).toISOString(),
     read_at: null,

@@ -795,14 +795,21 @@ export async function markDepartureNoticeDownloaded(id: string) {
 
 export type AppNotification = Pick<
   Tables<"notifications">,
-  "id" | "kind" | "submission_id" | "message" | "created_at" | "read_at" | "actor_name"
+  | "id"
+  | "kind"
+  | "submission_id"
+  | "blocker_id"
+  | "message"
+  | "created_at"
+  | "read_at"
+  | "actor_name"
 >;
 
 export async function fetchMyNotifications(email: string): Promise<AppNotification[]> {
   const since = new Date(Date.now() - 30 * 86400000).toISOString();
   const { data, error } = await supabase
     .from("notifications")
-    .select("id, kind, submission_id, message, created_at, read_at, actor_name")
+    .select("id, kind, submission_id, blocker_id, message, created_at, read_at, actor_name")
     .eq("recipient_email", email.toLowerCase())
     .gte("created_at", since)
     .order("created_at", { ascending: false });

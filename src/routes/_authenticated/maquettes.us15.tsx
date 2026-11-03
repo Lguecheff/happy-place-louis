@@ -139,6 +139,7 @@ function notificationsFor(state: MockState): AppNotification[] {
       id: `${state.value}-0`,
       kind: "changement_statut_suivi",
       submission_id: state.submission.id,
+      blocker_id: null,
       message: `La demande de ${LEA} a été validée : « ${EXCERPT_LEA} » (fictif)`,
       actor_name: KESHA,
       created_at: ago(20 * MINUTE_MS),
