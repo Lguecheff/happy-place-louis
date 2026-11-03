@@ -796,7 +796,10 @@ export async function markDepartureNoticeDownloaded(id: string) {
 export type AppNotification = Pick<
   Tables<"notifications">,
   "id" | "kind" | "submission_id" | "message" | "created_at" | "read_at"
->;
+> & {
+  /** Qui a fait le changement : un nom, ou « Automatique ». */
+  actor_name?: string | null;
+};
 
 export async function fetchMyNotifications(email: string): Promise<AppNotification[]> {
   const since = new Date(Date.now() - 30 * 86400000).toISOString();

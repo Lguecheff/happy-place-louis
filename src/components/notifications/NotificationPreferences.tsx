@@ -92,7 +92,7 @@ export function NotificationPreferences({
                     key={channel}
                     type="checkbox"
                     label={CHANNEL_LABELS[channel]}
-                    hint={locked ? "Toujours activé" : CHANNEL_HINTS[channel]}
+                    hint={locked ? (def.lockedHint ?? "Toujours activé") : CHANNEL_HINTS[channel]}
                     disabled={locked}
                     checked={isChecked(def, channel)}
                     aria-busy={saving.has(key(def.kind, channel)) || undefined}

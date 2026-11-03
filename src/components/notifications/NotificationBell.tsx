@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { DsButton, DsIconButton, DsPopover } from "@/components/ds";
 import { ReaderDialog } from "@/components/reader-dialog";
@@ -43,6 +43,7 @@ export function NotificationBell({
   onMarkAllRead,
   loadSubmission,
   canReadAttachment,
+  thread,
 }: {
   /** Sans valeur tant que le premier chargement n'est pas terminé. */
   notifications: AppNotification[] | undefined;
@@ -52,6 +53,8 @@ export function NotificationBell({
   loadSubmission: (id: string) => Promise<Submission | null>;
   /** Sans valeur, la pièce jointe de la demande est proposée. */
   canReadAttachment?: (submission: Submission) => boolean;
+  /** Fil de la demande, affiché dans sa fenêtre de lecture. */
+  thread?: (submission: Submission) => ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [reading, setReading] = useState<Submission | null>(null);
@@ -109,6 +112,7 @@ export function NotificationBell({
       <SubmissionReader
         submission={reading}
         hideAttachment={!!reading && canReadAttachment?.(reading) === false}
+        thread={reading && thread?.(reading)}
         onClose={() => setReading(null)}
         onCloseAutoFocus={focusBell}
       />

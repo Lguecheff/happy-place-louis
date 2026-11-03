@@ -22,6 +22,7 @@ export function NotificationPanel({
             meta={
               <span className="flex flex-wrap items-center gap-xs">
                 {!n.read_at && <DsBadge variant="status">Non lue</DsBadge>}
+                {n.actor_name && <span>{n.actor_name} ·</span>}
                 {formatNotificationDate(n.created_at)}
               </span>
             }

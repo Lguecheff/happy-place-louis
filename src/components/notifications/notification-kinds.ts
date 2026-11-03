@@ -14,6 +14,8 @@ export type NotificationKindDef = {
   channels: NotificationChannel[];
   /** Canaux affichés cochés et non modifiables. */
   locked?: NotificationChannel[];
+  /** Phrase sous une case verrouillée ; « Toujours activé » sans valeur. */
+  lockedHint?: string;
 };
 
 /** Catalogue unique des préférences : chaque US ajoute sa ligne ici, sans toucher au reste. */
