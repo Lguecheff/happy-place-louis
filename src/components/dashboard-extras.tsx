@@ -159,7 +159,7 @@ export function ManagedSubmissions({
                 onClick={() => onThread(s)}
                 className={ACTION_BUTTON}
               >
-                <ManageIcon name="history" /> Voir le suivi
+                <ManageIcon name="history" /> Voir le détail
               </button>
               <StatusMenu id={s.id} current={s.status} onPick={(st) => onChangeStatus(s, st)} />
             </div>

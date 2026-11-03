@@ -52,7 +52,7 @@ export function NotificationBell({
   onMarkAllRead: () => void;
   /** Renvoie `null` si la demande n'est plus lisible. */
   loadSubmission: (id: string) => Promise<Submission | null>;
-  /** Ouvre le suivi de la demande, comme « Voir le suivi ». */
+  /** Ouvre le suivi de la demande, comme « Voir le détail ». */
   onOpenSubmission: (submission: Submission) => void;
   /** Renvoie `null` si le point bloquant n'existe plus. */
   loadBlocker?: (id: string) => Promise<Blocker | null>;

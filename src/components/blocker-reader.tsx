@@ -1,11 +1,7 @@
 import { DsIcon } from "@/components/ds";
 import { Linkify } from "@/components/linkify";
-import {
-  BlockerBadges,
-  BlockerFreshness,
-  ConfirmUpToDate,
-} from "@/components/overview/BlockersSection";
-import { blockerStaleDays, formatDay, teamsFull } from "@/components/overview/overview-utils";
+import { BlockerBadges, BlockerFreshness } from "@/components/overview/BlockersSection";
+import { formatDay, teamsFull } from "@/components/overview/overview-utils";
 import { ReaderDialog } from "@/components/reader-dialog";
 import type { Blocker } from "@/lib/dashboard";
 
@@ -16,15 +12,10 @@ export function BlockerReader({
   blocker: b,
   onClose,
   onCloseAutoFocus,
-  onConfirm,
-  confirming,
 }: {
   blocker: Blocker | null;
   onClose: () => void;
   onCloseAutoFocus?: (event: Event) => void;
-  /** Sans valeur, le lecteur ne peut pas confirmer ce point. */
-  onConfirm?: () => void;
-  confirming?: boolean;
 }) {
   if (!b) return null;
   const impact = b.impact?.trim();
@@ -39,9 +30,6 @@ export function BlockerReader({
         <BlockerBadges blocker={b} />
       </div>
       <BlockerFreshness blocker={b} />
-      {onConfirm && blockerStaleDays(b) != null && (
-        <ConfirmUpToDate pending={confirming} onConfirm={onConfirm} />
-      )}
       <dl>
         <dt className={LABEL}>{b.teams.length > 1 ? "Équipes concernées" : "Équipe concernée"}</dt>
         <dd className="font-body-md text-body-md text-on-surface wrap-anywhere">

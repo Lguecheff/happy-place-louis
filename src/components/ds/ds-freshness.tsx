@@ -17,12 +17,12 @@ type DsFreshnessProps = {
   by?: string | null;
   /** Donnée trop ancienne : texte en couleur d'alerte, icône d'avertissement et mention pour les lecteurs d'écran. */
   stale?: boolean;
-  /** Dernière modification = une confirmation : « Confirmé à jour » au lieu de « Mis à jour ». */
-  confirmed?: boolean;
+  /** Dernière modification = une vérification : « Vérifié » au lieu de « Mis à jour ». */
+  verified?: boolean;
   className?: string;
 };
 
-export function DsFreshness({ at, by, stale, confirmed, className }: DsFreshnessProps) {
+export function DsFreshness({ at, by, stale, verified, className }: DsFreshnessProps) {
   const author = by?.trim();
   return (
     <p
@@ -41,7 +41,7 @@ export function DsFreshness({ at, by, stale, confirmed, className }: DsFreshness
         }
       >
         <time dateTime={at} tabIndex={0} className={cn("cursor-help", DS_FOCUS)}>
-          {confirmed ? "Confirmé à jour" : "Mis à jour"} {timeAgo(at)}
+          {verified ? "Vérifié" : "Mis à jour"} {timeAgo(at)}
           {author && ` par ${author}`}
         </time>
       </DsTooltip>

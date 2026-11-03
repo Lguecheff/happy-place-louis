@@ -49,6 +49,9 @@ export type Submission = {
   submitted_by_email?: string | null;
   attachment_path?: string | null;
   attachment_name?: string | null;
+  /** Dernière confirmation « à jour » (US21) et son auteur. */
+  verified_at?: string | null;
+  verified_by_name?: string | null;
 };
 
 export const REJECTION_CATEGORIES = [
@@ -75,8 +78,9 @@ export type Blocker = {
   updated_at: string;
   /** Nom copié par la base à chaque modification (US20) ; vide pour les points plus anciens. */
   updated_by_name?: string | null;
-  /** Date de la dernière « Confirmer à jour » (US21) ; égale à updated_at tant que rien n'a changé depuis. */
-  confirmed_at?: string | null;
+  /** Dernière relance des équipes (US21) ; ne compte que si elle suit la dernière modification. */
+  reminded_at?: string | null;
+  reminded_by_name?: string | null;
 };
 
 export type Metric = {
@@ -92,8 +96,8 @@ export type Metric = {
   updated_by_name?: string | null;
   /** Seuil « à vérifier » en jours (US21) ; vide pour les KPI créés avant : pas de badge. */
   stale_after_days?: number | null;
-  /** Date de la dernière « Confirmer à jour » (US21). */
-  confirmed_at?: string | null;
+  /** Date du dernier « Marquer comme vérifié » (US21) ; égale à updated_at tant que rien n'a changé depuis. */
+  verified_at?: string | null;
   /** « Ce que ça mesure » (US18). */
   definition: string | null;
   /** « Ce que ça change pour toi » (US18). */

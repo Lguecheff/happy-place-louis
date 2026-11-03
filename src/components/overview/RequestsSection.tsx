@@ -84,9 +84,9 @@ function PendingRow({
             variant="link"
             aria-haspopup="dialog"
             onClick={onThread}
-            aria-label={`Voir le suivi de la demande de ${s.author_name}`}
+            aria-label={`Voir le détail de la demande de ${s.author_name}`}
           >
-            Voir le suivi
+            Voir le détail
           </DsButton>
         </>
       }
@@ -124,7 +124,7 @@ function MyRequests({
           meta={`${s.team} · Créée ${timeAgo(s.created_at)}`}
           actions={
             <DsButton variant="link" aria-haspopup="dialog" onClick={() => onThread(s)}>
-              Voir le suivi
+              Voir le détail
             </DsButton>
           }
         >

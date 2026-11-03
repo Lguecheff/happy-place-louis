@@ -6,14 +6,15 @@ import {
   DsEmptyState,
   DsField,
   DsFreshness,
+  DsIcon,
   DsListItem,
   DsSection,
   DsStaleBadge,
 } from "@/components/ds";
 import {
+  blockerReminded,
   blockerStaleDays,
   formatDay,
-  isConfirmed,
   severityLabel,
   statusLabel,
   teamsSummary,
@@ -26,28 +27,50 @@ const BLOCKER_STATUSES = ["OUVERT", "EN COURS", "SURVEILLANCE", "RÉSOLU"];
 /** Ouvre un point dans sa fenêtre de lecture ; `trigger` reçoit le focus à la fermeture. */
 export type OpenBlocker = (blocker: Blocker, trigger: HTMLElement) => void;
 
-/** Badge « À vérifier » et date de mise à jour (ou de confirmation) d'un point bloquant. */
+/** Badge « À vérifier » et date de mise à jour d'un point bloquant. */
 export function BlockerFreshness({ blocker: b }: { blocker: Blocker }) {
   const staleDays = blockerStaleDays(b);
   return (
     <span className="flex flex-wrap items-center gap-xs">
       {staleDays != null && <DsStaleBadge days={staleDays} />}
-      <DsFreshness at={b.updated_at} by={b.updated_by_name} confirmed={isConfirmed(b)} />
+      <DsFreshness at={b.updated_at} by={b.updated_by_name} />
     </span>
   );
 }
 
-/** « Confirmer à jour », affiché seulement sur un point à vérifier. */
-export function ConfirmUpToDate({
+/**
+ * Point à vérifier : « Relancé le JJ/MM/AAAA par <nom> » pour tous tant que le point n'a pas
+ * bougé depuis la relance ; sinon le bouton « Relancer équipes », si le lecteur peut relancer.
+ */
+function BlockerReminder({
+  blocker: b,
   pending,
-  onConfirm,
+  onRemind,
 }: {
+  blocker: Blocker;
   pending?: boolean;
-  onConfirm: () => void;
+  onRemind?: () => void;
 }) {
+  if (blockerStaleDays(b) == null) return null;
+  if (blockerReminded(b)) {
+    return (
+      <p className="inline-flex items-center gap-1 font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
+        <DsIcon name="campaign" className="text-base" />
+        Relancé le {formatDay(b.reminded_at as string)}
+        {b.reminded_by_name && ` par ${b.reminded_by_name}`}
+      </p>
+    );
+  }
+  if (!onRemind) return null;
   return (
-    <DsButton icon="done" pending={pending} onClick={onConfirm} className="self-start">
-      Confirmer à jour
+    <DsButton
+      icon="campaign"
+      pending={pending}
+      onClick={onRemind}
+      className="self-start"
+      aria-label={`Relancer les équipes du point ${b.title}`}
+    >
+      Relancer équipes
     </DsButton>
   );
 }
@@ -84,17 +107,17 @@ function BlockerRow({
   canEdit,
   onOpen,
   onStatusChange,
-  onConfirm,
-  confirming,
+  onRemind,
+  reminding,
 }: {
   blocker: Blocker;
   myTeams: string[];
   canEdit: boolean;
   onOpen: OpenBlocker;
   onStatusChange: (status: string) => void;
-  /** Sans valeur, le lecteur ne peut pas confirmer ce point. */
-  onConfirm?: () => void;
-  confirming?: boolean;
+  /** Sans valeur, le lecteur ne peut pas relancer les équipes de ce point. */
+  onRemind?: () => void;
+  reminding?: boolean;
 }) {
   const critical = b.severity === "critical";
   const selectId = `statut-point-${b.id}`;
@@ -107,9 +130,7 @@ function BlockerRow({
       onClick={(e) => onOpen(b, e.currentTarget)}
     >
       <BlockerFreshness blocker={b} />
-      {onConfirm && blockerStaleDays(b) != null && (
-        <ConfirmUpToDate pending={confirming} onConfirm={onConfirm} />
-      )}
+      <BlockerReminder blocker={b} pending={reminding} onRemind={onRemind} />
       {/* Hors du bouton de la ligne : changer le statut n'ouvre pas la fenêtre. */}
       {canEdit && (
         <DsField id={selectId} label={`Changer le statut de ${b.title}`}>
@@ -146,21 +167,22 @@ export function BlockersSection({
   onOpen,
   onStatusChange,
   onOpenArchive,
-  canConfirm,
-  onConfirm,
-  confirmingId,
+  canRemind,
+  onRemind,
+  remindingId,
 }: {
   blockers: { data?: Blocker[]; isError: boolean };
   /** Équipes du lecteur : la sienne passe en premier dans « Data +2 ». */
   myTeams?: string[];
-  canEdit: boolean;
+  /** Admin : tous les points ; manager : ceux qui le concernent. La base vérifie le même droit. */
+  canEdit: boolean | ((blocker: Blocker) => boolean);
   onOpen: OpenBlocker;
   onStatusChange: (id: string, status: string) => void;
   onOpenArchive: () => void;
-  /** Admin : tous les points ; manager : ceux de ses équipes. La base vérifie le même droit. */
-  canConfirm?: (blocker: Blocker) => boolean;
-  onConfirm?: (blocker: Blocker) => void;
-  confirmingId?: string | null;
+  /** Admin : tous les points ; manager : ceux qui ne le concernent pas. La base vérifie le même droit. */
+  canRemind?: (blocker: Blocker) => boolean;
+  onRemind?: (blocker: Blocker) => void;
+  remindingId?: string | null;
 }) {
   // Les points critiques d'abord ; le tri de la base est conservé à gravité égale.
   const rows = [...(blockers.data ?? [])].sort(
@@ -188,11 +210,11 @@ export function BlockersSection({
             key={b.id}
             blocker={b}
             myTeams={myTeams}
-            canEdit={canEdit}
+            canEdit={typeof canEdit === "function" ? canEdit(b) : canEdit}
             onOpen={onOpen}
             onStatusChange={(status) => onStatusChange(b.id, status)}
-            onConfirm={onConfirm && canConfirm?.(b) ? () => onConfirm(b) : undefined}
-            confirming={confirmingId === b.id}
+            onRemind={onRemind && canRemind?.(b) ? () => onRemind(b) : undefined}
+            reminding={remindingId === b.id}
           />
         ))}
       </div>

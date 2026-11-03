@@ -4,7 +4,7 @@ import { ManageIcon } from "@/components/manage/crud-ui";
 
 // Changement de statut d'une demande (mêmes statuts partout : un statut peut toujours être corrigé).
 
-/** Bouton secondaire compact des actions de demande (« Voir le suivi », « Statut »). */
+/** Bouton secondaire compact des actions de demande (« Voir le détail », « Statut »). */
 export const ACTION_BUTTON =
   "inline-flex min-h-11 items-center justify-center gap-xs border border-outline bg-surface px-sm py-1 font-label-md text-sm font-medium text-primary hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 

@@ -29,9 +29,30 @@ export function metricStaleDays(m: Metric) {
   return days > m.stale_after_days ? days : null;
 }
 
-/** Dernière modification = une confirmation « à jour » (même horodatage, posé par la base). */
-export function isConfirmed(row: { updated_at: string; confirmed_at?: string | null }) {
-  return !!row.confirmed_at && row.confirmed_at === row.updated_at;
+/** Dernière modification d'un KPI = « Marquer comme vérifié » (même horodatage, posé par la base). */
+export function isVerified(m: Metric) {
+  return !!m.verified_at && m.verified_at === m.updated_at;
+}
+
+/** Relance encore valable : faite depuis la dernière modification du point. */
+export function blockerReminded(b: Blocker) {
+  return !!b.reminded_at && new Date(b.reminded_at) >= new Date(b.updated_at);
+}
+
+/** Au-delà, une demande validée ou clôturée porte le badge « À vérifier » dans son détail (US21). */
+export const SUBMISSION_STALE_DAYS = 365;
+
+/** Dernière mise à jour d'une demande : changement de statut ou confirmation, sinon création. */
+export function submissionUpdatedAt(s: Submission) {
+  const status = pendingSince(s);
+  return s.verified_at && new Date(s.verified_at) > new Date(status) ? s.verified_at : status;
+}
+
+/** Jours sans mise à jour d'une demande validée ou clôturée au-delà d'un an ; null sinon. */
+export function submissionStaleDays(s: Submission) {
+  if (s.status !== "validée" && s.status !== "clôturée") return null;
+  const days = daysSince(submissionUpdatedAt(s));
+  return days > SUBMISSION_STALE_DAYS ? days : null;
 }
 
 export function formatDays(days: number) {

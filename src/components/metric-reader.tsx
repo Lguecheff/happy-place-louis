@@ -1,6 +1,6 @@
 import { DsKpiDefinition, DsKpiTile } from "@/components/ds";
-import { ConfirmUpToDate } from "@/components/overview/BlockersSection";
-import { isConfirmed, metricStaleDays } from "@/components/overview/overview-utils";
+import { VerifyMetricButton } from "@/components/overview/KpiSection";
+import { isVerified, metricStaleDays } from "@/components/overview/overview-utils";
 import { ReaderDialog } from "@/components/reader-dialog";
 import { formatMetricValue, metricTrend, type Metric } from "@/lib/dashboard";
 
@@ -9,15 +9,15 @@ export function MetricReader({
   metric: m,
   onClose,
   onCloseAutoFocus,
-  onConfirm,
-  confirming,
+  onVerify,
+  verifying,
 }: {
   metric: Metric | null;
   onClose: () => void;
   onCloseAutoFocus?: (event: Event) => void;
-  /** Admin et manager ; sans valeur, pas de bouton « Confirmer à jour ». */
-  onConfirm?: () => void;
-  confirming?: boolean;
+  /** Admin et manager ; sans valeur, pas de bouton « Marquer comme vérifié ». */
+  onVerify?: () => void;
+  verifying?: boolean;
 }) {
   if (!m) return null;
   const staleDays = metricStaleDays(m);
@@ -35,10 +35,10 @@ export function MetricReader({
         updatedAt={m.updated_at}
         updatedBy={m.updated_by_name}
         staleDays={staleDays}
-        confirmed={isConfirmed(m)}
+        verified={isVerified(m)}
       >
-        {onConfirm && staleDays != null && (
-          <ConfirmUpToDate pending={confirming} onConfirm={onConfirm} />
+        {onVerify && staleDays != null && (
+          <VerifyMetricButton pending={verifying} onVerify={onVerify} />
         )}
       </DsKpiTile>
       <DsKpiDefinition definition={m.definition} impact={m.impact} />

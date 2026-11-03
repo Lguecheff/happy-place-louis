@@ -160,8 +160,8 @@ function DesignSystemPage() {
             <DsFreshness at={ago(60 * 24 * 2)} by="Olivia Laurent" />
             <DsFreshness at={ago(60 * 5)} by="Automatique" />
           </Demo>
-          <Demo title="Dernière modification = une confirmation (confirmed)">
-            <DsFreshness at={ago(2)} by="Kesha" confirmed />
+          <Demo title="Dernière modification = une vérification (verified)">
+            <DsFreshness at={ago(2)} by="Kesha" verified />
           </Demo>
         </DsSection>
 

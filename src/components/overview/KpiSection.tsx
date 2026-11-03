@@ -10,12 +10,26 @@ import {
   DsSection,
 } from "@/components/ds";
 import { DS_FOCUS } from "@/components/ds/focus";
-import { ConfirmUpToDate } from "@/components/overview/BlockersSection";
-import { isConfirmed, metricStaleDays } from "@/components/overview/overview-utils";
+import { isVerified, metricStaleDays } from "@/components/overview/overview-utils";
 import { formatMetricValue, metricTrend, type Metric } from "@/lib/dashboard";
 import { cn } from "@/lib/utils";
 
 type Help = { label: string; metric?: Metric };
+
+/** « Marquer comme vérifié », affiché seulement sur un KPI à vérifier. */
+export function VerifyMetricButton({
+  pending,
+  onVerify,
+}: {
+  pending?: boolean;
+  onVerify: () => void;
+}) {
+  return (
+    <DsButton icon="done" pending={pending} onClick={onVerify} className="self-start">
+      Marquer comme vérifié
+    </DsButton>
+  );
+}
 
 function tileProps(metric: Metric | undefined, onHelp: () => void) {
   const definition = { definition: metric?.definition, impact: metric?.impact };
@@ -26,7 +40,7 @@ function tileProps(metric: Metric | undefined, onHelp: () => void) {
     updatedAt: metric.updated_at,
     updatedBy: metric.updated_by_name,
     staleDays: metricStaleDays(metric),
-    confirmed: isConfirmed(metric),
+    verified: isVerified(metric),
     onHelp,
     definition,
   };
@@ -37,25 +51,25 @@ export function KpiSection({
   canEditNps,
   savingNps,
   onSaveNps,
-  onConfirm,
-  confirmingKey,
+  onVerify,
+  verifyingKey,
 }: {
   metrics: { data?: Metric[]; isError: boolean };
   canEditNps: boolean;
   savingNps: boolean;
   onSaveNps: (value: number) => void;
-  /** Admin et manager (tous les KPI) ; sans valeur, pas de bouton « Confirmer à jour ». */
-  onConfirm?: (metric: Metric) => void;
-  confirmingKey?: string | null;
+  /** Admin et manager (tous les KPI) ; sans valeur, pas de bouton « Marquer comme vérifié ». */
+  onVerify?: (metric: Metric) => void;
+  verifyingKey?: string | null;
 }) {
   const [nps, setNps] = useState("");
   const [help, setHelp] = useState<Help | null>(null);
   const metric = (key: string) => metrics.data?.find((m) => m.key === key);
   const npsMetric = metric("nps");
   const npsValue = nps !== "" ? nps : (npsMetric?.value ?? "");
-  const confirm = (m: Metric | undefined) =>
-    m && onConfirm && metricStaleDays(m) != null ? (
-      <ConfirmUpToDate pending={confirmingKey === m.key} onConfirm={() => onConfirm(m)} />
+  const verify = (m: Metric | undefined) =>
+    m && onVerify && metricStaleDays(m) != null ? (
+      <VerifyMetricButton pending={verifyingKey === m.key} onVerify={() => onVerify(m)} />
     ) : null;
 
   return (
@@ -70,7 +84,7 @@ export function KpiSection({
             setHelp({ label: "Taux de placement", metric: metric("training_kpi") }),
           )}
         >
-          {confirm(metric("training_kpi"))}
+          {verify(metric("training_kpi"))}
         </DsKpiTile>
         <DsKpiTile
           label="Missions actives"
@@ -78,7 +92,7 @@ export function KpiSection({
             setHelp({ label: "Missions actives", metric: metric("active_users") }),
           )}
         >
-          {confirm(metric("active_users"))}
+          {verify(metric("active_users"))}
         </DsKpiTile>
         <DsKpiTile
           className="sm:col-span-2"
@@ -87,7 +101,7 @@ export function KpiSection({
             setHelp({ label: npsMetric?.label ?? "NPS candidats", metric: npsMetric }),
           )}
         >
-          {confirm(npsMetric)}
+          {verify(npsMetric)}
           {canEditNps && (
             <form
               className="flex flex-wrap items-end gap-xs"

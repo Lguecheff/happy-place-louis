@@ -1,8 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, type ReactNode } from "react";
-import { DsBadge, type DsBadgeVariant } from "@/components/ds";
+import { DsBadge, DsButton, DsFreshness, DsStaleBadge, type DsBadgeVariant } from "@/components/ds";
 import { ManageIcon, Modal } from "@/components/manage/crud-ui";
-import { statusLabel } from "@/components/overview/overview-utils";
+import {
+  statusLabel,
+  submissionStaleDays,
+  submissionUpdatedAt,
+} from "@/components/overview/overview-utils";
 import {
   fetchSubmissionHistory,
   type Submission,
@@ -20,7 +24,10 @@ export type ThreadStep = Pick<
   | "rejection_category"
   | "rejection_note"
   | "changed_at"
->;
+> & {
+  /** « Confirmer à jour » (US21) : ligne « Vérifiée par <nom> », sans changement de statut. */
+  kind?: "verification";
+};
 
 const dateTime = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" });
 
@@ -55,6 +62,7 @@ export function StatusThread({ steps }: { steps: ThreadStep[] }) {
     >
       {steps.map((s) => {
         const creation = s.old_status === null;
+        const verification = s.kind === "verification";
         return (
           <li key={s.id} className="relative pl-md pb-md last:pb-0">
             <span
@@ -62,7 +70,11 @@ export function StatusThread({ steps }: { steps: ThreadStep[] }) {
               className="absolute -left-[5px] top-[7px] h-[9px] w-[9px] border border-outline bg-surface-container-lowest"
             />
             <div className="flex flex-wrap items-center gap-xs">
-              <StatusChip status={s.new_status} />
+              {verification ? (
+                <DsBadge icon="done">Vérifiée à jour</DsBadge>
+              ) : (
+                <StatusChip status={s.new_status} />
+              )}
               {creation && (
                 <span className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
                   Création
@@ -75,7 +87,13 @@ export function StatusThread({ steps }: { steps: ThreadStep[] }) {
               </time>
             </p>
             <p className="font-body-md text-body-md text-on-surface-variant">
-              {s.is_automatic ? "Changement " : creation ? "Créée par " : "Modifié par "}
+              {s.is_automatic
+                ? "Changement "
+                : creation
+                  ? "Créée par "
+                  : verification
+                    ? "Par "
+                    : "Modifié par "}
               <span
                 className={
                   s.is_automatic
@@ -105,6 +123,38 @@ export function StatusThread({ steps }: { steps: ThreadStep[] }) {
   );
 }
 
+/**
+ * Fraîcheur d'une demande, dans son détail seulement : badge « À vérifier » (validée ou clôturée,
+ * plus d'un an), date de mise à jour, et « Confirmer à jour » si le lecteur peut confirmer.
+ */
+export function SubmissionUpToDate({
+  submission: s,
+  pending,
+  onConfirm,
+}: {
+  submission: Submission;
+  pending?: boolean;
+  /** Auteur, membres et managers de l'équipe, admin ; sans valeur, pas de bouton. */
+  onConfirm?: () => void;
+}) {
+  const staleDays = submissionStaleDays(s);
+  const at = submissionUpdatedAt(s);
+  const verified = !!s.verified_at && at === s.verified_at;
+  return (
+    <div className="flex flex-col gap-xs">
+      <span className="flex flex-wrap items-center gap-xs">
+        {staleDays != null && <DsStaleBadge days={staleDays} />}
+        <DsFreshness at={at} by={verified ? s.verified_by_name : null} verified={verified} />
+      </span>
+      {onConfirm && staleDays != null && (
+        <DsButton icon="done" pending={pending} onClick={onConfirm} className="self-start">
+          Confirmer à jour
+        </DsButton>
+      )}
+    </div>
+  );
+}
+
 /** Fenêtre du fil (présentation seule) : focus dans la fenêtre, Échap pour fermer, focus rendu à la fermeture. */
 export function SubmissionThreadView({
   content,
@@ -115,6 +165,7 @@ export function SubmissionThreadView({
   readOnly = true,
   actions,
   follow,
+  upToDate,
   onClose,
 }: {
   content: string;
@@ -127,6 +178,8 @@ export function SubmissionThreadView({
   actions?: ReactNode;
   /** Suivi de la demande (`FollowButton`), sous l'équipe. */
   follow?: ReactNode;
+  /** Badge « À vérifier », date de mise à jour et « Confirmer à jour » (`SubmissionUpToDate`). */
+  upToDate?: ReactNode;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -146,7 +199,7 @@ export function SubmissionThreadView({
   }, []);
 
   return (
-    <Modal title="Suivi de la demande" onClose={onClose}>
+    <Modal title="Détail de la demande" onClose={onClose}>
       <div className="space-y-md">
         <div className="space-y-xs">
           <p className="font-body-md text-body-md text-on-surface wrap-anywhere">{content}</p>
@@ -162,10 +215,11 @@ export function SubmissionThreadView({
             )}
           </p>
           {follow}
+          {upToDate}
         </div>
         {actions}
         {loading && <p className="text-body-sm text-on-surface-variant">Chargement…</p>}
-        {error && <p className="text-body-sm text-error">Impossible de charger le suivi.</p>}
+        {error && <p className="text-body-sm text-error">Impossible de charger le détail.</p>}
         {!loading && !error && steps.length <= 1 && (
           <p className="font-body-sm text-body-sm italic text-on-surface-variant">
             Aucun changement de statut depuis la création.
@@ -182,6 +236,7 @@ export function SubmissionThreadModal({
   submission,
   actions,
   follow,
+  upToDate,
   onClose,
 }: {
   submission: Submission;
@@ -189,6 +244,7 @@ export function SubmissionThreadModal({
   actions?: (currentStatus: string) => ReactNode;
   /** Suivi de la demande (`SubmissionFollow`). */
   follow?: ReactNode;
+  upToDate?: ReactNode;
   onClose: () => void;
 }) {
   const q = useQuery({
@@ -205,6 +261,7 @@ export function SubmissionThreadModal({
       readOnly={!actions}
       actions={actions?.(steps[0]?.new_status ?? submission.status)}
       follow={follow}
+      upToDate={upToDate}
       loading={q.isLoading}
       error={q.isError}
       onClose={onClose}
