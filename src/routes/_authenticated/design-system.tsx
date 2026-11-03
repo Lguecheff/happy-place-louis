@@ -155,6 +155,10 @@ function DesignSystemPage() {
             <DsFreshness at={ago(12)} />
             <DsFreshness at={ago(60 * 24 * 9)} stale />
           </Demo>
+          <Demo title="Avec l'auteur (by), ou « Automatique » ; date complète au survol et au focus">
+            <DsFreshness at={ago(60 * 24 * 2)} by="Olivia Laurent" />
+            <DsFreshness at={ago(60 * 5)} by="Automatique" />
+          </Demo>
         </DsSection>
 
         <DsSection id="enregistrement" title="DsSaveStatus">

@@ -1,5 +1,4 @@
 import { DsKpiDefinition, DsKpiTile } from "@/components/ds";
-import { formatDay } from "@/components/overview/overview-utils";
 import { ReaderDialog } from "@/components/reader-dialog";
 import { formatMetricValue, metricTrend, type Metric } from "@/lib/dashboard";
 
@@ -17,7 +16,7 @@ export function MetricReader({
   return (
     <ReaderDialog
       title={m.label}
-      subtitle={`Mis à jour le ${formatDay(m.updated_at)}`}
+      subtitle="Indicateur"
       onClose={onClose}
       onCloseAutoFocus={onCloseAutoFocus}
     >
@@ -25,6 +24,8 @@ export function MetricReader({
         label="Valeur actuelle"
         value={formatMetricValue(m.value, m.unit)}
         {...metricTrend(m)}
+        updatedAt={m.updated_at}
+        updatedBy={m.updated_by_name}
       />
       <DsKpiDefinition definition={m.definition} impact={m.impact} />
     </ReaderDialog>

@@ -22,6 +22,7 @@ function tileProps(metric: Metric | undefined, onHelp: () => void) {
     value: formatMetricValue(metric.value, metric.unit),
     ...metricTrend(metric),
     updatedAt: metric.updated_at,
+    updatedBy: metric.updated_by_name,
     onHelp,
     definition,
   };

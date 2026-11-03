@@ -1,4 +1,4 @@
-import { DsIcon } from "@/components/ds";
+import { DsFreshness, DsIcon } from "@/components/ds";
 import { Linkify } from "@/components/linkify";
 import { BlockerBadges } from "@/components/overview/BlockersSection";
 import { formatDay, teamsFull } from "@/components/overview/overview-utils";
@@ -22,13 +22,14 @@ export function BlockerReader({
   return (
     <ReaderDialog
       title={b.title}
-      subtitle={`Créé le ${formatDay(b.created_at)} · Dernière modification le ${formatDay(b.updated_at)}`}
+      subtitle={`Créé le ${formatDay(b.created_at)}`}
       onClose={onClose}
       onCloseAutoFocus={onCloseAutoFocus}
     >
       <div className="flex flex-wrap items-center gap-xs">
         <BlockerBadges blocker={b} />
       </div>
+      <DsFreshness at={b.updated_at} by={b.updated_by_name} />
       <dl>
         <dt className={LABEL}>{b.teams.length > 1 ? "Équipes concernées" : "Équipe concernée"}</dt>
         <dd className="font-body-md text-body-md text-on-surface wrap-anywhere">

@@ -18,6 +18,8 @@ type DsKpiTileProps = {
   trendDirection?: keyof typeof ARROWS;
   /** Date ISO de mise à jour, affichée par DsFreshness. */
   updatedAt?: string;
+  /** Auteur de la dernière mise à jour, affiché après la date. */
+  updatedBy?: string | null;
   stale?: boolean;
   /** Lien « Comprendre cet indicateur ». */
   helpHref?: string;
@@ -43,6 +45,7 @@ export function DsKpiTile({
   trend,
   trendDirection = "flat",
   updatedAt,
+  updatedBy,
   stale,
   helpHref,
   onHelp,
@@ -86,7 +89,7 @@ export function DsKpiTile({
           {trend}
         </p>
       )}
-      {updatedAt && <DsFreshness at={updatedAt} stale={stale} />}
+      {updatedAt && <DsFreshness at={updatedAt} by={updatedBy} stale={stale} />}
       {helpHref && (
         <a href={helpHref} className={HELP}>
           {helpLabel}

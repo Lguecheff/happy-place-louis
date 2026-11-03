@@ -73,6 +73,8 @@ export type Blocker = {
   status: string;
   created_at: string;
   updated_at: string;
+  /** Nom copié par la base à chaque modification (US20) ; vide pour les points plus anciens. */
+  updated_by_name?: string | null;
 };
 
 export type Metric = {
@@ -84,6 +86,8 @@ export type Metric = {
   previous_value: number | null;
   delta: number | string | null;
   updated_at: string;
+  /** Nom copié par la base à chaque modification (US20) ; vide pour les KPI plus anciens. */
+  updated_by_name?: string | null;
   /** « Ce que ça mesure » (US18). */
   definition: string | null;
   /** « Ce que ça change pour toi » (US18). */

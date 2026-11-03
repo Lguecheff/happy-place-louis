@@ -93,9 +93,9 @@ Props : `trigger`, `title`, `action`, `open`, `onOpenChange`, `children`, `class
 ```
 
 ### DsFreshness
-Props : `at` (date ISO), `stale`. Affiche « Mis à jour il y a X » (via `timeAgo`). `stale` passe en couleur d'alerte avec icône d'avertissement.
+Props : `at` (date ISO), `by`, `stale`. Affiche « Mis à jour il y a X » (via `timeAgo`), suivi de « par <nom> » si `by` est renseigné (« Automatique » pour une modification sans utilisateur) ; sans `by`, la mention s'arrête à la date. La date complète (fr-FR, heure de Paris) s'affiche dans une `DsTooltip` au survol et au focus clavier : la mention est donc focusable. `stale` passe en couleur d'alerte avec icône d'avertissement.
 ```tsx
-<DsFreshness at={metric.updated_at} stale={isOld} />
+<DsFreshness at={metric.updated_at} by={metric.updated_by_name} stale={isOld} />
 ```
 
 ### DsSaveStatus
@@ -105,7 +105,7 @@ Props : `state` (`idle` | `saving` | `saved` | `error`), `at` (heure du dernier 
 ```
 
 ### DsKpiTile
-Props : `label`, `value`, `valueFont` (`display` | `headline`), `trend`, `trendDirection` (`up` | `down` | `flat`), `updatedAt`, `stale`, `helpHref` (lien) ou `onHelp` (bouton qui ouvre une fenêtre), `helpLabel`, `definition` (`{ definition, impact }` : le libellé devient focusable, souligné en pointillés, et ouvre une `DsTooltip` avec `DsKpiDefinition`), `children` (ajout en bas de tuile). Avec `definition`, garde `onHelp` ou `helpHref` : c'est le seul accès aux textes sur un écran tactile.
+Props : `label`, `value`, `valueFont` (`display` | `headline`), `trend`, `trendDirection` (`up` | `down` | `flat`), `updatedAt`, `updatedBy` (passé à `DsFreshness`), `stale`, `helpHref` (lien) ou `onHelp` (bouton qui ouvre une fenêtre), `helpLabel`, `definition` (`{ definition, impact }` : le libellé devient focusable, souligné en pointillés, et ouvre une `DsTooltip` avec `DsKpiDefinition`), `children` (ajout en bas de tuile). Avec `definition`, garde `onHelp` ou `helpHref` : c'est le seul accès aux textes sur un écran tactile.
 ```tsx
 <DsKpiTile label="Taux de placement" value="78,4 %" trend="+2,1 points sur 30 jours" trendDirection="up" updatedAt={iso} helpHref="/aide#placement" />
 ```

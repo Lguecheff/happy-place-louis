@@ -75,7 +75,7 @@ function BlockerRow({
       opensDialog
       onClick={(e) => onOpen(b, e.currentTarget)}
     >
-      <DsFreshness at={b.updated_at} stale={stale} />
+      <DsFreshness at={b.updated_at} by={b.updated_by_name} stale={stale} />
       {/* Hors du bouton de la ligne : changer le statut n'ouvre pas la fenêtre. */}
       {canEdit && (
         <DsField id={selectId} label={`Changer le statut de ${b.title}`}>
