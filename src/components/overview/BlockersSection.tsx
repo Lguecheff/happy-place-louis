@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import {
   DS_INPUT,
   DsBadge,
@@ -11,12 +12,18 @@ import {
 import {
   BLOCKER_STALE_DAYS,
   daysSince,
+  formatDay,
   severityLabel,
   statusLabel,
+  teamsSummary,
 } from "@/components/overview/overview-utils";
-import type { Blocker } from "@/lib/dashboard";
+import { ReaderDialog } from "@/components/reader-dialog";
+import { fetchResolvedBlockers, type Blocker } from "@/lib/dashboard";
 
 const BLOCKER_STATUSES = ["OUVERT", "EN COURS", "SURVEILLANCE", "RÉSOLU"];
+
+/** Ouvre un point dans sa fenêtre de lecture ; `trigger` reçoit le focus à la fermeture. */
+export type OpenBlocker = (blocker: Blocker, trigger: HTMLElement) => void;
 
 /** Sévérité et statut d'un point bloquant, avec « Archivé » une fois résolu. */
 export function BlockerBadges({ blocker: b }: { blocker: Blocker }) {
@@ -32,13 +39,29 @@ export function BlockerBadges({ blocker: b }: { blocker: Blocker }) {
   );
 }
 
+export function BlockerTitle({ blocker: b, myTeams }: { blocker: Blocker; myTeams: string[] }) {
+  return (
+    <>
+      <span className="mb-xs flex flex-wrap items-center gap-xs">
+        <BlockerBadges blocker={b} />
+        <DsBadge>{teamsSummary(b.teams, myTeams)}</DsBadge>
+      </span>
+      {b.title}
+    </>
+  );
+}
+
 function BlockerRow({
   blocker: b,
+  myTeams,
   canEdit,
+  onOpen,
   onStatusChange,
 }: {
   blocker: Blocker;
+  myTeams: string[];
   canEdit: boolean;
+  onOpen: OpenBlocker;
   onStatusChange: (status: string) => void;
 }) {
   const critical = b.severity === "critical";
@@ -47,18 +70,13 @@ function BlockerRow({
   return (
     <DsListItem
       className={critical ? "accent-bar" : undefined}
-      title={
-        <>
-          <span className="mb-xs flex flex-wrap items-center gap-xs">
-            <BlockerBadges blocker={b} />
-            <DsBadge>{statusLabel(b.department)}</DsBadge>
-          </span>
-          {b.title}
-        </>
-      }
+      title={<BlockerTitle blocker={b} myTeams={myTeams} />}
       meta={b.description}
+      opensDialog
+      onClick={(e) => onOpen(b, e.currentTarget)}
     >
       <DsFreshness at={b.updated_at} stale={stale} />
+      {/* Hors du bouton de la ligne : changer le statut n'ouvre pas la fenêtre. */}
       {canEdit && (
         <DsField id={selectId} label={`Changer le statut de ${b.title}`}>
           <select
@@ -89,12 +107,17 @@ function BlockerRow({
 
 export function BlockersSection({
   blockers,
+  myTeams = [],
   canEdit,
+  onOpen,
   onStatusChange,
   onOpenArchive,
 }: {
   blockers: { data?: Blocker[]; isError: boolean };
+  /** Équipes du lecteur : la sienne passe en premier dans « Data +2 ». */
+  myTeams?: string[];
   canEdit: boolean;
+  onOpen: OpenBlocker;
   onStatusChange: (id: string, status: string) => void;
   onOpenArchive: () => void;
 }) {
@@ -123,11 +146,60 @@ export function BlockersSection({
           <BlockerRow
             key={b.id}
             blocker={b}
+            myTeams={myTeams}
             canEdit={canEdit}
+            onOpen={onOpen}
             onStatusChange={(status) => onStatusChange(b.id, status)}
           />
         ))}
       </div>
     </DsSection>
+  );
+}
+
+/** Fenêtre « Archive des points bloquants » : points résolus, chacun s'ouvre en lecture. */
+export function BlockerArchive({
+  open,
+  myTeams = [],
+  onOpen,
+  onClose,
+}: {
+  open: boolean;
+  myTeams?: string[];
+  onOpen: OpenBlocker;
+  onClose: () => void;
+}) {
+  const q = useQuery({
+    queryKey: ["blockers", "resolved"],
+    queryFn: fetchResolvedBlockers,
+    enabled: open,
+    retry: false,
+  });
+  if (!open) return null;
+  return (
+    <ReaderDialog
+      title="Archive des points bloquants"
+      subtitle="Points résolus, du plus récent au plus ancien"
+      onClose={onClose}
+    >
+      <div className="space-y-xs">
+        {q.isLoading && (
+          <p className="font-body-sm text-body-sm text-on-surface-variant">Chargement…</p>
+        )}
+        {q.isError && (
+          <p className="font-body-sm text-body-sm text-error">L'archive est indisponible.</p>
+        )}
+        {q.data?.length === 0 && <DsEmptyState>Aucun point bloquant résolu.</DsEmptyState>}
+        {q.data?.map((b) => (
+          <DsListItem
+            key={b.id}
+            title={<BlockerTitle blocker={b} myTeams={myTeams} />}
+            meta={`Mis à jour le ${formatDay(b.updated_at)}`}
+            opensDialog
+            onClick={(e) => onOpen(b, e.currentTarget)}
+          />
+        ))}
+      </div>
+    </ReaderDialog>
   );
 }

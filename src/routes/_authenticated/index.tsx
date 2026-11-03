@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { toast } from "sonner";
 import { BrandHeader } from "@/components/brand-header";
-import { BlockerArchive } from "@/components/dashboard-extras";
+import { BlockerReader } from "@/components/blocker-reader";
 import { DepartureNotices } from "@/components/departure-notices";
 import { DsButton, toastUndo } from "@/components/ds";
 import { DS_FOCUS } from "@/components/ds/focus";
@@ -13,7 +13,7 @@ import { rejectionErrorMessage } from "@/components/expandable-card";
 import { NewsReader } from "@/components/news-reader";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { useNotificationPreferences } from "@/components/notifications/useNotificationPreferences";
-import { BlockersSection } from "@/components/overview/BlockersSection";
+import { BlockerArchive, BlockersSection } from "@/components/overview/BlockersSection";
 import { KpiSection } from "@/components/overview/KpiSection";
 import {
   NewsSection,
@@ -45,6 +45,7 @@ import {
   fetchSubmissions,
   fetchMySubmissions,
   exportMyRecentSubmissions,
+  type Blocker,
   type News,
   type Submission,
   autosaveDraftNews,
@@ -99,7 +100,7 @@ function ManagerSpace() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("allowed_users")
-        .select("first_name, last_name")
+        .select("first_name, last_name, team")
         .eq("email", myEmail)
         .maybeSingle();
       if (error) throw error;
@@ -139,6 +140,8 @@ function ManagerSpace() {
   const [threadEditable, setThreadEditable] = useState(false);
   const [readingNews, setReadingNews] = useState<News | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [readingBlocker, setReadingBlocker] = useState<Blocker | null>(null);
+  const blockerTrigger = useRef<HTMLElement | null>(null);
 
   const news = useQuery({ queryKey: ["news"], queryFn: fetchNews, retry: false });
   const submissions = useQuery({
@@ -289,7 +292,23 @@ function ManagerSpace() {
     ? blockers.data
     : blockers.data &&
       myTeams.data &&
-      blockers.data.filter((b) => !b.team || myTeams.data.includes(b.team));
+      blockers.data.filter(
+        (b) => b.teams.length === 0 || b.teams.some((t) => myTeams.data.includes(t)),
+      );
+  // Mes équipes, pour placer la mienne en premier dans « Data +2 ».
+  const viewerTeams =
+    role === "manager" ? (myTeams.data ?? []) : profile.data?.team ? [profile.data.team] : [];
+
+  function openBlocker(blocker: Blocker, trigger: HTMLElement) {
+    blockerTrigger.current = trigger;
+    setReadingBlocker(blocker);
+  }
+
+  // Rend le focus au point bloquant qui a ouvert la fenêtre, dans la liste ou dans l'archive.
+  function focusBlockerTrigger(event: Event) {
+    event.preventDefault();
+    blockerTrigger.current?.focus();
+  }
   // Managers seulement, et une fois les actus chargées : sinon le compteur afficherait un faux 0.
   const publishedCount =
     role === "manager" && news.data ? publishedThisMonth(news.data, myEmail) : undefined;
@@ -445,7 +464,9 @@ function ManagerSpace() {
           <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-md">
             <BlockersSection
               blockers={blockers}
+              myTeams={viewerTeams}
               canEdit={isAdmin}
+              onOpen={openBlocker}
               onStatusChange={(id, status) => setBlocker.mutate({ id, status })}
               onOpenArchive={() => setArchiveOpen(true)}
             />
@@ -458,7 +479,17 @@ function ManagerSpace() {
           </div>
         </div>
       </main>
-      <BlockerArchive open={archiveOpen} onClose={() => setArchiveOpen(false)} />
+      <BlockerArchive
+        open={archiveOpen}
+        myTeams={viewerTeams}
+        onOpen={openBlocker}
+        onClose={() => setArchiveOpen(false)}
+      />
+      <BlockerReader
+        blocker={readingBlocker}
+        onClose={() => setReadingBlocker(null)}
+        onCloseAutoFocus={focusBlockerTrigger}
+      />
       {threadOf && !rejecting && (
         <SubmissionThreadModal
           submission={threadOf}

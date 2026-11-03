@@ -2,17 +2,22 @@ import { DS_INPUT, DsField } from "@/components/ds";
 
 export const KPI_TEXT_MAX = 200;
 
-/** Champ de texte d'un KPI (« Ce que ça mesure », « Ce que ça change pour toi ») avec compteur. */
+/** Champ de texte court avec compteur (textes d'un KPI, impact d'un point bloquant). */
 export function KpiTextField({
   id,
   label,
   value,
+  max = KPI_TEXT_MAX,
+  hint,
   error,
   onChange,
 }: {
   id: string;
   label: string;
   value: string;
+  max?: number;
+  /** Phrase d'aide après le compteur. */
+  hint?: string;
   error?: string;
   onChange: (value: string) => void;
 }) {
@@ -21,7 +26,7 @@ export function KpiTextField({
       <textarea
         id={id}
         rows={3}
-        maxLength={KPI_TEXT_MAX}
+        maxLength={max}
         aria-describedby={`${id}-compte`}
         className={DS_INPUT}
         value={value}
@@ -31,7 +36,7 @@ export function KpiTextField({
         id={`${id}-compte`}
         className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant"
       >
-        {value.length}/{KPI_TEXT_MAX} caractères
+        {value.length}/{max} caractères{hint && ` · ${hint}`}
       </p>
     </DsField>
   );

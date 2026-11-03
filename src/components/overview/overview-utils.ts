@@ -94,3 +94,18 @@ export const statusLabel = sentenceCase;
 export function severityLabel(severity: string) {
   return severity === "critical" ? "Critique" : "À surveiller";
 }
+
+const byName = (a: string, b: string) => a.localeCompare(b, "fr");
+
+/** Équipes d'un point bloquant en court : « Toutes les équipes », « Data » ou « Data +2 » (la mienne d'abord). */
+export function teamsSummary(teams: string[], mine: string[] = []) {
+  if (teams.length === 0) return "Toutes les équipes";
+  const sorted = [...teams].sort(byName);
+  const first = sorted.find((t) => mine.includes(t)) ?? sorted[0];
+  return teams.length > 1 ? `${first} +${teams.length - 1}` : first;
+}
+
+/** Équipes d'un point bloquant en entier, par ordre alphabétique. */
+export function teamsFull(teams: string[]) {
+  return teams.length === 0 ? "Toutes les équipes" : [...teams].sort(byName).join(", ");
+}

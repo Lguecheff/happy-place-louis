@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { DsIcon } from "./ds-icon";
 import { DS_FOCUS } from "./focus";
@@ -19,8 +19,18 @@ type DsListItemProps =
   | (Common & { actions?: ReactNode; children?: ReactNode; href?: undefined; onClick?: undefined })
   /** Ligne entièrement cliquable (lien) : flèche à droite, pas d'actions imbriquées. */
   | (Common & { href: string; onClick?: undefined; actions?: undefined; children?: undefined })
-  /** Ligne entièrement cliquable (bouton) : flèche à droite, pas d'actions imbriquées. */
-  | (Common & { onClick: () => void; href?: undefined; actions?: undefined; children?: undefined });
+  /**
+   * Ligne cliquable (bouton) : flèche à droite, pas d'actions imbriquées. Avec `children`,
+   * seul le haut de la ligne est le bouton ; le contenu (ex. un sélecteur) passe dessous, hors du bouton.
+   */
+  | (Common & {
+      onClick: (event: MouseEvent<HTMLButtonElement>) => void;
+      /** Le bouton ouvre une fenêtre (annoncé aux lecteurs d'écran). */
+      opensDialog?: boolean;
+      children?: ReactNode;
+      href?: undefined;
+      actions?: undefined;
+    });
 
 const ROW =
   "flex min-h-11 w-full min-w-0 items-center gap-sm border border-outline-variant bg-surface-container-lowest p-sm text-left";
@@ -50,15 +60,33 @@ export function DsListItem(props: DsListItemProps) {
     );
   }
   if (props.onClick) {
-    return (
+    const button = (
       <button
         type="button"
+        aria-haspopup={props.opensDialog ? "dialog" : undefined}
         onClick={props.onClick}
-        className={cn(ROW, "hover:bg-surface-container", DS_FOCUS, className)}
+        className={cn(
+          ROW,
+          "hover:bg-surface-container",
+          DS_FOCUS,
+          props.children ? "border-0" : className,
+        )}
       >
         {body}
         <DsIcon name="arrow_forward" className="shrink-0 text-primary" />
       </button>
+    );
+    if (!props.children) return button;
+    return (
+      <div
+        className={cn(
+          "flex min-w-0 flex-col border border-outline-variant bg-surface-container-lowest",
+          className,
+        )}
+      >
+        {button}
+        <div className="space-y-xs px-sm pb-sm">{props.children}</div>
+      </div>
     );
   }
   if (props.children) {

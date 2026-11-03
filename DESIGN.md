@@ -123,9 +123,12 @@ Props : `definition`, `impact`, `className`. Les deux textes d'un KPI, « Ce que
 ```
 
 ### DsListItem
-Props : `title`, `meta`, `icon` ou `leading` (ex. `DsAvatar`), et soit `actions` et `children` (ligne statique, `children` place le contenu et les actions sous le titre), soit `href`, soit `onClick` (ligne entièrement cliquable avec flèche, sans actions imbriquées).
+Props : `title`, `meta`, `icon` ou `leading` (ex. `DsAvatar`), et soit `actions` et `children` (ligne statique, `children` place le contenu et les actions sous le titre), soit `href`, soit `onClick` (ligne cliquable avec flèche, sans actions imbriquées). Avec `onClick`, `opensDialog` annonce l'ouverture d'une fenêtre, et `children` passe sous le bouton, hors de lui : seul le haut de la ligne s'ouvre, un sélecteur placé dessous ne l'ouvre pas.
 ```tsx
 <DsListItem icon="article" title="Nouvelle offre" meta="Publiée il y a 3 heures · par Sam" href="/actualites/12" />
+<DsListItem title={point.title} opensDialog onClick={(e) => ouvrir(point, e.currentTarget)}>
+  <DsFreshness at={point.updated_at} />
+</DsListItem>
 ```
 
 ### DsStatTile

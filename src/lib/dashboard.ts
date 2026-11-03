@@ -63,9 +63,12 @@ export type Blocker = {
   id: string;
   title: string;
   description: string | null;
-  department: string;
-  /** Équipe concernée ; sans équipe, le point concerne toutes les équipes. */
-  team?: string | null;
+  /** Ancien pôle : ni saisi ni affiché depuis l'US19. */
+  department?: string | null;
+  /** Équipes concernées ; vide, le point concerne toutes les équipes. */
+  teams: string[];
+  /** « Ce que ça change pour toi », saisi par l'admin ; vide, le bloc n'apparaît pas. */
+  impact?: string | null;
   severity: string;
   status: string;
   created_at: string;
@@ -387,21 +390,36 @@ export async function reviewSubmission(
   if (error) throw error;
 }
 
+const BLOCKER_SELECT = "*, blocker_teams(team)";
+
+function toBlocker({
+  blocker_teams,
+  ...blocker
+}: Database["public"]["Tables"]["blockers"]["Row"] & {
+  blocker_teams: { team: string }[];
+}): Blocker {
+  return { ...blocker, teams: blocker_teams.map((t) => t.team).sort((a, b) => a.localeCompare(b, "fr")) };
+}
+
 export async function fetchBlockers(): Promise<Blocker[]> {
   const { data, error } = await db
     .from("blockers")
-    .select("*")
+    .select(BLOCKER_SELECT)
     .neq("status", "RÉSOLU")
     .order("updated_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as Blocker[];
+  return (data ?? []).map(toBlocker);
 }
 
 /** Point bloquant, résolu compris ; `null` s'il a été supprimé. */
 export async function fetchBlocker(id: string): Promise<Blocker | null> {
-  const { data, error } = await db.from("blockers").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await db
+    .from("blockers")
+    .select(BLOCKER_SELECT)
+    .eq("id", id)
+    .maybeSingle();
   if (error) throw error;
-  return data as Blocker | null;
+  return data && toBlocker(data);
 }
 
 /** Démo (US16) : fait comme si le point n'avait pas bougé depuis 4 jours et lance le passage quotidien. */
@@ -416,11 +434,11 @@ export async function simulateStaleBlocker(id: string): Promise<number> {
 export async function fetchResolvedBlockers(): Promise<Blocker[]> {
   const { data, error } = await db
     .from("blockers")
-    .select("*")
+    .select(BLOCKER_SELECT)
     .eq("status", "RÉSOLU")
     .order("updated_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as Blocker[];
+  return (data ?? []).map(toBlocker);
 }
 
 export type ValidatedSubmission = Submission & { validated_at: string | null };
@@ -499,8 +517,9 @@ export type SubmissionInput = {
 export type BlockerInput = {
   title: string;
   description: string;
-  department: string;
-  team: string | null;
+  /** Vide : toutes les équipes. */
+  teams: string[];
+  impact: string;
   severity: string;
   status: string;
 };
@@ -638,25 +657,37 @@ export async function deleteSubmission(id: string) {
 export async function fetchAllBlockers(): Promise<Blocker[]> {
   const { data, error } = await db
     .from("blockers")
-    .select("*")
+    .select(BLOCKER_SELECT)
     .order("updated_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as Blocker[];
+  return (data ?? []).map(toBlocker);
+}
+
+function blockerRow({ teams: _teams, ...input }: BlockerInput) {
+  return {
+    ...input,
+    impact: input.impact.trim() || null,
+    severity: input.severity as Enums["blocker_severity"],
+    status: input.status as Enums["blocker_status"],
+    updated_at: new Date().toISOString(),
+  };
+}
+
+async function saveBlockerTeams(id: string, teams: string[]) {
+  const { error } = await supabase.rpc("save_blocker_teams", { _blocker_id: id, _teams: teams });
+  if (error) throw error;
 }
 
 export async function createBlocker(input: BlockerInput) {
-  const { error } = await db
-    .from("blockers")
-    .insert({ ...input, severity: input.severity as Enums["blocker_severity"], status: input.status as Enums["blocker_status"], updated_at: new Date().toISOString() });
+  const { data, error } = await db.from("blockers").insert(blockerRow(input)).select("id").single();
   if (error) throw error;
+  await saveBlockerTeams(data.id, input.teams);
 }
 
 export async function updateBlocker(id: string, input: BlockerInput) {
-  const { error } = await db
-    .from("blockers")
-    .update({ ...input, severity: input.severity as Enums["blocker_severity"], status: input.status as Enums["blocker_status"], updated_at: new Date().toISOString() })
-    .eq("id", id);
+  const { error } = await db.from("blockers").update(blockerRow(input)).eq("id", id);
   if (error) throw error;
+  await saveBlockerTeams(id, input.teams);
 }
 
 export async function deleteBlocker(id: string) {

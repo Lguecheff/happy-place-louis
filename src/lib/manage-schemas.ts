@@ -56,11 +56,15 @@ export const submissionSchema = z.object({
     ctx.addIssue({ code: "custom", path: ["rejection_note"], message: rejectionTooLong(v.rejection_note.trim().length) });
 });
 
+/** « Ce que ça change pour toi » d'un point bloquant (contrainte blockers_impact_length). */
+export const BLOCKER_IMPACT_MAX = 300;
+
 export const blockerSchema = z.object({
   title: z.string().trim().min(3, "Le titre doit faire au moins 3 caractères").max(160, "160 caractères maximum"),
   description: z.string().trim().max(2000, "2000 caractères maximum"),
-  department: z.string().trim().min(2, "Pôle requis").max(60, "60 caractères maximum"),
-  team: z.string().nullable(),
+  /** Vide : toutes les équipes. */
+  teams: z.array(z.string()),
+  impact: z.string().trim().max(BLOCKER_IMPACT_MAX, `${BLOCKER_IMPACT_MAX} caractères maximum`),
   severity: z.enum(["critical", "warning", "info"], {
     errorMap: () => ({ message: "Sévérité invalide" }),
   }),

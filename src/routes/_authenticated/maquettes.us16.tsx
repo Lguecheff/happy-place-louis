@@ -58,7 +58,7 @@ const CONTRACTS: Blocker = {
   description:
     "Le service juridique attend la nouvelle trame de contrat : trois missions ne peuvent pas démarrer (fictif).",
   department: "Juridique",
-  team: null,
+  teams: [],
   severity: "critical",
   status: "OUVERT",
   created_at: ago(12 * DAY_MS),
@@ -70,7 +70,7 @@ const ATS: Blocker = {
   title: "Accès au nouvel ATS en attente (fictif)",
   description: "Les comptes des recruteurs Data ne sont pas encore créés (fictif).",
   department: "Tech",
-  team: "Data",
+  teams: ["Data"],
   severity: "warning",
   status: "EN COURS",
   created_at: ago(20 * DAY_MS),
@@ -83,7 +83,7 @@ const ONBOARDING: Blocker = {
   title: "Parcours d'accueil des nouveaux arrivants à revoir (fictif)",
   description: null,
   department: "RH",
-  team: null,
+  teams: [],
   severity: "info",
   status: "SURVEILLANCE",
   created_at: ago(30 * DAY_MS),
@@ -292,6 +292,7 @@ function Us16Mockup() {
               blockers={{ data: blockers, isError: false }}
               canEdit
               onStatusChange={changeStatus}
+              onOpen={setReading}
               onOpenArchive={notWired}
             />
           )}

@@ -65,6 +65,7 @@ function blocker(
     title: `${title} (fictif)`,
     description,
     department: "OPÉRATIONS",
+    teams: [],
     severity,
     status,
     created_at: daysAgo(days),

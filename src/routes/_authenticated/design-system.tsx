@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BrandHeader } from "@/components/brand-header";
 import {
+  DS_INPUT,
   DsBadge,
   DsButton,
   DsChoice,
   DsChoiceGroup,
   DsCount,
   DsEmptyState,
+  DsField,
   DsFreshness,
   DsIcon,
   DsIconButton,
@@ -242,6 +244,20 @@ function DesignSystemPage() {
               meta="Ligne cliquable en bouton"
               onClick={() => toastUndo("Fil ouvert (exemple)", () => {})}
             />
+            <DsListItem
+              icon="report"
+              title="Accès au nouvel ATS en attente"
+              meta="Ligne cliquable avec un contrôle dessous, hors du bouton"
+              opensDialog
+              onClick={() => toastUndo("Point ouvert (exemple)", () => {})}
+            >
+              <DsField id="demo-ligne-statut" label="Changer le statut">
+                <select id="demo-ligne-statut" className={DS_INPUT} defaultValue="en-cours">
+                  <option value="ouvert">Ouvert</option>
+                  <option value="en-cours">En cours</option>
+                </select>
+              </DsField>
+            </DsListItem>
           </div>
         </DsSection>
 

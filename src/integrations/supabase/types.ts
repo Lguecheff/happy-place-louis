@@ -108,49 +108,71 @@ export type Database = {
         }
         Relationships: []
       }
-      blockers: {
+      blocker_teams: {
         Row: {
-          created_at: string
-          department: string
-          description: string | null
-          id: string
-          severity: Database["public"]["Enums"]["blocker_severity"]
-          status: Database["public"]["Enums"]["blocker_status"]
-          team: string | null
-          title: string
-          updated_at: string
+          blocker_id: string
+          team: string
         }
         Insert: {
-          created_at?: string
-          department?: string
-          description?: string | null
-          id?: string
-          severity?: Database["public"]["Enums"]["blocker_severity"]
-          status?: Database["public"]["Enums"]["blocker_status"]
-          team?: string | null
-          title: string
-          updated_at?: string
+          blocker_id: string
+          team: string
         }
         Update: {
-          created_at?: string
-          department?: string
-          description?: string | null
-          id?: string
-          severity?: Database["public"]["Enums"]["blocker_severity"]
-          status?: Database["public"]["Enums"]["blocker_status"]
-          team?: string | null
-          title?: string
-          updated_at?: string
+          blocker_id?: string
+          team?: string
         }
         Relationships: [
           {
-            foreignKeyName: "blockers_team_fkey"
+            foreignKeyName: "blocker_teams_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "blockers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocker_teams_team_fkey"
             columns: ["team"]
             isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["name"]
           },
         ]
+      }
+      blockers: {
+        Row: {
+          created_at: string
+          department: string | null
+          description: string | null
+          id: string
+          impact: string | null
+          severity: Database["public"]["Enums"]["blocker_severity"]
+          status: Database["public"]["Enums"]["blocker_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          description?: string | null
+          id?: string
+          impact?: string | null
+          severity?: Database["public"]["Enums"]["blocker_severity"]
+          status?: Database["public"]["Enums"]["blocker_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          description?: string | null
+          id?: string
+          impact?: string | null
+          severity?: Database["public"]["Enums"]["blocker_severity"]
+          status?: Database["public"]["Enums"]["blocker_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       departure_notices: {
         Row: {
@@ -624,6 +646,10 @@ export type Database = {
       }
       mark_departure_notice_downloaded: {
         Args: { _id: string }
+        Returns: undefined
+      }
+      save_blocker_teams: {
+        Args: { _blocker_id: string; _teams?: string[] }
         Returns: undefined
       }
       save_news_audience: {

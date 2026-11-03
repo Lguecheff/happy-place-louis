@@ -2,20 +2,25 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { DS_INPUT, DsField } from "@/components/ds";
 import {
-  ConfirmDelete,
-  ErrorSummary,
-  Field,
-  FormActions,
-  Modal,
-  RowActions,
-  Select,
-  TextArea,
-  TextInput,
-} from "@/components/manage/crud-ui";
+  DS_INPUT,
+  DsButton,
+  DsChoice,
+  DsChoiceGroup,
+  DsEmptyState,
+  DsField,
+  DsListItem,
+} from "@/components/ds";
+import { ConfirmDelete, ErrorSummary, Modal } from "@/components/manage/crud-ui";
+import { KpiTextField } from "@/components/manage/kpi-text-field";
+import { severityLabel, statusLabel, teamsFull } from "@/components/overview/overview-utils";
 import { supabase } from "@/integrations/supabase/client";
-import { blockerSchema, validate, type FieldErrors } from "@/lib/manage-schemas";
+import {
+  BLOCKER_IMPACT_MAX,
+  blockerSchema,
+  validate,
+  type FieldErrors,
+} from "@/lib/manage-schemas";
 import {
   createBlocker,
   deleteBlocker,
@@ -30,9 +35,15 @@ export const Route = createFileRoute("/_authenticated/manage/blockers")({
   head: () => ({
     meta: [
       { title: "Gestion des points bloquants — Happy Place" },
-      { name: "description", content: "Créez, modifiez et supprimez les points bloquants dans Happy Place." },
+      {
+        name: "description",
+        content: "Créez, modifiez et supprimez les points bloquants dans Happy Place.",
+      },
       { property: "og:title", content: "Gestion des points bloquants — Happy Place" },
-      { property: "og:description", content: "Gérez les alertes opérationnelles des missions de recrutement dans Happy Place." },
+      {
+        property: "og:description",
+        content: "Gérez les alertes opérationnelles des missions de recrutement dans Happy Place.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -46,18 +57,24 @@ const severityLabels: Record<string, string> = {
   info: "Information",
 };
 
-const empty: BlockerInput = {
+const STATUSES = ["OUVERT", "EN COURS", "SURVEILLANCE", "RÉSOLU"];
+
+/** `allTeams` : « Toutes les équipes » ; sinon `teams` liste les équipes cochées. */
+type BlockerForm = BlockerInput & { allTeams: boolean };
+
+const empty: BlockerForm = {
   title: "",
   description: "",
-  department: "",
-  team: null,
+  allTeams: true,
+  teams: [],
+  impact: "",
   severity: "warning",
   status: "EN COURS",
 };
 
 function ManageBlockers() {
   const qc = useQueryClient();
-  const [form, setForm] = useState<BlockerInput | null>(null);
+  const [form, setForm] = useState<BlockerForm | null>(null);
   const [editing, setEditing] = useState<Blocker | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [toDelete, setToDelete] = useState<Blocker | null>(null);
@@ -108,9 +125,12 @@ function ManageBlockers() {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!form) return;
-    const res = validate(blockerSchema, form);
-    if (!res.ok) {
-      setErrors(res.errors);
+    const { allTeams, ...input } = form;
+    const res = validate(blockerSchema, { ...input, teams: allTeams ? [] : input.teams });
+    const teamsError: FieldErrors =
+      !allTeams && input.teams.length === 0 ? { teams: "Coche au moins une équipe." } : {};
+    if (!res.ok || teamsError.teams) {
+      setErrors({ ...(res.ok ? {} : res.errors), ...teamsError });
       return;
     }
     setErrors({});
@@ -119,60 +139,74 @@ function ManageBlockers() {
 
   return (
     <section className="space-y-md">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-sm">
         <h2 className="font-headline-sm text-headline-sm text-primary">
           Points bloquants ({list.data?.length ?? 0})
         </h2>
-        <button
+        <DsButton
+          variant="primary"
+          icon="add"
+          aria-haspopup="dialog"
           onClick={() => {
             setEditing(null);
             setErrors({});
             setForm({ ...empty });
           }}
-          className="px-md py-xs bg-primary text-on-primary font-label-md text-label-md"
         >
-          + NOUVEAU POINT BLOQUANT
-        </button>
+          Créer un point bloquant
+        </DsButton>
       </div>
 
-      {list.isLoading && <p className="text-body-sm text-on-surface-variant">Chargement…</p>}
+      {list.isLoading && (
+        <p className="font-body-sm text-body-sm text-on-surface-variant">Chargement…</p>
+      )}
       {list.isError && (
-        <p className="text-body-sm text-error">Impossible de charger les points bloquants.</p>
+        <p className="font-body-sm text-body-sm text-error">
+          Impossible de charger les points bloquants.
+        </p>
       )}
 
       <div className="space-y-xs">
         {list.data?.map((b) => (
-          <article
+          <DsListItem
             key={b.id}
-            className="flex items-start justify-between gap-sm p-sm bg-card border border-outline-variant"
-          >
-            <div>
-              <p className="font-body-md text-primary font-bold">{b.title}</p>
-              <p className="text-body-sm text-on-surface-variant">{b.description}</p>
-              <p className="text-[11px] font-label-sm text-on-surface-variant uppercase mt-xs">
-                 {b.department} • {b.team ?? "Toutes les équipes"} • {severityLabels[b.severity] ?? b.severity} • {b.status} • {timeAgo(b.updated_at)}
-              </p>
-            </div>
-            <RowActions
-              onEdit={() => {
-                setEditing(b);
-                setErrors({});
-                setForm({
-                  title: b.title,
-                  description: b.description ?? "",
-                  department: b.department,
-                  team: b.team ?? null,
-                  severity: b.severity,
-                  status: b.status,
-                });
-              }}
-              onDelete={() => setToDelete(b)}
-            />
-          </article>
+            icon="report"
+            title={b.title}
+            meta={[
+              teamsFull(b.teams),
+              severityLabels[b.severity] ?? severityLabel(b.severity),
+              statusLabel(b.status),
+              b.impact?.trim() ? "Impact saisi" : "Sans impact",
+              `Modifié ${timeAgo(b.updated_at)}`,
+            ].join(" · ")}
+            actions={
+              <>
+                <DsButton
+                  aria-haspopup="dialog"
+                  onClick={() => {
+                    setEditing(b);
+                    setErrors({});
+                    setForm({
+                      title: b.title,
+                      description: b.description ?? "",
+                      allTeams: b.teams.length === 0,
+                      teams: b.teams,
+                      impact: b.impact ?? "",
+                      severity: b.severity,
+                      status: b.status,
+                    });
+                  }}
+                >
+                  Modifier
+                </DsButton>
+                <DsButton aria-haspopup="dialog" onClick={() => setToDelete(b)}>
+                  Supprimer
+                </DsButton>
+              </>
+            }
+          />
         ))}
-        {list.data?.length === 0 && (
-          <p className="text-body-sm italic text-on-surface-variant">Aucun point bloquant.</p>
-        )}
+        {list.data?.length === 0 && <DsEmptyState>Aucun point bloquant.</DsEmptyState>}
       </div>
 
       {form && (
@@ -182,77 +216,121 @@ function ManageBlockers() {
         >
           <form onSubmit={submit} className="space-y-sm" noValidate>
             <ErrorSummary errors={errors} />
-            <Field label="Titre" error={errors.title}>
-              <TextInput
+            <DsField id="point-titre" label="Titre" error={errors.title}>
+              <input
+                id="point-titre"
+                className={DS_INPUT}
                 value={form.title}
                 maxLength={160}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
               />
-            </Field>
-            <Field label="Description" error={errors.description}>
-              <TextArea
+            </DsField>
+            <DsField id="point-description" label="Description" error={errors.description}>
+              <textarea
+                id="point-description"
                 rows={4}
+                className={DS_INPUT}
                 value={form.description}
                 maxLength={2000}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
-            </Field>
-            <Field label="Pôle concerné" error={errors.department}>
-              <TextInput
-                value={form.department}
-                maxLength={60}
-                placeholder="Ex. Data & IA"
-                onChange={(e) => setForm({ ...form, department: e.target.value })}
-              />
-            </Field>
-            <DsField id="blocker-equipe" label="Équipe concernée" error={errors.team}>
-              <select
-                id="blocker-equipe"
-                className={DS_INPUT}
-                value={form.team ?? ""}
-                onChange={(e) => setForm({ ...form, team: e.target.value || null })}
-              >
-                <option value="">Toutes les équipes</option>
-                {form.team && !teams.includes(form.team) && (
-                  <option value={form.team}>{form.team}</option>
-                )}
-                {teams.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
             </DsField>
-            <Field label="Sévérité" error={errors.severity}>
-              <Select
+            <DsChoiceGroup id="point-equipes" legend="Équipes concernées" error={errors.teams}>
+              <DsChoice
+                name="point-equipes-choix"
+                label="Toutes les équipes"
+                checked={form.allTeams}
+                onChange={() => setForm({ ...form, allTeams: true })}
+              />
+              <DsChoice
+                name="point-equipes-choix"
+                label="Certaines équipes"
+                hint={
+                  form.allTeams
+                    ? undefined
+                    : `${form.teams.length} cochée${form.teams.length > 1 ? "s" : ""}`
+                }
+                checked={!form.allTeams}
+                onChange={() => setForm({ ...form, allTeams: false })}
+              />
+              {!form.allTeams && (
+                <DsChoiceGroup legend="Équipes" className="pl-lg">
+                  {teamsQuery.isError && (
+                    <p className="font-body-sm text-body-sm text-error">
+                      Les équipes sont indisponibles.
+                    </p>
+                  )}
+                  {/* Une équipe déjà rattachée mais devenue réservée reste visible pour pouvoir la retirer. */}
+                  {[...new Set([...teams, ...form.teams])]
+                    .sort((a, b) => a.localeCompare(b, "fr"))
+                    .map((team) => (
+                      <DsChoice
+                        key={team}
+                        type="checkbox"
+                        label={team}
+                        checked={form.teams.includes(team)}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            teams: e.target.checked
+                              ? [...form.teams, team]
+                              : form.teams.filter((t) => t !== team),
+                          })
+                        }
+                      />
+                    ))}
+                </DsChoiceGroup>
+              )}
+            </DsChoiceGroup>
+            <KpiTextField
+              id="point-impact"
+              label="Ce que ça change pour toi"
+              max={BLOCKER_IMPACT_MAX}
+              hint="Laisse vide si le point ne change rien pour les collaborateurs."
+              value={form.impact}
+              error={errors.impact}
+              onChange={(impact) => setForm({ ...form, impact })}
+            />
+            <DsField id="point-severite" label="Sévérité" error={errors.severity}>
+              <select
+                id="point-severite"
+                className={DS_INPUT}
                 value={form.severity}
                 onChange={(e) => setForm({ ...form, severity: e.target.value })}
               >
                 <option value="critical">Critique</option>
                 <option value="warning">Avertissement</option>
                 <option value="info">Information</option>
-              </Select>
-            </Field>
-            <Field label="Statut" error={errors.status}>
-              <Select
+              </select>
+            </DsField>
+            <DsField id="point-statut" label="Statut" error={errors.status}>
+              <select
+                id="point-statut"
+                className={DS_INPUT}
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value })}
               >
-                <option value="OUVERT">OUVERT</option>
-                <option value="EN COURS">EN COURS</option>
-                <option value="SURVEILLANCE">SURVEILLANCE</option>
-                {editing && (
-                  <option
-                    value="RÉSOLU"
-                    disabled={form.status === "OUVERT"}
-                    title={form.status === "OUVERT" ? "Passe d'abord par EN COURS" : undefined}
-                  >
-                    RÉSOLU
-                  </option>
-                )}
-              </Select>
-            </Field>
-            <FormActions pending={save.isPending} onCancel={close} />
+                {STATUSES.filter((st) => st !== "RÉSOLU" || editing).map((st) => {
+                  const locked = st === "RÉSOLU" && form.status === "OUVERT";
+                  return (
+                    <option
+                      key={st}
+                      value={st}
+                      disabled={locked}
+                      title={locked ? "Passe d'abord par En cours" : undefined}
+                    >
+                      {statusLabel(st)}
+                    </option>
+                  );
+                })}
+              </select>
+            </DsField>
+            <div className="flex flex-wrap justify-end gap-xs pt-sm">
+              <DsButton onClick={close}>Annuler</DsButton>
+              <DsButton type="submit" variant="confirm" icon="check" pending={save.isPending}>
+                Enregistrer
+              </DsButton>
+            </div>
           </form>
         </Modal>
       )}
