@@ -75,6 +75,8 @@ export type Blocker = {
   updated_at: string;
   /** Nom copié par la base à chaque modification (US20) ; vide pour les points plus anciens. */
   updated_by_name?: string | null;
+  /** Date de la dernière « Confirmer à jour » (US21) ; égale à updated_at tant que rien n'a changé depuis. */
+  confirmed_at?: string | null;
 };
 
 export type Metric = {
@@ -88,6 +90,10 @@ export type Metric = {
   updated_at: string;
   /** Nom copié par la base à chaque modification (US20) ; vide pour les KPI plus anciens. */
   updated_by_name?: string | null;
+  /** Seuil « à vérifier » en jours (US21) ; vide pour les KPI créés avant : pas de badge. */
+  stale_after_days?: number | null;
+  /** Date de la dernière « Confirmer à jour » (US21). */
+  confirmed_at?: string | null;
   /** « Ce que ça mesure » (US18). */
   definition: string | null;
   /** « Ce que ça change pour toi » (US18). */

@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { DsFreshness } from "./ds-freshness";
 import { DsIcon } from "./ds-icon";
 import { DsKpiDefinition, type DsKpiDefinitionTexts } from "./ds-kpi-definition";
+import { DsStaleBadge } from "./ds-stale-badge";
 import { DsTooltip } from "./ds-tooltip";
 import { DS_FOCUS } from "./focus";
 
@@ -21,6 +22,10 @@ type DsKpiTileProps = {
   /** Auteur de la dernière mise à jour, affiché après la date. */
   updatedBy?: string | null;
   stale?: boolean;
+  /** Jours sans mise à jour au-delà du seuil du KPI : badge « À vérifier » ; vide, pas de badge. */
+  staleDays?: number | null;
+  /** Dernière modification = une confirmation « à jour ». */
+  confirmed?: boolean;
   /** Lien « Comprendre cet indicateur ». */
   helpHref?: string;
   /** Même libellé en bouton, pour ouvrir une fenêtre. */
@@ -47,6 +52,8 @@ export function DsKpiTile({
   updatedAt,
   updatedBy,
   stale,
+  staleDays,
+  confirmed,
   helpHref,
   onHelp,
   helpLabel = "Comprendre cet indicateur",
@@ -89,7 +96,10 @@ export function DsKpiTile({
           {trend}
         </p>
       )}
-      {updatedAt && <DsFreshness at={updatedAt} by={updatedBy} stale={stale} />}
+      {staleDays != null && <DsStaleBadge days={staleDays} className="self-start" />}
+      {updatedAt && (
+        <DsFreshness at={updatedAt} by={updatedBy} stale={stale} confirmed={confirmed} />
+      )}
       {helpHref && (
         <a href={helpHref} className={HELP}>
           {helpLabel}

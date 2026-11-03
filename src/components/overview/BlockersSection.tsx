@@ -8,11 +8,12 @@ import {
   DsFreshness,
   DsListItem,
   DsSection,
+  DsStaleBadge,
 } from "@/components/ds";
 import {
-  BLOCKER_STALE_DAYS,
-  daysSince,
+  blockerStaleDays,
   formatDay,
+  isConfirmed,
   severityLabel,
   statusLabel,
   teamsSummary,
@@ -24,6 +25,32 @@ const BLOCKER_STATUSES = ["OUVERT", "EN COURS", "SURVEILLANCE", "RÉSOLU"];
 
 /** Ouvre un point dans sa fenêtre de lecture ; `trigger` reçoit le focus à la fermeture. */
 export type OpenBlocker = (blocker: Blocker, trigger: HTMLElement) => void;
+
+/** Badge « À vérifier » et date de mise à jour (ou de confirmation) d'un point bloquant. */
+export function BlockerFreshness({ blocker: b }: { blocker: Blocker }) {
+  const staleDays = blockerStaleDays(b);
+  return (
+    <span className="flex flex-wrap items-center gap-xs">
+      {staleDays != null && <DsStaleBadge days={staleDays} />}
+      <DsFreshness at={b.updated_at} by={b.updated_by_name} confirmed={isConfirmed(b)} />
+    </span>
+  );
+}
+
+/** « Confirmer à jour », affiché seulement sur un point à vérifier. */
+export function ConfirmUpToDate({
+  pending,
+  onConfirm,
+}: {
+  pending?: boolean;
+  onConfirm: () => void;
+}) {
+  return (
+    <DsButton icon="done" pending={pending} onClick={onConfirm} className="self-start">
+      Confirmer à jour
+    </DsButton>
+  );
+}
 
 /** Sévérité et statut d'un point bloquant, avec « Archivé » une fois résolu. */
 export function BlockerBadges({ blocker: b }: { blocker: Blocker }) {
@@ -57,15 +84,19 @@ function BlockerRow({
   canEdit,
   onOpen,
   onStatusChange,
+  onConfirm,
+  confirming,
 }: {
   blocker: Blocker;
   myTeams: string[];
   canEdit: boolean;
   onOpen: OpenBlocker;
   onStatusChange: (status: string) => void;
+  /** Sans valeur, le lecteur ne peut pas confirmer ce point. */
+  onConfirm?: () => void;
+  confirming?: boolean;
 }) {
   const critical = b.severity === "critical";
-  const stale = critical && daysSince(b.updated_at) > BLOCKER_STALE_DAYS;
   const selectId = `statut-point-${b.id}`;
   return (
     <DsListItem
@@ -75,7 +106,10 @@ function BlockerRow({
       opensDialog
       onClick={(e) => onOpen(b, e.currentTarget)}
     >
-      <DsFreshness at={b.updated_at} by={b.updated_by_name} stale={stale} />
+      <BlockerFreshness blocker={b} />
+      {onConfirm && blockerStaleDays(b) != null && (
+        <ConfirmUpToDate pending={confirming} onConfirm={onConfirm} />
+      )}
       {/* Hors du bouton de la ligne : changer le statut n'ouvre pas la fenêtre. */}
       {canEdit && (
         <DsField id={selectId} label={`Changer le statut de ${b.title}`}>
@@ -112,6 +146,9 @@ export function BlockersSection({
   onOpen,
   onStatusChange,
   onOpenArchive,
+  canConfirm,
+  onConfirm,
+  confirmingId,
 }: {
   blockers: { data?: Blocker[]; isError: boolean };
   /** Équipes du lecteur : la sienne passe en premier dans « Data +2 ». */
@@ -120,6 +157,10 @@ export function BlockersSection({
   onOpen: OpenBlocker;
   onStatusChange: (id: string, status: string) => void;
   onOpenArchive: () => void;
+  /** Admin : tous les points ; manager : ceux de ses équipes. La base vérifie le même droit. */
+  canConfirm?: (blocker: Blocker) => boolean;
+  onConfirm?: (blocker: Blocker) => void;
+  confirmingId?: string | null;
 }) {
   // Les points critiques d'abord ; le tri de la base est conservé à gravité égale.
   const rows = [...(blockers.data ?? [])].sort(
@@ -150,6 +191,8 @@ export function BlockersSection({
             canEdit={canEdit}
             onOpen={onOpen}
             onStatusChange={(status) => onStatusChange(b.id, status)}
+            onConfirm={onConfirm && canConfirm?.(b) ? () => onConfirm(b) : undefined}
+            confirming={confirmingId === b.id}
           />
         ))}
       </div>

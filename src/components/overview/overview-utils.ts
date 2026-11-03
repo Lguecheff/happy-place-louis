@@ -1,18 +1,37 @@
 import type { AppRole } from "@/lib/auth";
-import type { News, Submission } from "@/lib/dashboard";
+import type { Blocker, Metric, News, Submission } from "@/lib/dashboard";
 
 /** Cible d'actus publiées par mois (North Star, décision du 2026-10-28). */
 export const NEWS_MONTHLY_TARGET = 4;
 /** Au-delà, une demande en attente porte le badge « Plus de 30 jours ». */
 export const LONG_WAIT_DAYS = 30;
-/** Au-delà, un point bloquant critique sans mise à jour est signalé comme ancien. */
-export const BLOCKER_STALE_DAYS = 7;
+/** Au-delà, un point bloquant non résolu sans mise à jour porte le badge « À vérifier » (US21). */
+export const BLOCKER_STALE_DAYS = 3;
 
 const DAY_MS = 86_400_000;
 
 /** Arrondi comme `timeAgo`, pour que les deux affichages donnent le même nombre de jours. */
 export function daysSince(iso: string) {
   return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / DAY_MS));
+}
+
+/** Jours sans mise à jour d'un point bloquant à vérifier ; null s'il est résolu ou récent. */
+export function blockerStaleDays(b: Blocker) {
+  if (b.status === "RÉSOLU") return null;
+  const days = daysSince(b.updated_at);
+  return days > BLOCKER_STALE_DAYS ? days : null;
+}
+
+/** Jours sans mise à jour d'un KPI au-delà de son seuil ; null sans seuil ou s'il est récent. */
+export function metricStaleDays(m: Metric) {
+  if (m.stale_after_days == null) return null;
+  const days = daysSince(m.updated_at);
+  return days > m.stale_after_days ? days : null;
+}
+
+/** Dernière modification = une confirmation « à jour » (même horodatage, posé par la base). */
+export function isConfirmed(row: { updated_at: string; confirmed_at?: string | null }) {
+  return !!row.confirmed_at && row.confirmed_at === row.updated_at;
 }
 
 export function formatDays(days: number) {

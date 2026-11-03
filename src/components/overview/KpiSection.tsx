@@ -10,6 +10,8 @@ import {
   DsSection,
 } from "@/components/ds";
 import { DS_FOCUS } from "@/components/ds/focus";
+import { ConfirmUpToDate } from "@/components/overview/BlockersSection";
+import { isConfirmed, metricStaleDays } from "@/components/overview/overview-utils";
 import { formatMetricValue, metricTrend, type Metric } from "@/lib/dashboard";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +25,8 @@ function tileProps(metric: Metric | undefined, onHelp: () => void) {
     ...metricTrend(metric),
     updatedAt: metric.updated_at,
     updatedBy: metric.updated_by_name,
+    staleDays: metricStaleDays(metric),
+    confirmed: isConfirmed(metric),
     onHelp,
     definition,
   };
@@ -33,17 +37,26 @@ export function KpiSection({
   canEditNps,
   savingNps,
   onSaveNps,
+  onConfirm,
+  confirmingKey,
 }: {
   metrics: { data?: Metric[]; isError: boolean };
   canEditNps: boolean;
   savingNps: boolean;
   onSaveNps: (value: number) => void;
+  /** Admin et manager (tous les KPI) ; sans valeur, pas de bouton « Confirmer à jour ». */
+  onConfirm?: (metric: Metric) => void;
+  confirmingKey?: string | null;
 }) {
   const [nps, setNps] = useState("");
   const [help, setHelp] = useState<Help | null>(null);
   const metric = (key: string) => metrics.data?.find((m) => m.key === key);
   const npsMetric = metric("nps");
   const npsValue = nps !== "" ? nps : (npsMetric?.value ?? "");
+  const confirm = (m: Metric | undefined) =>
+    m && onConfirm && metricStaleDays(m) != null ? (
+      <ConfirmUpToDate pending={confirmingKey === m.key} onConfirm={() => onConfirm(m)} />
+    ) : null;
 
   return (
     <DsSection id="indicateurs" title="Indicateurs">
@@ -56,13 +69,17 @@ export function KpiSection({
           {...tileProps(metric("training_kpi"), () =>
             setHelp({ label: "Taux de placement", metric: metric("training_kpi") }),
           )}
-        />
+        >
+          {confirm(metric("training_kpi"))}
+        </DsKpiTile>
         <DsKpiTile
           label="Missions actives"
           {...tileProps(metric("active_users"), () =>
             setHelp({ label: "Missions actives", metric: metric("active_users") }),
           )}
-        />
+        >
+          {confirm(metric("active_users"))}
+        </DsKpiTile>
         <DsKpiTile
           className="sm:col-span-2"
           label={npsMetric?.label ?? "NPS candidats"}
@@ -70,6 +87,7 @@ export function KpiSection({
             setHelp({ label: npsMetric?.label ?? "NPS candidats", metric: npsMetric }),
           )}
         >
+          {confirm(npsMetric)}
           {canEditNps && (
             <form
               className="flex flex-wrap items-end gap-xs"

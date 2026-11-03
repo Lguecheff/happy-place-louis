@@ -18,6 +18,7 @@ import {
   DsPopover,
   DsSaveStatus,
   DsSection,
+  DsStaleBadge,
   DsStatTile,
   DsTooltip,
   toastUndo,
@@ -159,6 +160,19 @@ function DesignSystemPage() {
             <DsFreshness at={ago(60 * 24 * 2)} by="Olivia Laurent" />
             <DsFreshness at={ago(60 * 5)} by="Automatique" />
           </Demo>
+          <Demo title="Dernière modification = une confirmation (confirmed)">
+            <DsFreshness at={ago(2)} by="Kesha" confirmed />
+          </Demo>
+        </DsSection>
+
+        <DsSection id="a-verifier" title="DsStaleBadge">
+          <Demo title="Badge « À vérifier », infobulle au survol et au focus">
+            <DsStaleBadge days={5} />
+            <DsFreshness at={ago(60 * 24 * 5)} by="Olivia Laurent" />
+          </Demo>
+          <Demo title="Sans infobulle, dans une ligne déjà cliquable (tooltip={false})">
+            <DsStaleBadge days={12} tooltip={false} />
+          </Demo>
         </DsSection>
 
         <DsSection id="enregistrement" title="DsSaveStatus">
@@ -191,7 +205,9 @@ function DesignSystemPage() {
               value="42"
               valueFont="headline"
               trend="Stable sur 30 jours"
-              updatedAt={ago(60 * 5)}
+              updatedAt={ago(60 * 24 * 3)}
+              updatedBy="Automatique"
+              staleDays={3}
               helpHref="#kpi"
             />
             <DsKpiTile

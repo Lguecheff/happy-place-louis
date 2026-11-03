@@ -18,6 +18,7 @@ export { DsListItem } from "./ds-list-item";
 export { DsPopover } from "./ds-popover";
 export { DsSaveStatus, type DsSaveState } from "./ds-save-status";
 export { DsSection } from "./ds-section";
+export { DsStaleBadge } from "./ds-stale-badge";
 export { DsStatTile } from "./ds-stat-tile";
 export { DsTooltip } from "./ds-tooltip";
 export { toastUndo } from "./ds-toast-undo";

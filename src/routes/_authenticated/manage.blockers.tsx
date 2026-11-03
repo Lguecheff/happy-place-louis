@@ -9,11 +9,11 @@ import {
   DsChoiceGroup,
   DsEmptyState,
   DsField,
-  DsFreshness,
   DsListItem,
 } from "@/components/ds";
 import { ConfirmDelete, ErrorSummary, Modal } from "@/components/manage/crud-ui";
 import { KpiTextField } from "@/components/manage/kpi-text-field";
+import { BlockerFreshness } from "@/components/overview/BlockersSection";
 import { severityLabel, statusLabel, teamsFull } from "@/components/overview/overview-utils";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -204,7 +204,7 @@ function ManageBlockers() {
               </>
             }
           >
-            <DsFreshness at={b.updated_at} by={b.updated_by_name} />
+            <BlockerFreshness blocker={b} />
           </DsListItem>
         ))}
         {list.data?.length === 0 && <DsEmptyState>Aucun point bloquant.</DsEmptyState>}

@@ -1,11 +1,17 @@
 import { Command as CommandPrimitive } from "cmdk";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { BlockerReader } from "@/components/blocker-reader";
-import { DS_INPUT, DsBadge, DsIcon } from "@/components/ds";
+import { DS_INPUT, DsBadge, DsIcon, DsStaleBadge } from "@/components/ds";
 import { MetricReader } from "@/components/metric-reader";
 import { NewsReader } from "@/components/news-reader";
 import { BlockerBadges } from "@/components/overview/BlockersSection";
-import { formatDay, newsPublishedAt, plural } from "@/components/overview/overview-utils";
+import {
+  blockerStaleDays,
+  formatDay,
+  metricStaleDays,
+  newsPublishedAt,
+  plural,
+} from "@/components/overview/overview-utils";
 import { SubmissionReader } from "@/components/submission-reader";
 import { StatusChip } from "@/components/submission-status-thread";
 import {
@@ -97,6 +103,20 @@ function ResultRow({
       </span>
       {status && <span className="flex shrink-0 flex-col items-end gap-xs">{status}</span>}
     </CommandItem>
+  );
+}
+
+/** Dans une ligne de résultat (déjà cliquable) : badge sans infobulle, texte lu en entier. */
+function StaleSearchBadge({ days }: { days: number | null }) {
+  return days != null ? <DsStaleBadge days={days} tooltip={false} /> : null;
+}
+
+function BlockerSearchBadges({ blocker }: { blocker: Blocker }) {
+  return (
+    <>
+      <BlockerBadges blocker={blocker} />
+      <StaleSearchBadge days={blockerStaleDays(blocker)} />
+    </>
   );
 }
 
@@ -308,7 +328,7 @@ export function GlobalSearch({
                       ) : undefined
                     }
                     meta={`Point bloquant · Créé le ${formatDay(b.created_at)}`}
-                    status={<BlockerBadges blocker={b} />}
+                    status={<BlockerSearchBadges blocker={b} />}
                     onSelect={() => openBlocker(b)}
                   />
                 ))}
@@ -327,6 +347,7 @@ export function GlobalSearch({
                     title={<Highlighted text={m.label} query={term} />}
                     excerpt={formatMetricValue(m.value, m.unit)}
                     meta={`KPI · Mis à jour le ${formatDay(m.updated_at)}`}
+                    status={<StaleSearchBadge days={metricStaleDays(m)} />}
                     onSelect={() => openMetric(m)}
                   />
                 ))}
