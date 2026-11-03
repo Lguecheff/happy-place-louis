@@ -5,9 +5,12 @@ const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
 
-/** Notification liée à un point bloquant (US16) ; son `blocker_id` est vide si le point a été supprimé. */
+/** Notification liée à un point bloquant (US16, relance US21) ; `blocker_id` est vide si le point a été supprimé. */
 export function isBlockerNotification(notification: Pick<AppNotification, "kind">) {
-  return notification.kind === "point_bloquant_a_revoir";
+  return (
+    notification.kind === "point_bloquant_a_revoir" ||
+    notification.kind === "relance_point_bloquant"
+  );
 }
 
 /** De la plus récente à la plus ancienne, sans limite de durée (plus de purge depuis l'US16). */

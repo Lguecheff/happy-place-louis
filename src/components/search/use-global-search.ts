@@ -14,10 +14,13 @@ export function useGlobalSearch({
   role,
   email,
   managerTeams,
+  ownTeam,
 }: {
   role: AppRole;
   email: string;
   managerTeams: string[];
+  /** Équipe d'un collaborateur, pour confirmer une demande de son équipe. */
+  ownTeam?: string | null;
 }) {
   const news = useQuery({ queryKey: ["news"], queryFn: fetchNews, retry: false });
   const submissions = useQuery({
@@ -51,6 +54,13 @@ export function useGlobalSearch({
     s.submitted_by_email?.toLowerCase() === email.toLowerCase() ||
     (role === "manager" && managerTeams.includes(s.team));
 
+  // « Confirmer à jour » (US21) : même règle que public.confirm_submission_up_to_date.
+  const canConfirmSubmission = (s: Submission) =>
+    role === "admin" ||
+    s.submitted_by_email?.toLowerCase() === email.toLowerCase() ||
+    (role === "manager" && managerTeams.includes(s.team)) ||
+    (role === "collaborateur" && !!ownTeam && ownTeam === s.team);
+
   return {
     source: {
       data,
@@ -58,5 +68,6 @@ export function useGlobalSearch({
       isLoading: news.isLoading || submissions.isLoading || blockers.isLoading || metrics.isLoading,
     },
     canReadAttachment,
+    canConfirmSubmission,
   };
 }

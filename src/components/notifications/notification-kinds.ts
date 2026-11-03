@@ -48,6 +48,12 @@ export const NOTIFICATION_KINDS: NotificationKindDef[] = [
     channels: ["in_app", "by_email"],
   },
   {
+    kind: "relance_point_bloquant",
+    label: "Relance sur un point bloquant de mon équipe",
+    roles: ["collaborateur", "manager"],
+    channels: ["in_app", "by_email"],
+  },
+  {
     kind: "resume_hebdo",
     label: "Résumé hebdomadaire",
     roles: ["collaborateur", "manager"],

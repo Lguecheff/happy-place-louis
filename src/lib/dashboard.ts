@@ -49,9 +49,8 @@ export type Submission = {
   submitted_by_email?: string | null;
   attachment_path?: string | null;
   attachment_name?: string | null;
-  /** Dernière confirmation « à jour » (US21) et son auteur. */
+  /** Dernière confirmation « à jour » (US21) ; son auteur est dans `submission_verifications`. */
   verified_at?: string | null;
-  verified_by_name?: string | null;
 };
 
 export const REJECTION_CATEGORIES = [
@@ -482,18 +481,32 @@ export async function fetchValidatedSubmissions(): Promise<ValidatedSubmission[]
     .sort((a, b) => (b.validated_at ?? b.created_at).localeCompare(a.validated_at ?? a.created_at));
 }
 
+/** Admin : tous les points ; manager : ceux qui le concernent (vérifié par la base). */
 export async function updateBlockerStatus(input: { id: string; status: string }) {
-  const { error } = await db
-    .from("blockers")
-    .update({ status: input.status as Enums["blocker_status"] })
-    .eq("id", input.id);
+  const { error } = await supabase.rpc("set_blocker_status", {
+    _blocker_id: input.id,
+    _status: input.status as Enums["blocker_status"],
+  });
   if (error) throw error;
+}
+
+/** « Relancer équipes » (US21) : renvoie le nombre de personnes notifiées. */
+export async function remindBlockerTeams(id: string): Promise<number> {
+  const { data, error } = await supabase.rpc("remind_blocker_teams", { _blocker_id: id });
+  if (error) throw error;
+  return data;
 }
 
 export async function fetchMetrics(): Promise<Metric[]> {
   const { data, error } = await db.from("metrics_with_trend").select("*");
   if (error) throw error;
   return (data ?? []) as Metric[];
+}
+
+/** « Marquer comme vérifié » (US21) : admin et manager, vérifié par la base. */
+export async function verifyMetric(key: string) {
+  const { error } = await supabase.rpc("verify_metric", { _key: key });
+  if (error) throw error;
 }
 
 export async function updateMetric(input: { key: string; value: number }) {
@@ -542,6 +555,8 @@ export type MetricInput = {
   label: string;
   value: number;
   unit: string | null;
+  /** Seuil « à vérifier » en jours (US21), de 1 à 365. */
+  stale_after_days: number;
   definition: string | null;
   impact: string | null;
 };
@@ -744,6 +759,32 @@ export async function fetchSubmissionHistory(submissionId: string): Promise<Subm
     .order("changed_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as SubmissionStatusHistory[];
+}
+
+export type SubmissionVerification = {
+  id: string;
+  submission_id: string;
+  verified_by_name: string | null;
+  verified_at: string;
+};
+
+/** Confirmations « à jour » d'une demande (US21), lues dans son détail. */
+export async function fetchSubmissionVerifications(
+  submissionId: string,
+): Promise<SubmissionVerification[]> {
+  const { data, error } = await supabase
+    .from("submission_verifications")
+    .select("id, submission_id, verified_by_name, verified_at")
+    .eq("submission_id", submissionId)
+    .order("verified_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** « Confirmer à jour » une demande clôturée (US21) : droits vérifiés par la base, sans notification. */
+export async function confirmSubmissionUpToDate(id: string) {
+  const { error } = await supabase.rpc("confirm_submission_up_to_date", { _submission_id: id });
+  if (error) throw error;
 }
 
 export type MetricHistoryPoint = { id: string; metric_key: string; value: number; recorded_at: string };

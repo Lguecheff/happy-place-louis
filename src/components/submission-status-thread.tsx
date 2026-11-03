@@ -1,16 +1,18 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, type ReactNode } from "react";
+import { toast } from "sonner";
+import { AttachmentLink } from "@/components/attachment-link";
 import { DsBadge, DsButton, DsFreshness, DsStaleBadge, type DsBadgeVariant } from "@/components/ds";
+import { Linkify } from "@/components/linkify";
 import { ManageIcon, Modal } from "@/components/manage/crud-ui";
+import { statusLabel, submissionStaleDays } from "@/components/overview/overview-utils";
 import {
-  statusLabel,
-  submissionStaleDays,
-  submissionUpdatedAt,
-} from "@/components/overview/overview-utils";
-import {
+  confirmSubmissionUpToDate,
   fetchSubmissionHistory,
+  fetchSubmissionVerifications,
   type Submission,
   type SubmissionStatusHistory,
+  type SubmissionVerification,
 } from "@/lib/dashboard";
 
 export type ThreadStep = Pick<
@@ -124,27 +126,31 @@ export function StatusThread({ steps }: { steps: ThreadStep[] }) {
 }
 
 /**
- * Fraîcheur d'une demande, dans son détail seulement : badge « À vérifier » (validée ou clôturée,
- * plus d'un an), date de mise à jour, et « Confirmer à jour » si le lecteur peut confirmer.
+ * Fraîcheur d'une demande, dans son détail seulement : badge « À vérifier » (clôturée depuis plus
+ * d'un an), date de mise à jour, et « Confirmer à jour » si le lecteur peut confirmer.
  */
 export function SubmissionUpToDate({
-  submission: s,
+  status,
+  updatedAt,
+  verifiedBy,
   pending,
   onConfirm,
 }: {
-  submission: Submission;
+  status: string;
+  /** Dernier changement de statut ou dernière confirmation. */
+  updatedAt: string;
+  /** Auteur de la dernière confirmation, si c'est la dernière mise à jour. */
+  verifiedBy?: string | null;
   pending?: boolean;
   /** Auteur, membres et managers de l'équipe, admin ; sans valeur, pas de bouton. */
   onConfirm?: () => void;
 }) {
-  const staleDays = submissionStaleDays(s);
-  const at = submissionUpdatedAt(s);
-  const verified = !!s.verified_at && at === s.verified_at;
+  const staleDays = submissionStaleDays(status, updatedAt);
   return (
     <div className="flex flex-col gap-xs">
       <span className="flex flex-wrap items-center gap-xs">
         {staleDays != null && <DsStaleBadge days={staleDays} />}
-        <DsFreshness at={at} by={verified ? s.verified_by_name : null} verified={verified} />
+        <DsFreshness at={updatedAt} by={verifiedBy} verified={verifiedBy !== undefined} />
       </span>
       {onConfirm && staleDays != null && (
         <DsButton icon="done" pending={pending} onClick={onConfirm} className="self-start">
@@ -153,6 +159,25 @@ export function SubmissionUpToDate({
       )}
     </div>
   );
+}
+
+/** Une confirmation, en ligne du fil. */
+export function verificationStep(
+  v: Pick<SubmissionVerification, "id" | "verified_by_name" | "verified_at">,
+  status: string,
+): ThreadStep {
+  return {
+    id: v.id,
+    kind: "verification",
+    old_status: status,
+    new_status: status,
+    changed_by_email: null,
+    changed_by_name: v.verified_by_name,
+    is_automatic: false,
+    rejection_category: null,
+    rejection_note: null,
+    changed_at: v.verified_at,
+  };
 }
 
 /** Fenêtre du fil (présentation seule) : focus dans la fenêtre, Échap pour fermer, focus rendu à la fermeture. */
@@ -166,6 +191,7 @@ export function SubmissionThreadView({
   actions,
   follow,
   upToDate,
+  attachment,
   onClose,
 }: {
   content: string;
@@ -180,6 +206,8 @@ export function SubmissionThreadView({
   follow?: ReactNode;
   /** Badge « À vérifier », date de mise à jour et « Confirmer à jour » (`SubmissionUpToDate`). */
   upToDate?: ReactNode;
+  /** Pièce jointe (`AttachmentLink`), sous le texte. */
+  attachment?: ReactNode;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -202,7 +230,9 @@ export function SubmissionThreadView({
     <Modal title="Détail de la demande" onClose={onClose}>
       <div className="space-y-md">
         <div className="space-y-xs">
-          <p className="font-body-md text-body-md text-on-surface wrap-anywhere">{content}</p>
+          <p className="font-body-md text-body-md text-on-surface whitespace-pre-line wrap-anywhere">
+            <Linkify text={content} />
+          </p>
           <p className="flex flex-wrap items-center gap-xs font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
             <span>{team}</span>
             {readOnly && (
@@ -214,6 +244,7 @@ export function SubmissionThreadView({
               </>
             )}
           </p>
+          {attachment}
           {follow}
           {upToDate}
         </div>
@@ -231,12 +262,13 @@ export function SubmissionThreadView({
   );
 }
 
-/** Fil d'une demande, lu dans la base (limité par les règles d'accès : seules les demandes lisibles ont un fil). */
+/** Détail d'une demande, lu dans la base (limité par les règles d'accès : seules les demandes lisibles ont un fil). */
 export function SubmissionThreadModal({
   submission,
   actions,
   follow,
-  upToDate,
+  canConfirm,
+  showAttachment,
   onClose,
 }: {
   submission: Submission;
@@ -244,26 +276,69 @@ export function SubmissionThreadModal({
   actions?: (currentStatus: string) => ReactNode;
   /** Suivi de la demande (`SubmissionFollow`). */
   follow?: ReactNode;
-  upToDate?: ReactNode;
+  /** Auteur, membres et managers de l'équipe, admin (la base vérifie le même droit). */
+  canConfirm?: boolean;
+  /** Le lecteur a accès au PDF joint. */
+  showAttachment?: boolean;
   onClose: () => void;
 }) {
-  const q = useQuery({
+  const qc = useQueryClient();
+  const history = useQuery({
     queryKey: ["submissions", "history", submission.id],
     queryFn: () => fetchSubmissionHistory(submission.id),
     retry: false,
   });
-  const steps = sortSteps(q.data ?? []);
+  const verifications = useQuery({
+    queryKey: ["submissions", "verifications", submission.id],
+    queryFn: () => fetchSubmissionVerifications(submission.id),
+    retry: false,
+  });
+  const statusSteps = sortSteps(history.data ?? []);
+  const status = statusSteps[0]?.new_status ?? submission.status;
+  const steps = sortSteps([
+    ...statusSteps,
+    ...(verifications.data ?? []).map((v) => verificationStep(v, status)),
+  ]);
+  const last = steps[0];
+  const confirm = useMutation({
+    mutationFn: () => confirmSubmissionUpToDate(submission.id),
+    onSuccess: async () => {
+      toast.success("Demande confirmée à jour.");
+      await qc.invalidateQueries({ queryKey: ["submissions"] });
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+  const loaded = !history.isLoading && !verifications.isLoading;
+  const failed = history.isError || verifications.isError;
+  const updatedAt = last?.changed_at ?? submission.created_at;
+  // « Lecture seule » tant que le lecteur n'a aucune action possible ici.
+  const confirmable = !!canConfirm && submissionStaleDays(status, updatedAt) != null;
   return (
     <SubmissionThreadView
       content={submission.content}
       team={submission.team}
       steps={steps}
-      readOnly={!actions}
-      actions={actions?.(steps[0]?.new_status ?? submission.status)}
+      readOnly={!actions && !confirmable}
+      actions={actions?.(status)}
       follow={follow}
-      upToDate={upToDate}
-      loading={q.isLoading}
-      error={q.isError}
+      attachment={
+        showAttachment ? (
+          <AttachmentLink path={submission.attachment_path} name={submission.attachment_name} />
+        ) : undefined
+      }
+      upToDate={
+        loaded && !failed ? (
+          <SubmissionUpToDate
+            status={status}
+            updatedAt={updatedAt}
+            verifiedBy={last?.kind === "verification" ? last.changed_by_name : undefined}
+            pending={confirm.isPending}
+            onConfirm={canConfirm ? () => confirm.mutate() : undefined}
+          />
+        ) : undefined
+      }
+      loading={!loaded}
+      error={failed}
       onClose={onClose}
     />
   );

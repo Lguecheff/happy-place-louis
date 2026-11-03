@@ -31,6 +31,7 @@ import { useGlobalSearch } from "@/components/search/use-global-search";
 import {
   canEditPublishedNews,
   myDrafts,
+  plural,
   publishedThisMonth,
 } from "@/components/overview/overview-utils";
 import { StatusButtons, type Status } from "@/components/status-actions";
@@ -46,6 +47,7 @@ import {
   fetchMySubmissions,
   exportMyRecentSubmissions,
   type Blocker,
+  type Metric,
   type News,
   type Submission,
   autosaveDraftNews,
@@ -55,8 +57,10 @@ import {
   updatePublishedNews,
   reviewSubmission,
   submitIdea,
+  remindBlockerTeams,
   updateBlockerStatus,
   updateMetric,
+  verifyMetric,
   type SubmissionInput,
 } from "@/lib/dashboard";
 import { cn } from "@/lib/utils";
@@ -132,7 +136,12 @@ function ManagerSpace() {
     queryFn: fetchSelectableTeams,
   });
   const audienceTeams = isAdmin ? selectableTeams : myTeams;
-  const search = useGlobalSearch({ role, email: myEmail, managerTeams: myTeams.data ?? [] });
+  const search = useGlobalSearch({
+    role,
+    email: myEmail,
+    managerTeams: myTeams.data ?? [],
+    ownTeam: profile.data?.team,
+  });
   const notificationPreferences = useNotificationPreferences(myEmail, role);
   const [rejecting, setRejecting] = useState<Submission | null>(null);
   const [reading, setReading] = useState<Submission | null>(null);
@@ -279,6 +288,28 @@ function ManagerSpace() {
     onError,
   });
 
+  const remind = useMutation({
+    mutationFn: (b: Blocker) => remindBlockerTeams(b.id),
+    onSuccess: (count) => {
+      toast.success(
+        count === 0
+          ? "Relance enregistrée : personne d'autre à prévenir."
+          : `${count} ${plural(count, "personne")} ${plural(count, "relancée")}.`,
+      );
+      qc.invalidateQueries({ queryKey: ["blockers"] });
+    },
+    onError,
+  });
+
+  const verify = useMutation({
+    mutationFn: (m: Metric) => verifyMetric(m.key),
+    onSuccess: () => {
+      toast.success("KPI marqué comme vérifié");
+      qc.invalidateQueries({ queryKey: ["metrics"] });
+    },
+    onError,
+  });
+
   const saveMetric = useMutation({
     mutationFn: updateMetric,
     onSuccess: () => {
@@ -298,6 +329,11 @@ function ManagerSpace() {
   // Mes équipes, pour placer la mienne en premier dans « Data +2 ».
   const viewerTeams =
     role === "manager" ? (myTeams.data ?? []) : profile.data?.team ? [profile.data.team] : [];
+  // US21 : le point concerne le manager (ses équipes, ou toutes) ; la base vérifie la même règle.
+  const concernsMe = (b: Blocker) =>
+    b.teams.length === 0 || b.teams.some((t) => viewerTeams.includes(t));
+  const canEditBlocker = (b: Blocker) => isAdmin || (role === "manager" && concernsMe(b));
+  const canRemind = (b: Blocker) => isAdmin || (role === "manager" && !concernsMe(b));
 
   function openBlocker(blocker: Blocker, trigger: HTMLElement) {
     blockerTrigger.current = trigger;
@@ -465,16 +501,21 @@ function ManagerSpace() {
             <BlockersSection
               blockers={blockers}
               myTeams={viewerTeams}
-              canEdit={isAdmin}
+              canEdit={canEditBlocker}
               onOpen={openBlocker}
               onStatusChange={(id, status) => setBlocker.mutate({ id, status })}
               onOpenArchive={() => setArchiveOpen(true)}
+              canRemind={canRemind}
+              onRemind={(b) => remind.mutate(b)}
+              remindingId={remind.isPending ? remind.variables?.id : null}
             />
             <KpiSection
               metrics={metrics}
               canEditNps={isAdmin}
               savingNps={saveMetric.isPending}
               onSaveNps={(value) => saveMetric.mutate({ key: "nps", value })}
+              onVerify={canReview ? (m) => verify.mutate(m) : undefined}
+              verifyingKey={verify.isPending ? verify.variables?.key : null}
             />
           </div>
         </div>
@@ -494,6 +535,8 @@ function ManagerSpace() {
         <SubmissionThreadModal
           submission={threadOf}
           follow={followOf(threadOf)}
+          canConfirm={search.canConfirmSubmission(threadOf)}
+          showAttachment={search.canReadAttachment(threadOf)}
           actions={
             canReview && threadEditable
               ? (current) => (

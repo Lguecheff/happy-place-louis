@@ -16,7 +16,7 @@ import {
 import { AttachmentLink } from "@/components/attachment-link";
 import { CharCounter, rejectionErrorMessage } from "@/components/expandable-card";
 import { Linkify } from "@/components/linkify";
-import { SubmissionReader } from "@/components/submission-reader";
+import { SubmissionThreadModal } from "@/components/submission-status-thread";
 import { SubmissionHistory } from "@/components/manage/submission-history";
 import { submissionSchema, validate, type FieldErrors } from "@/lib/manage-schemas";
 import {
@@ -183,11 +183,15 @@ function ManageSubmissions() {
         )}
       </div>
 
-      <SubmissionReader
-        submission={reading}
-        statusLabel={reading ? submissionStatusLabels[reading.status] ?? reading.status : undefined}
-        onClose={() => setReading(null)}
-      />
+      {/* Page réservée à l'admin : il confirme toute demande clôturée et lit tous les PDF. */}
+      {reading && (
+        <SubmissionThreadModal
+          submission={reading}
+          canConfirm
+          showAttachment
+          onClose={() => setReading(null)}
+        />
+      )}
       {form && (
         <Modal title={editing ? "Modifier la soumission" : "Nouvelle soumission"} onClose={close}>
           <form onSubmit={submit} className="space-y-sm" noValidate>

@@ -3,18 +3,21 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
-  ConfirmDelete,
-  ErrorSummary,
-  Field,
-  FormActions,
-  Modal,
-  RowActions,
-  TextInput,
-} from "@/components/manage/crud-ui";
-import { DsFreshness } from "@/components/ds";
+  DS_INPUT,
+  DsBadge,
+  DsButton,
+  DsEmptyState,
+  DsField,
+  DsFreshness,
+  DsListItem,
+  DsStaleBadge,
+} from "@/components/ds";
+import { ConfirmDelete, ErrorSummary, Modal } from "@/components/manage/crud-ui";
 import { metricSchema, validate, type FieldErrors } from "@/lib/manage-schemas";
 import { KpiTextField } from "@/components/manage/kpi-text-field";
 import { MetricHistory } from "@/components/manage/metric-history";
+import { VerifyMetricButton } from "@/components/overview/KpiSection";
+import { isVerified, metricStaleDays } from "@/components/overview/overview-utils";
 import {
   createMetric,
   deleteMetric,
@@ -22,6 +25,7 @@ import {
   deltaText,
   formatMetricValue,
   updateMetricRow,
+  verifyMetric,
   TREND_LABELS,
   type Metric,
   type MetricInput,
@@ -54,11 +58,30 @@ type FormState = {
   unit: string;
   definition: string;
   impact: string;
+  staleAfterDays: string;
 };
 
-const empty: FormState = { key: "", label: "", value: "", unit: "", definition: "", impact: "" };
+const empty: FormState = {
+  key: "",
+  label: "",
+  value: "",
+  unit: "",
+  definition: "",
+  impact: "",
+  staleAfterDays: "",
+};
 
 const orNull = (text: string) => (text.trim() === "" ? null : text);
+
+/** Nombre saisi, ou NaN pour un champ vide ou invalide (le schéma l'explique). */
+function toNumber(text: string) {
+  const raw = text.trim().replace(",", ".");
+  return raw === "" || Number.isNaN(Number(raw)) ? Number.NaN : Number(raw);
+}
+
+function thresholdLabel(days: number) {
+  return `Seuil « à vérifier » : ${days} jour${days > 1 ? "s" : ""}`;
+}
 
 function ManageMetrics() {
   const qc = useQueryClient();
@@ -92,6 +115,15 @@ function ManageMetrics() {
     onError,
   });
 
+  const verify = useMutation({
+    mutationFn: (key: string) => verifyMetric(key),
+    onSuccess: () => {
+      toast.success("KPI marqué comme vérifié");
+      invalidate();
+    },
+    onError,
+  });
+
   function close() {
     setForm(null);
     setEditing(null);
@@ -101,14 +133,14 @@ function ManageMetrics() {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!form) return;
-    const raw = form.value.trim().replace(",", ".");
     const candidate = {
       key: form.key,
       label: form.label,
-      value: raw === "" || Number.isNaN(Number(raw)) ? Number.NaN : Number(raw),
+      value: toNumber(form.value),
       unit: orNull(form.unit),
       definition: orNull(form.definition),
       impact: orNull(form.impact),
+      stale_after_days: toNumber(form.staleAfterDays),
     };
     const res = validate(metricSchema, candidate);
     if (!res.ok) {
@@ -121,106 +153,169 @@ function ManageMetrics() {
 
   return (
     <section className="space-y-md">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-sm">
         <h2 className="font-headline-sm text-headline-sm text-primary">
           Indicateurs ({list.data?.length ?? 0})
         </h2>
-        <button
+        <DsButton
+          variant="primary"
+          icon="add"
+          aria-haspopup="dialog"
           onClick={() => {
             setEditing(null);
             setErrors({});
             setForm({ ...empty });
           }}
-          className="px-md py-xs bg-primary text-on-primary font-label-md text-label-md"
         >
-          + NOUVEL INDICATEUR
-        </button>
+          Créer un indicateur
+        </DsButton>
       </div>
 
-      {list.isLoading && <p className="text-body-sm text-on-surface-variant">Chargement…</p>}
+      {list.isLoading && (
+        <p className="font-body-sm text-body-sm text-on-surface-variant">Chargement…</p>
+      )}
       {list.isError && (
-        <p className="text-body-sm text-error">Impossible de charger les indicateurs.</p>
+        <p className="font-body-sm text-body-sm text-error">
+          Impossible de charger les indicateurs.
+        </p>
       )}
 
       <div className="space-y-xs">
-        {list.data?.map((m) => (
-          <article
-            key={m.key}
-            className="flex items-start justify-between gap-sm p-sm bg-card border border-outline-variant"
-          >
-            <div className="min-w-0 [overflow-wrap:anywhere]">
-              <p className="font-body-md text-primary font-bold">
-                {m.label} — {formatMetricValue(m.value, m.unit)}
-              </p>
-              <p className="mt-xs font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
-                {m.key} • {TREND_LABELS[m.trend]}
-                {m.previous_value != null && (
-                  <>
-                    {deltaText(m) && ` · ${deltaText(m)}`}
-                    {` · avant : ${formatMetricValue(m.previous_value, m.unit).replace(/%$/, " %")}`}
-                  </>
+        {list.data?.map((m) => {
+          const staleDays = metricStaleDays(m);
+          return (
+            <DsListItem
+              key={m.key}
+              icon="monitoring"
+              title={`${m.label} — ${formatMetricValue(m.value, m.unit)}`}
+              meta={[
+                m.key,
+                TREND_LABELS[m.trend],
+                m.previous_value != null && deltaText(m),
+                m.previous_value != null &&
+                  `avant : ${formatMetricValue(m.previous_value, m.unit).replace(/%$/, " %")}`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              actions={
+                <>
+                  <DsButton
+                    aria-haspopup="dialog"
+                    onClick={() => {
+                      setEditing(m);
+                      setErrors({});
+                      setForm({
+                        key: m.key,
+                        label: m.label,
+                        value: String(m.value),
+                        unit: m.unit ?? "",
+                        definition: m.definition ?? "",
+                        impact: m.impact ?? "",
+                        staleAfterDays:
+                          m.stale_after_days != null ? String(m.stale_after_days) : "",
+                      });
+                    }}
+                  >
+                    Modifier
+                  </DsButton>
+                  <DsButton aria-haspopup="dialog" onClick={() => setToDelete(m)}>
+                    Supprimer
+                  </DsButton>
+                </>
+              }
+            >
+              <span className="flex flex-wrap items-center gap-xs">
+                {m.stale_after_days == null ? (
+                  <DsBadge icon="edit_calendar">Seuil à définir</DsBadge>
+                ) : (
+                  <DsBadge>{thresholdLabel(m.stale_after_days)}</DsBadge>
                 )}
-              </p>
-              <DsFreshness at={m.updated_at} by={m.updated_by_name} />
+                {staleDays != null && <DsStaleBadge days={staleDays} />}
+                <DsFreshness at={m.updated_at} by={m.updated_by_name} verified={isVerified(m)} />
+              </span>
+              {staleDays != null && (
+                <VerifyMetricButton
+                  pending={verify.isPending && verify.variables === m.key}
+                  onVerify={() => verify.mutate(m.key)}
+                />
+              )}
               <MetricHistory metricKey={m.key} unit={m.unit} />
-            </div>
-            <RowActions
-              onEdit={() => {
-                setEditing(m);
-                setErrors({});
-                setForm({
-                  key: m.key,
-                  label: m.label,
-                  value: String(m.value),
-                  unit: m.unit ?? "",
-                  definition: m.definition ?? "",
-                  impact: m.impact ?? "",
-                });
-              }}
-              onDelete={() => setToDelete(m)}
-            />
-          </article>
-        ))}
-        {list.data?.length === 0 && (
-          <p className="text-body-sm italic text-on-surface-variant">Aucun indicateur.</p>
-        )}
+            </DsListItem>
+          );
+        })}
+        {list.data?.length === 0 && <DsEmptyState>Aucun indicateur.</DsEmptyState>}
       </div>
 
       {form && (
         <Modal title={editing ? "Modifier l'indicateur" : "Nouvel indicateur"} onClose={close}>
           <form onSubmit={submit} className="space-y-sm" noValidate>
             <ErrorSummary errors={errors} />
-            <Field label="Clé technique" error={errors.key}>
-              <TextInput
+            <DsField id="kpi-cle" label="Clé technique" error={errors.key}>
+              <input
+                id="kpi-cle"
+                className={DS_INPUT}
                 value={form.key}
                 disabled={!!editing}
                 maxLength={40}
                 placeholder="ex : taux_placement"
                 onChange={(e) => setForm({ ...form, key: e.target.value })}
               />
-            </Field>
-            <Field label="Libellé" error={errors.label}>
-              <TextInput
+            </DsField>
+            <DsField id="kpi-libelle" label="Libellé" error={errors.label}>
+              <input
+                id="kpi-libelle"
+                className={DS_INPUT}
                 value={form.label}
                 maxLength={60}
                 onChange={(e) => setForm({ ...form, label: e.target.value })}
               />
-            </Field>
-            <Field label="Valeur" error={errors.value}>
-              <TextInput
+            </DsField>
+            <DsField id="kpi-valeur" label="Valeur" error={errors.value}>
+              <input
+                id="kpi-valeur"
+                className={DS_INPUT}
                 value={form.value}
                 inputMode="decimal"
                 onChange={(e) => setForm({ ...form, value: e.target.value })}
               />
-            </Field>
-            <Field label="Unité (optionnel)" error={errors.unit}>
-              <TextInput
+            </DsField>
+            <DsField id="kpi-unite" label="Unité (optionnel)" error={errors.unit}>
+              <input
+                id="kpi-unite"
+                className={DS_INPUT}
                 value={form.unit}
                 maxLength={8}
                 placeholder="%"
                 onChange={(e) => setForm({ ...form, unit: e.target.value })}
               />
-            </Field>
+            </DsField>
+            <DsField
+              id="kpi-seuil"
+              label="Seuil « à vérifier » (jours)"
+              error={errors.stale_after_days}
+            >
+              <input
+                id="kpi-seuil"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={365}
+                step={1}
+                required
+                aria-invalid={!!errors.stale_after_days}
+                aria-describedby="kpi-seuil-aide"
+                className={DS_INPUT}
+                value={form.staleAfterDays}
+                onChange={(e) => setForm({ ...form, staleAfterDays: e.target.value })}
+              />
+              <p
+                id="kpi-seuil-aide"
+                className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant"
+              >
+                Au-delà de ce nombre de jours sans mise à jour, le KPI porte le badge « À vérifier
+                ».
+              </p>
+            </DsField>
             <KpiTextField
               id="kpi-definition"
               label="Ce que ça mesure"
@@ -238,7 +333,12 @@ function ManageMetrics() {
             <p className="font-body-sm text-body-sm text-on-surface-variant">
               Un texte vide affiche « Définition à venir. ».
             </p>
-            <FormActions pending={save.isPending} onCancel={close} />
+            <div className="flex flex-wrap justify-end gap-xs pt-sm">
+              <DsButton onClick={close}>Annuler</DsButton>
+              <DsButton type="submit" variant="confirm" icon="check" pending={save.isPending}>
+                Enregistrer
+              </DsButton>
+            </div>
           </form>
         </Modal>
       )}

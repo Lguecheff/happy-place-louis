@@ -145,6 +145,8 @@ export type Database = {
           description: string | null
           id: string
           impact: string | null
+          reminded_at: string | null
+          reminded_by_name: string | null
           severity: Database["public"]["Enums"]["blocker_severity"]
           status: Database["public"]["Enums"]["blocker_status"]
           title: string
@@ -158,6 +160,8 @@ export type Database = {
           description?: string | null
           id?: string
           impact?: string | null
+          reminded_at?: string | null
+          reminded_by_name?: string | null
           severity?: Database["public"]["Enums"]["blocker_severity"]
           status?: Database["public"]["Enums"]["blocker_status"]
           title: string
@@ -171,6 +175,8 @@ export type Database = {
           description?: string | null
           id?: string
           impact?: string | null
+          reminded_at?: string | null
+          reminded_by_name?: string | null
           severity?: Database["public"]["Enums"]["blocker_severity"]
           status?: Database["public"]["Enums"]["blocker_status"]
           title?: string
@@ -264,33 +270,39 @@ export type Database = {
           impact: string | null
           key: string
           label: string
+          stale_after_days: number | null
           unit: string | null
           updated_at: string
           updated_by: string | null
           updated_by_name: string | null
           value: number
+          verified_at: string | null
         }
         Insert: {
           definition?: string | null
           impact?: string | null
           key: string
           label: string
+          stale_after_days?: number | null
           unit?: string | null
           updated_at?: string
           updated_by?: string | null
           updated_by_name?: string | null
           value: number
+          verified_at?: string | null
         }
         Update: {
           definition?: string | null
           impact?: string | null
           key?: string
           label?: string
+          stale_after_days?: number | null
           unit?: string | null
           updated_at?: string
           updated_by?: string | null
           updated_by_name?: string | null
           value?: number
+          verified_at?: string | null
         }
         Relationships: []
       }
@@ -416,6 +428,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          actor_email: string | null
           actor_name: string | null
           blocker_id: string | null
           created_at: string
@@ -427,6 +440,7 @@ export type Database = {
           submission_id: string | null
         }
         Insert: {
+          actor_email?: string | null
           actor_name?: string | null
           blocker_id?: string | null
           created_at?: string
@@ -438,6 +452,7 @@ export type Database = {
           submission_id?: string | null
         }
         Update: {
+          actor_email?: string | null
           actor_name?: string | null
           blocker_id?: string | null
           created_at?: string
@@ -547,6 +562,38 @@ export type Database = {
           },
         ]
       }
+      submission_verifications: {
+        Row: {
+          id: string
+          submission_id: string
+          verified_at: string
+          verified_by_email: string | null
+          verified_by_name: string | null
+        }
+        Insert: {
+          id?: string
+          submission_id: string
+          verified_at?: string
+          verified_by_email?: string | null
+          verified_by_name?: string | null
+        }
+        Update: {
+          id?: string
+          submission_id?: string
+          verified_at?: string
+          verified_by_email?: string | null
+          verified_by_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_verifications_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submissions: {
         Row: {
           attachment_name: string | null
@@ -563,6 +610,7 @@ export type Database = {
           status: Database["public"]["Enums"]["submission_status"]
           submitted_by_email: string | null
           team: string
+          verified_at: string | null
         }
         Insert: {
           attachment_name?: string | null
@@ -579,6 +627,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["submission_status"]
           submitted_by_email?: string | null
           team: string
+          verified_at?: string | null
         }
         Update: {
           attachment_name?: string | null
@@ -595,6 +644,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["submission_status"]
           submitted_by_email?: string | null
           team?: string
+          verified_at?: string | null
         }
         Relationships: [
           {
@@ -634,11 +684,13 @@ export type Database = {
           key: string | null
           label: string | null
           previous_value: number | null
+          stale_after_days: number | null
           trend: string | null
           unit: string | null
           updated_at: string | null
           updated_by_name: string | null
           value: number | null
+          verified_at: string | null
         }
         Relationships: []
       }
@@ -673,6 +725,25 @@ export type Database = {
         }
         Returns: undefined
       }
+      confirm_submission_up_to_date: {
+        Args: { _submission_id: string }
+        Returns: undefined
+      }
+      remind_blocker_teams: {
+        Args: { _blocker_id: string }
+        Returns: number
+      }
+      set_blocker_status: {
+        Args: {
+          _blocker_id: string
+          _status: Database["public"]["Enums"]["blocker_status"]
+        }
+        Returns: undefined
+      }
+      verify_metric: {
+        Args: { _key: string }
+        Returns: undefined
+      }
       simuler_point_bloquant_a_revoir: {
         Args: { _blocker_id: string }
         Returns: number
@@ -702,6 +773,7 @@ export type Database = {
         | "resume_hebdo"
         | "changement_statut_suivi"
         | "point_bloquant_a_revoir"
+        | "relance_point_bloquant"
       rejection_category:
         | "à clarifier"
         | "en désaccord avec les process"
@@ -846,6 +918,7 @@ export const Constants = {
         "resume_hebdo",
         "changement_statut_suivi",
         "point_bloquant_a_revoir",
+        "relance_point_bloquant",
       ],
       rejection_category: [
         "à clarifier",

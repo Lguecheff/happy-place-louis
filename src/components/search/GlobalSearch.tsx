@@ -12,8 +12,7 @@ import {
   newsPublishedAt,
   plural,
 } from "@/components/overview/overview-utils";
-import { SubmissionReader } from "@/components/submission-reader";
-import { StatusChip } from "@/components/submission-status-thread";
+import { StatusChip, SubmissionThreadModal } from "@/components/submission-status-thread";
 import {
   Command,
   CommandEmpty,
@@ -124,6 +123,7 @@ function BlockerSearchBadges({ blocker }: { blocker: Blocker }) {
 export function GlobalSearch({
   source,
   canReadAttachment,
+  canConfirmSubmission,
   canEditNews,
   onEditNews,
   renderFollow,
@@ -133,6 +133,8 @@ export function GlobalSearch({
   source: SearchSource;
   /** Sans valeur, la pièce jointe d'une demande est proposée à tout le monde. */
   canReadAttachment?: (submission: Submission) => boolean;
+  /** « Confirmer à jour » dans le détail d'une demande (US21) ; sans valeur, pas de bouton. */
+  canConfirmSubmission?: (submission: Submission) => boolean;
   /** Sans `onEditNews`, les actus restent en lecture seule. */
   canEditNews?: (news: News) => boolean;
   onEditNews?: (news: News) => void;
@@ -369,13 +371,15 @@ export function GlobalSearch({
             : undefined
         }
       />
-      <SubmissionReader
-        submission={readingSubmission}
-        hideAttachment={!!readingSubmission && canReadAttachment?.(readingSubmission) === false}
-        onClose={() => setReadingSubmission(null)}
-        onCloseAutoFocus={focusInput}
-        follow={readingSubmission && renderFollow?.(readingSubmission)}
-      />
+      {readingSubmission && (
+        <SubmissionThreadModal
+          submission={readingSubmission}
+          showAttachment={canReadAttachment?.(readingSubmission) !== false}
+          canConfirm={canConfirmSubmission?.(readingSubmission)}
+          follow={renderFollow?.(readingSubmission)}
+          onClose={() => setReadingSubmission(null)}
+        />
+      )}
       <BlockerReader
         blocker={readingBlocker}
         onClose={() => setReadingBlocker(null)}

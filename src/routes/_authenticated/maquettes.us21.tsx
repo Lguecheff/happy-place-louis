@@ -3,28 +3,20 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { BlockerReader } from "@/components/blocker-reader";
 import { BrandHeader } from "@/components/brand-header";
-import {
-  DS_INPUT,
-  DsBadge,
-  DsButton,
-  DsField,
-  DsFreshness,
-  DsListItem,
-  DsSection,
-  DsStaleBadge,
-} from "@/components/ds";
+import { DS_INPUT, DsField, DsListItem, DsSection } from "@/components/ds";
 import { BlockersSection, type OpenBlocker } from "@/components/overview/BlockersSection";
-import { KpiSection, VerifyMetricButton } from "@/components/overview/KpiSection";
+import { KpiSection } from "@/components/overview/KpiSection";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
-import { formatDay, isVerified, metricStaleDays } from "@/components/overview/overview-utils";
+import { formatDay } from "@/components/overview/overview-utils";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
 import {
   StatusChip,
   SubmissionThreadView,
   SubmissionUpToDate,
+  verificationStep,
   type ThreadStep,
 } from "@/components/submission-status-thread";
-import { formatMetricValue, type Blocker, type Metric, type Submission } from "@/lib/dashboard";
+import type { Blocker, Metric, Submission } from "@/lib/dashboard";
 
 export const Route = createFileRoute("/_authenticated/maquettes/us21")({
   head: () => ({
@@ -165,15 +157,15 @@ function metrics(activeDays: number): Metric[] {
   ];
 }
 
-/** Demandes de Gontran : `pending_since` = dernier changement de statut. */
+/** Demandes de Gontran : `pending_since` = dernier changement de statut (clôture automatique pour s1). */
 const SUBMISSIONS: Submission[] = [
   {
     id: "s1",
     author_name: "Gontran (fictif)",
     team: "Data",
     content: "Partager le tableau de suivi des candidats avec l'équipe Opérations (fictif).",
-    status: "validée",
-    created_at: ago(420 * DAY_MS),
+    status: "clôturée",
+    created_at: ago(800 * DAY_MS),
     pending_since: ago(400 * DAY_MS),
   },
   {
@@ -181,9 +173,9 @@ const SUBMISSIONS: Submission[] = [
     author_name: "Gontran (fictif)",
     team: "Data",
     content: "Ajouter un rappel automatique avant chaque fin de mission (fictif).",
-    status: "clôturée",
-    created_at: ago(90 * DAY_MS),
-    pending_since: ago(60 * DAY_MS),
+    status: "validée",
+    created_at: ago(220 * DAY_MS),
+    pending_since: ago(200 * DAY_MS),
   },
   {
     id: "s3",
@@ -218,20 +210,18 @@ function steps(s: Submission): ThreadStep[] {
       id: `${s.id}-1`,
       old_status: "en attente",
       new_status: s.status,
-      changed_by_name: KESHA.name,
+      changed_by_name: s.status === "clôturée" ? null : KESHA.name,
+      is_automatic: s.status === "clôturée",
       changed_at: s.pending_since,
     });
   }
   if (s.verified_at) {
-    rows.push({
-      ...base,
-      id: `${s.id}-v`,
-      kind: "verification",
-      old_status: s.status,
-      new_status: s.status,
-      changed_by_name: s.verified_by_name ?? null,
-      changed_at: s.verified_at,
-    });
+    rows.push(
+      verificationStep(
+        { id: `${s.id}-v`, verified_by_name: GONTRAN.name, verified_at: s.verified_at },
+        s.status,
+      ),
+    );
   }
   return rows.reverse();
 }
@@ -246,8 +236,8 @@ type MockState = {
   reminded?: Record<string, string>;
   /** KPI ou demandes déjà vérifiés à l'ouverture de l'état. */
   verified?: string[];
-  /** Ce que montre la page : vue d'ensemble, aperçu « Gérer les données > KPI », ou Mes demandes. */
-  page?: "overview" | "manage" | "requests";
+  /** Ce que montre la page : vue d'ensemble ou Mes demandes. */
+  page?: "overview" | "requests";
   /** Aperçu de la notification de relance reçue. */
   notification?: boolean;
 };
@@ -286,17 +276,9 @@ const STATES: MockState[] = [
   {
     value: "kpi-seuil",
     label: "KPI au-delà de son seuil",
-    note: "« Missions actives » a un seuil d'1 jour et n'a pas bougé depuis 3 jours : badge, et « Marquer comme vérifié » pour Kesha (tous les KPI). « Taux de placement » (seuil 7 jours) n'a pas de badge. Le NPS n'a pas de seuil : pas de badge, même après 20 jours.",
+    note: "« Missions actives » a un seuil d'1 jour et n'a pas bougé depuis 3 jours : badge, et « Marquer comme vérifié » pour Kesha (tous les KPI). « Taux de placement » (seuil 7 jours) n'a pas de badge. Le NPS n'a pas de seuil : pas de badge, même après 20 jours. Seuil et « Seuil à définir » : voir la vraie page « Gérer les données > KPI ».",
     viewer: KESHA,
     activeDays: 3,
-  },
-  {
-    value: "kpi-sans-seuil",
-    label: "KPI sans seuil (Gérer les données)",
-    note: "Aperçu de « Gérer les données > KPI » (réservé à l'admin) : un KPI sans seuil affiche « Seuil à définir ». Le seuil est obligatoire à la création : un entier de 1 à 365.",
-    viewer: ADMIN,
-    activeDays: 3,
-    page: "manage",
   },
   {
     value: "kpi-verifie",
@@ -309,7 +291,7 @@ const STATES: MockState[] = [
   {
     value: "demande-ancienne",
     label: "Demande de plus d'un an (détail)",
-    note: "Mes demandes de Gontran : chaque ligne s'ouvre sur « Détail de la demande ». Aucun badge dans la liste. Dans le détail, une demande validée ou clôturée sans mise à jour depuis plus d'un an porte « À vérifier » et le bouton « Confirmer à jour ». La demande en attente depuis 500 jours n'est pas concernée.",
+    note: "Mes demandes de Gontran : chaque ligne s'ouvre sur « Détail de la demande ». Aucun badge dans la liste. Dans le détail, une demande clôturée sans mise à jour depuis plus d'un an porte « À vérifier » et le bouton « Confirmer à jour ». Ni la demande validée, ni celle en attente depuis 500 jours ne sont concernées.",
     viewer: GONTRAN,
     activeDays: 0.5,
     page: "requests",
@@ -317,7 +299,7 @@ const STATES: MockState[] = [
   {
     value: "demande-verifiee",
     label: "Demande vérifiée",
-    note: "Gontran a confirmé sa demande validée : le badge disparaît, la mention devient « Vérifié … par Gontran » et le fil gagne une ligne « Vérifiée à jour ». Personne n'est notifié.",
+    note: "Gontran a confirmé sa demande clôturée : le badge disparaît, la mention devient « Vérifié … par Gontran » et le fil gagne une ligne « Vérifiée à jour ». Personne n'est notifié.",
     viewer: GONTRAN,
     activeDays: 0.5,
     page: "requests",
@@ -325,99 +307,42 @@ const STATES: MockState[] = [
   },
 ];
 
+/** « Détail de la demande » sur données fictives : mêmes composants que le vrai détail. */
+function MockDetail({
+  submission: s,
+  onConfirm,
+  onClose,
+}: {
+  submission: Submission;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const rows = steps(s);
+  const last = rows[0];
+  return (
+    <SubmissionThreadView
+      content={s.content}
+      team={s.team}
+      steps={rows}
+      readOnly={false}
+      upToDate={
+        <SubmissionUpToDate
+          status={s.status}
+          updatedAt={last.changed_at}
+          verifiedBy={last.kind === "verification" ? last.changed_by_name : undefined}
+          onConfirm={onConfirm}
+        />
+      }
+      onClose={onClose}
+    />
+  );
+}
+
 const notWired = () => toast.info("Non branché dans la maquette (fictif).");
 
 /** Le point concerne le lecteur : une de ses équipes, ou toutes les équipes. */
 const concerns = (viewer: Viewer, b: Blocker) =>
   b.teams.length === 0 || b.teams.some((t) => viewer.teams.includes(t));
-
-// ---------------------------------------------------------------------------
-// Aperçu de « Gérer les données > KPI » (admin)
-// ---------------------------------------------------------------------------
-
-function ManageMetricsPreview({
-  rows,
-  onVerify,
-}: {
-  rows: Metric[];
-  onVerify: (m: Metric) => void;
-}) {
-  const [threshold, setThreshold] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const n = Number(threshold);
-  const valid = threshold.trim() !== "" && Number.isInteger(n) && n >= 1 && n <= 365;
-  const error = submitted && !valid ? "Indique un nombre entier de jours, de 1 à 365." : undefined;
-  return (
-    <>
-      <DsSection id="gerer-kpi" title="Gérer les données > KPI (aperçu, vue admin)">
-        <div className="space-y-xs">
-          {rows.map((m) => {
-            const staleDays = metricStaleDays(m);
-            return (
-              <DsListItem
-                key={m.key}
-                icon="monitoring"
-                title={`${m.label} — ${formatMetricValue(m.value, m.unit)}`}
-                meta={`${m.key} (fictif)`}
-                actions={<DsButton onClick={notWired}>Modifier</DsButton>}
-              >
-                <span className="flex flex-wrap items-center gap-xs">
-                  {m.stale_after_days == null ? (
-                    <DsBadge icon="edit_calendar">Seuil à définir</DsBadge>
-                  ) : (
-                    <DsBadge>
-                      Seuil « à vérifier » : {m.stale_after_days} jour
-                      {m.stale_after_days > 1 ? "s" : ""}
-                    </DsBadge>
-                  )}
-                  {staleDays != null && <DsStaleBadge days={staleDays} />}
-                  <DsFreshness at={m.updated_at} by={m.updated_by_name} verified={isVerified(m)} />
-                </span>
-                {staleDays != null && <VerifyMetricButton onVerify={() => onVerify(m)} />}
-              </DsListItem>
-            );
-          })}
-        </div>
-      </DsSection>
-      <DsSection id="nouveau-kpi" title="Nouvel indicateur (extrait du formulaire)">
-        <form
-          className="flex flex-wrap items-end gap-xs"
-          noValidate
-          onSubmit={(e) => {
-            e.preventDefault();
-            setSubmitted(true);
-            if (valid) toast.success("Seuil valide (fictif).");
-          }}
-        >
-          <DsField
-            id="kpi-seuil"
-            label="Seuil « à vérifier » (jours)"
-            error={error}
-            className="flex-1 basis-48"
-          >
-            <input
-              id="kpi-seuil"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={365}
-              step={1}
-              required
-              aria-invalid={!!error}
-              className={DS_INPUT}
-              value={threshold}
-              onChange={(e) => setThreshold(e.target.value)}
-            />
-          </DsField>
-          <DsButton type="submit">Vérifier le champ</DsButton>
-        </form>
-        <p className="mt-xs font-body-sm text-body-sm text-on-surface-variant">
-          Au-delà de ce nombre de jours sans mise à jour, le KPI porte le badge « À vérifier ».
-        </p>
-      </DsSection>
-    </>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Présentation
@@ -468,7 +393,7 @@ function Us21Mockup() {
       : m,
   );
   const submissions = SUBMISSIONS.map((s) =>
-    verified[s.id] ? { ...s, verified_at: verified[s.id], verified_by_name: viewer.name } : s,
+    verified[s.id] ? { ...s, verified_at: verified[s.id] } : s,
   );
   const readingRow = reading && (blockers.find((b) => b.id === reading.id) ?? null);
   const detailRow = submissions.find((s) => s.id === detail) ?? null;
@@ -552,11 +477,6 @@ function Us21Mockup() {
             {state.note}
           </p>
         </div>
-        {page === "manage" && (
-          <div className="flex max-w-lg flex-col gap-md">
-            <ManageMetricsPreview rows={metricRows} onVerify={(m) => verify(m.key)} />
-          </div>
-        )}
         {page === "requests" && (
           <div className="flex max-w-lg flex-col gap-md">
             <DsSection id="mes-demandes" title="Mes demandes">
@@ -630,13 +550,9 @@ function Us21Mockup() {
         onCloseAutoFocus={focusTrigger}
       />
       {detailRow && (
-        <SubmissionThreadView
-          content={detailRow.content}
-          team={detailRow.team}
-          steps={steps(detailRow)}
-          upToDate={
-            <SubmissionUpToDate submission={detailRow} onConfirm={() => verify(detailRow.id)} />
-          }
+        <MockDetail
+          submission={detailRow}
+          onConfirm={() => verify(detailRow.id)}
           onClose={() => setDetail(null)}
         />
       )}

@@ -73,6 +73,9 @@ export const blockerSchema = z.object({
   }),
 });
 
+/** Seuil « à vérifier » d'un KPI (US21), même règle que la base. */
+const STALE_AFTER_DAYS_ERROR = "Indique un nombre entier de jours, de 1 à 365.";
+
 export const metricSchema = z.object({
   key: z
     .string()
@@ -87,6 +90,11 @@ export const metricSchema = z.object({
   unit: z.string().trim().max(8, "8 caractères maximum").nullable(),
   definition: z.string().trim().max(200, "200 caractères maximum").nullable(),
   impact: z.string().trim().max(200, "200 caractères maximum").nullable(),
+  stale_after_days: z
+    .number({ invalid_type_error: STALE_AFTER_DAYS_ERROR })
+    .int(STALE_AFTER_DAYS_ERROR)
+    .min(1, STALE_AFTER_DAYS_ERROR)
+    .max(365, STALE_AFTER_DAYS_ERROR),
 });
 
 export type FieldErrors = Record<string, string>;
