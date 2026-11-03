@@ -17,6 +17,7 @@ import { BlockersSection } from "@/components/overview/BlockersSection";
 import { KpiSection } from "@/components/overview/KpiSection";
 import {
   NewsSection,
+  type AutosaveInput,
   type DraftInput,
   type NewsSectionHandle,
 } from "@/components/overview/NewsSection";
@@ -46,6 +47,7 @@ import {
   exportMyRecentSubmissions,
   type News,
   type Submission,
+  autosaveDraftNews,
   saveDraftNews,
   saveAndPublishDraftNews,
   deleteDraftNews,
@@ -302,6 +304,13 @@ function ManagerSpace() {
     saveDraft.mutate({ ...input, author: myName, author_email: myEmail }, { onSuccess: onSaved });
   }
 
+  /** Pas de toast : l'indicateur du rédacteur suffit. Mes brouillons se met à jour tout seul. */
+  async function autosaveNews(input: AutosaveInput, id: string | undefined) {
+    const saved = await autosaveDraftNews({ ...input, id, author: myName, author_email: myEmail });
+    qc.invalidateQueries({ queryKey: ["news"] });
+    return saved;
+  }
+
   function publishNews(input: DraftInput & { id: string }, onPublished: () => void) {
     publishDraft.mutate(
       { ...input, author: myName, author_email: myEmail },
@@ -426,6 +435,7 @@ function ManagerSpace() {
               removing={removeDraft.isPending}
               onSave={saveNews}
               onPublish={publishNews}
+              onAutosave={autosaveNews}
               onRemove={(n) => removeDraft.mutate(n)}
               onRead={setReadingNews}
               savingEdit={editPublished.isPending}

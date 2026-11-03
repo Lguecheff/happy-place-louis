@@ -3,7 +3,6 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { BrandHeader } from "@/components/brand-header";
 import { DS_INPUT, DsChoice, DsField } from "@/components/ds";
-import { NewsReader } from "@/components/news-reader";
 import type { AutosaveFn } from "@/components/news/use-autosave-draft";
 import {
   NewsSection,
@@ -122,7 +121,6 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 function Us17Mockup() {
   const [scenarioValue, setScenarioValue] = useState(SCENARIOS[0].value);
   const [news, setNews] = useState(NEWS);
-  const [reading, setReading] = useState<News | null>(null);
   const [composerOpen, setComposerOpen] = useState(true);
   const [offline, setOffline] = useState(SCENARIOS[0].offline);
   const [counts, setCounts] = useState({ created: 0, updated: 0, failed: 0 });
@@ -171,16 +169,6 @@ function Us17Mockup() {
     onSaved();
   }
 
-  function publish(input: DraftInput & { id: string }, onPublished: () => void) {
-    writeDraft(input, input.id);
-    const now = new Date().toISOString();
-    setNews((list) =>
-      list.map((n) => (n.id === input.id ? { ...n, status: "publiée", published_at: now } : n)),
-    );
-    toast.success("Actualité publiée (fictif)");
-    onPublished();
-  }
-
   function chooseScenario(value: string) {
     const next = SCENARIOS.find((s) => s.value === value) ?? SCENARIOS[0];
     run.current += 1;
@@ -188,7 +176,6 @@ function Us17Mockup() {
     setOffline(next.offline);
     setNews(NEWS);
     setCounts({ created: 0, updated: 0, failed: 0 });
-    setReading(null);
     setComposerOpen(true);
   }
 
@@ -260,14 +247,13 @@ function Us17Mockup() {
           publishing={false}
           removing={false}
           onSave={saveDraft}
-          onPublish={publish}
+          onPublish={() => toast.info("Non branché dans la maquette (fictif).")}
           onRemove={(n) => setNews((list) => list.filter((x) => x.id !== n.id))}
-          onRead={setReading}
+          onRead={() => {}}
           onAutosave={autosave}
           initialDraft={scenario.draft}
         />
       </main>
-      <NewsReader news={reading} onClose={() => setReading(null)} />
     </div>
   );
 }

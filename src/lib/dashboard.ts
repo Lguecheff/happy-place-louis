@@ -155,16 +155,21 @@ async function saveNewsAudience(id: string, { audience, teams }: NewsAudienceVal
   if (error) throw error;
 }
 
-export async function saveDraftNews(input: {
+export type DraftNewsContent = {
   id?: string;
   title: string;
   body: string;
   author: string;
   author_email: string;
   links: NewsLink[];
-  media: MediaDraft;
   audience: NewsAudienceValue;
-}) {
+};
+
+/**
+ * Enregistrement automatique : crée le brouillon sans id, le met à jour avec un id,
+ * et renvoie l'id. L'image n'est pas touchée (elle part avec « Enregistrer le brouillon »).
+ */
+export async function autosaveDraftNews(input: DraftNewsContent): Promise<string> {
   const payload = {
     title: input.title,
     body: input.body,
@@ -178,7 +183,14 @@ export async function saveDraftNews(input: {
     : await db.from("news").insert(payload).select("id").single();
   if (error) throw error;
   await saveNewsAudience(data.id, input.audience);
-  await applyNewsImage(data.id, input.media);
+  return data.id;
+}
+
+/** Enregistre le brouillon avec son image et renvoie son id. */
+export async function saveDraftNews(input: DraftNewsContent & { media: MediaDraft }) {
+  const id = await autosaveDraftNews(input);
+  await applyNewsImage(id, input.media);
+  return id;
 }
 
 export async function publishDraftNews(id: string) {
