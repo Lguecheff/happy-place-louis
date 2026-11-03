@@ -1,4 +1,5 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import type { ReactNode } from "react";
 import { Linkify } from "@/components/linkify";
 import { AttachmentLink } from "@/components/attachment-link";
 import { formatExactDate } from "@/components/expandable-card";
@@ -17,6 +18,7 @@ export function SubmissionReader({
   onApprove,
   approving,
   statusActions,
+  follow,
 }: {
   submission: Submission | null;
   statusLabel?: string;
@@ -30,6 +32,8 @@ export function SubmissionReader({
   approving?: boolean;
   /** Autres changements de statut possibles (le manager peut en changer autant de fois que nécessaire). */
   statusActions?: { label: string; onClick: () => void }[];
+  /** Suivi de la demande (`FollowButton`), sous l'en-tête. */
+  follow?: ReactNode;
 }) {
   return (
     <DialogPrimitive.Root open={!!s} onOpenChange={(o) => !o && onClose()}>
@@ -48,6 +52,7 @@ export function SubmissionReader({
                 <DialogPrimitive.Description className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
                   {s.team} · {formatStatus(statusLabel ?? s.status)} · Créée le {formatExactDate(s.created_at)}
                 </DialogPrimitive.Description>
+                {follow && <div className="mt-xs">{follow}</div>}
               </div>
               <DialogPrimitive.Close
                 aria-label="Fermer"

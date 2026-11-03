@@ -114,6 +114,7 @@ export function SubmissionThreadView({
   error,
   readOnly = true,
   actions,
+  follow,
   onClose,
 }: {
   content: string;
@@ -124,6 +125,8 @@ export function SubmissionThreadView({
   /** Affiche la mention « Lecture seule » (par défaut). Les managers passent `false` et fournissent `actions`. */
   readOnly?: boolean;
   actions?: ReactNode;
+  /** Suivi de la demande (`FollowButton`), sous l'équipe. */
+  follow?: ReactNode;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -158,6 +161,7 @@ export function SubmissionThreadView({
               </>
             )}
           </p>
+          {follow}
         </div>
         {actions}
         {loading && <p className="text-body-sm text-on-surface-variant">Chargement…</p>}
