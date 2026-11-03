@@ -29,7 +29,7 @@ export const NOTIFICATION_KINDS: NotificationKindDef[] = [
   {
     kind: "changement_statut",
     label: "Changement de statut de mes demandes",
-    roles: ["collaborateur"],
+    roles: ["collaborateur", "manager"],
     channels: ["in_app", "by_email"],
   },
   {

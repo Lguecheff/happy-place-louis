@@ -54,7 +54,7 @@ const STATES: {
     label: "Manager",
     role: "manager",
     name: "Kesha",
-    note: "Ouvre le menu du profil, puis « Préférences » : deux lignes, toutes les cases cochées par défaut. Chaque clic s'enregistre et le confirme par un toast.",
+    note: "Ouvre le menu du profil, puis « Préférences » : trois lignes, toutes les cases cochées par défaut. Chaque clic s'enregistre et le confirme par un toast.",
   },
   {
     value: "collaborateur",
