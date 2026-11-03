@@ -6,6 +6,10 @@ import { SubmissionReader } from "@/components/submission-reader";
 import type { AppNotification, Submission } from "@/lib/dashboard";
 import { NotificationPanel } from "./NotificationPanel";
 import {
+  NotificationPreferences,
+  type NotificationPreferencesProps,
+} from "./NotificationPreferences";
+import {
   arrivalAnnouncement,
   bellLabel,
   formatNotificationDate,
@@ -36,13 +40,14 @@ function useArrivalAnnouncement(notifications: AppNotification[] | undefined) {
   return announcement;
 }
 
-/** Cloche de l'en-tête, son panneau et la lecture de la demande, en lecture seule. */
+/** Cloche de l'en-tête, son panneau, la lecture de la demande et la fenêtre des préférences. */
 export function NotificationBell({
   notifications,
   onMarkRead,
   onMarkAllRead,
   loadSubmission,
   canReadAttachment,
+  preferences,
 }: {
   /** Sans valeur tant que le premier chargement n'est pas terminé. */
   notifications: AppNotification[] | undefined;
@@ -52,8 +57,11 @@ export function NotificationBell({
   loadSubmission: (id: string) => Promise<Submission | null>;
   /** Sans valeur, la pièce jointe de la demande est proposée. */
   canReadAttachment?: (submission: Submission) => boolean;
+  /** Sans valeur, le panneau ne propose pas le lien « Préférences ». */
+  preferences?: Omit<NotificationPreferencesProps, "onClose" | "onCloseAutoFocus">;
 }) {
   const [open, setOpen] = useState(false);
+  const [settingUp, setSettingUp] = useState(false);
   const [reading, setReading] = useState<Submission | null>(null);
   const [unavailable, setUnavailable] = useState<AppNotification | null>(null);
   const bellRef = useRef<HTMLButtonElement>(null);
@@ -102,6 +110,20 @@ export function NotificationBell({
         }
       >
         <NotificationPanel notifications={visible} onSelect={openNotification} />
+        {preferences && (
+          <div className="mt-sm border-t border-outline-variant pt-xs">
+            <DsButton
+              variant="link"
+              icon="tune"
+              onClick={() => {
+                setOpen(false);
+                setSettingUp(true);
+              }}
+            >
+              Préférences
+            </DsButton>
+          </div>
+        )}
       </DsPopover>
       <p role="status" className="sr-only">
         {announcement}
@@ -112,6 +134,13 @@ export function NotificationBell({
         onClose={() => setReading(null)}
         onCloseAutoFocus={focusBell}
       />
+      {preferences && settingUp && (
+        <NotificationPreferences
+          {...preferences}
+          onClose={() => setSettingUp(false)}
+          onCloseAutoFocus={focusBell}
+        />
+      )}
       {unavailable && (
         <ReaderDialog
           title="Demande indisponible"
