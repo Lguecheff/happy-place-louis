@@ -3,13 +3,12 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { BlockerReader } from "@/components/blocker-reader";
 import { BrandHeader } from "@/components/brand-header";
-import { DS_INPUT, DsButton, DsField, DsFreshness, DsListItem, DsSection } from "@/components/ds";
+import { DS_INPUT, DsField } from "@/components/ds";
 import { BlockersSection, type OpenBlocker } from "@/components/overview/BlockersSection";
 import { KpiSection } from "@/components/overview/KpiSection";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
-import { severityLabel, statusLabel, teamsFull } from "@/components/overview/overview-utils";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
-import { formatMetricValue, TREND_LABELS, type Blocker, type Metric } from "@/lib/dashboard";
+import type { Blocker, Metric } from "@/lib/dashboard";
 
 export const Route = createFileRoute("/_authenticated/maquettes/us20")({
   head: () => ({
@@ -123,14 +122,13 @@ type MockState = {
   label: string;
   note: string;
   authors: Authors;
-  manage?: boolean;
 };
 
 const STATES: MockState[] = [
   {
     value: "connu",
     label: "Auteur connu",
-    note: "Chaque tuile et chaque point affiche « Mis à jour il y a N jours par <nom> ». Survole la mention, ou atteins-la avec Tab : la date complète s'affiche. Sam Martin a quitté l'entreprise : son nom, copié au moment de la modification, reste affiché. Clique sur un point, ou cherche « placement » : la fenêtre de lecture affiche la même mention.",
+    note: "Chaque tuile et chaque point affiche « Mis à jour il y a N jours par <nom> ». Survole la mention, ou atteins-la avec Tab : la date complète s'affiche. Sam Martin a quitté l'entreprise : son nom, copié au moment de la modification, reste affiché. Clique sur un point, ou cherche « placement » : la fenêtre de lecture affiche la même mention. Les pages « Gérer les données > KPI » et « Points bloquants » affichent la même mention, sur les vraies données.",
     authors: { blockers: [OLIVIA, SAM, OLIVIA], metrics: [OLIVIA, SAM, OLIVIA] },
   },
   {
@@ -145,83 +143,12 @@ const STATES: MockState[] = [
     note: "KPI et points modifiés avant cette évolution : la base ne connaît pas l'auteur, la mention s'arrête à « Mis à jour il y a N jours ». Le NPS a été modifié depuis : il a un auteur.",
     authors: { blockers: [null, null, null], metrics: [null, null, OLIVIA] },
   },
-  {
-    value: "gerer",
-    label: "Pages Gérer les données",
-    note: "Aperçu des pages « Gérer les données > KPI » et « Points bloquants », vues par un admin : chaque ligne porte la même mention, à la place de « Modifié il y a… ». Les boutons ne sont pas branchés.",
-    authors: { blockers: [OLIVIA, SAM, AUTO], metrics: [OLIVIA, AUTO, null] },
-    manage: true,
-  },
 ];
 
 const withAuthors = <T,>(rows: T[], names: (string | null)[]) =>
   rows.map((row, i) => ({ ...row, updated_by_name: names[i] }));
 
 const notWired = () => toast.info("Non branché dans la maquette (fictif).");
-
-// ---------------------------------------------------------------------------
-// Aperçu des pages « Gérer les données » (ces pages lisent la base)
-// ---------------------------------------------------------------------------
-
-function ManagePreview({ metrics, blockers }: { metrics: Metric[]; blockers: Blocker[] }) {
-  return (
-    <div className="grid gap-md lg:grid-cols-2">
-      <DsSection id="gerer-kpi" title="Gérer les données > KPI">
-        <div className="space-y-xs">
-          {metrics.map((m) => (
-            <DsListItem
-              key={m.key}
-              icon="monitoring"
-              title={`${m.label} — ${formatMetricValue(m.value, m.unit)}`}
-              meta={`${m.key} · ${TREND_LABELS[m.trend]}`}
-              actions={
-                <>
-                  <DsButton aria-haspopup="dialog" onClick={notWired}>
-                    Modifier
-                  </DsButton>
-                  <DsButton aria-haspopup="dialog" onClick={notWired}>
-                    Supprimer
-                  </DsButton>
-                </>
-              }
-            >
-              <DsFreshness at={m.updated_at} by={m.updated_by_name} />
-            </DsListItem>
-          ))}
-        </div>
-      </DsSection>
-      <DsSection id="gerer-points" title="Gérer les données > Points bloquants">
-        <div className="space-y-xs">
-          {blockers.map((b) => (
-            <DsListItem
-              key={b.id}
-              icon="report"
-              title={b.title}
-              meta={[
-                teamsFull(b.teams),
-                severityLabel(b.severity),
-                statusLabel(b.status),
-                b.impact?.trim() ? "Impact saisi" : "Sans impact",
-              ].join(" · ")}
-              actions={
-                <>
-                  <DsButton aria-haspopup="dialog" onClick={notWired}>
-                    Modifier
-                  </DsButton>
-                  <DsButton aria-haspopup="dialog" onClick={notWired}>
-                    Supprimer
-                  </DsButton>
-                </>
-              }
-            >
-              <DsFreshness at={b.updated_at} by={b.updated_by_name} />
-            </DsListItem>
-          ))}
-        </div>
-      </DsSection>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Présentation
@@ -288,37 +215,31 @@ function Us20Mockup() {
             {state.note}
           </p>
         </div>
-        {state.manage ? (
-          <ManagePreview metrics={metrics} blockers={blockers} />
-        ) : (
-          <>
-            <div className="space-y-xs">
-              <h1 className="font-headline-lg text-headline-lg text-primary wrap-anywhere">
-                Bonjour Kesha (fictif)
-              </h1>
-              <p className="font-body-md text-body-md text-on-surface-variant">
-                Voici ce qui demande ton attention aujourd'hui.
-              </p>
-            </div>
-            <div className="flex max-w-lg flex-col gap-md">
-              <BlockersSection
-                blockers={{ data: blockers, isError: false }}
-                myTeams={VIEWER_TEAMS}
-                canEdit={false}
-                onOpen={open}
-                onStatusChange={notWired}
-                onOpenArchive={notWired}
-              />
-              <KpiSection
-                key={state.value}
-                metrics={{ data: metrics, isError: false }}
-                canEditNps={false}
-                savingNps={false}
-                onSaveNps={notWired}
-              />
-            </div>
-          </>
-        )}
+        <div className="space-y-xs">
+          <h1 className="font-headline-lg text-headline-lg text-primary wrap-anywhere">
+            Bonjour Kesha (fictif)
+          </h1>
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            Voici ce qui demande ton attention aujourd'hui.
+          </p>
+        </div>
+        <div className="flex max-w-lg flex-col gap-md">
+          <BlockersSection
+            blockers={{ data: blockers, isError: false }}
+            myTeams={VIEWER_TEAMS}
+            canEdit={false}
+            onOpen={open}
+            onStatusChange={notWired}
+            onOpenArchive={notWired}
+          />
+          <KpiSection
+            key={state.value}
+            metrics={{ data: metrics, isError: false }}
+            canEditNps={false}
+            savingNps={false}
+            onSaveNps={notWired}
+          />
+        </div>
       </main>
       <BlockerReader
         blocker={reading}

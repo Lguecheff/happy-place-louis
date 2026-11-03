@@ -11,6 +11,7 @@ import {
   RowActions,
   TextInput,
 } from "@/components/manage/crud-ui";
+import { DsFreshness } from "@/components/ds";
 import { metricSchema, validate, type FieldErrors } from "@/lib/manage-schemas";
 import { KpiTextField } from "@/components/manage/kpi-text-field";
 import { MetricHistory } from "@/components/manage/metric-history";
@@ -151,7 +152,7 @@ function ManageMetrics() {
               <p className="font-body-md text-primary font-bold">
                 {m.label} — {formatMetricValue(m.value, m.unit)}
               </p>
-              <p className="text-[11px] font-label-sm text-on-surface-variant mt-xs">
+              <p className="mt-xs font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
                 {m.key} • {TREND_LABELS[m.trend]}
                 {m.previous_value != null && (
                   <>
@@ -160,6 +161,7 @@ function ManageMetrics() {
                   </>
                 )}
               </p>
+              <DsFreshness at={m.updated_at} by={m.updated_by_name} />
               <MetricHistory metricKey={m.key} unit={m.unit} />
             </div>
             <RowActions

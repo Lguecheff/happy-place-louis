@@ -9,6 +9,7 @@ import {
   DsChoiceGroup,
   DsEmptyState,
   DsField,
+  DsFreshness,
   DsListItem,
 } from "@/components/ds";
 import { ConfirmDelete, ErrorSummary, Modal } from "@/components/manage/crud-ui";
@@ -25,7 +26,6 @@ import {
   createBlocker,
   deleteBlocker,
   fetchAllBlockers,
-  timeAgo,
   updateBlocker,
   type Blocker,
   type BlockerInput,
@@ -177,7 +177,6 @@ function ManageBlockers() {
               severityLabels[b.severity] ?? severityLabel(b.severity),
               statusLabel(b.status),
               b.impact?.trim() ? "Impact saisi" : "Sans impact",
-              `Modifié ${timeAgo(b.updated_at)}`,
             ].join(" · ")}
             actions={
               <>
@@ -204,7 +203,9 @@ function ManageBlockers() {
                 </DsButton>
               </>
             }
-          />
+          >
+            <DsFreshness at={b.updated_at} by={b.updated_by_name} />
+          </DsListItem>
         ))}
         {list.data?.length === 0 && <DsEmptyState>Aucun point bloquant.</DsEmptyState>}
       </div>

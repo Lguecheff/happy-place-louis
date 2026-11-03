@@ -149,6 +149,8 @@ export type Database = {
           status: Database["public"]["Enums"]["blocker_status"]
           title: string
           updated_at: string
+          updated_by: string | null
+          updated_by_name: string | null
         }
         Insert: {
           created_at?: string
@@ -160,6 +162,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["blocker_status"]
           title: string
           updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
         }
         Update: {
           created_at?: string
@@ -171,6 +175,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["blocker_status"]
           title?: string
           updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
         }
         Relationships: []
       }
@@ -260,6 +266,8 @@ export type Database = {
           label: string
           unit: string | null
           updated_at: string
+          updated_by: string | null
+          updated_by_name: string | null
           value: number
         }
         Insert: {
@@ -269,6 +277,8 @@ export type Database = {
           label: string
           unit?: string | null
           updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
           value: number
         }
         Update: {
@@ -278,6 +288,8 @@ export type Database = {
           label?: string
           unit?: string | null
           updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
           value?: number
         }
         Relationships: []
@@ -625,6 +637,7 @@ export type Database = {
           trend: string | null
           unit: string | null
           updated_at: string | null
+          updated_by_name: string | null
           value: number | null
         }
         Relationships: []

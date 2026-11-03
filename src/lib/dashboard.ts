@@ -475,7 +475,7 @@ export async function fetchValidatedSubmissions(): Promise<ValidatedSubmission[]
 export async function updateBlockerStatus(input: { id: string; status: string }) {
   const { error } = await db
     .from("blockers")
-    .update({ status: input.status as Enums["blocker_status"], updated_at: new Date().toISOString() })
+    .update({ status: input.status as Enums["blocker_status"] })
     .eq("id", input.id);
   if (error) throw error;
 }
@@ -489,7 +489,7 @@ export async function fetchMetrics(): Promise<Metric[]> {
 export async function updateMetric(input: { key: string; value: number }) {
   const { error } = await db
     .from("metrics")
-    .update({ value: input.value, updated_at: new Date().toISOString() })
+    .update({ value: input.value })
     .eq("key", input.key);
   if (error) throw error;
 }
@@ -673,7 +673,6 @@ function blockerRow({ teams: _teams, ...input }: BlockerInput) {
     impact: input.impact.trim() || null,
     severity: input.severity as Enums["blocker_severity"],
     status: input.status as Enums["blocker_status"],
-    updated_at: new Date().toISOString(),
   };
 }
 
@@ -705,10 +704,7 @@ export async function createMetric(input: MetricInput) {
 }
 
 export async function updateMetricRow(key: string, input: MetricInput) {
-  const { error } = await db
-    .from("metrics")
-    .update({ ...input, updated_at: new Date().toISOString() })
-    .eq("key", key);
+  const { error } = await db.from("metrics").update(input).eq("key", key);
   if (error) throw error;
 }
 
