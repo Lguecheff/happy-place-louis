@@ -350,6 +350,30 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          by_email: boolean
+          in_app: boolean
+          kind: Database["public"]["Enums"]["notification_kind"]
+          recipient_email: string
+          updated_at: string
+        }
+        Insert: {
+          by_email?: boolean
+          in_app?: boolean
+          kind: Database["public"]["Enums"]["notification_kind"]
+          recipient_email: string
+          updated_at?: string
+        }
+        Update: {
+          by_email?: boolean
+          in_app?: boolean
+          kind?: Database["public"]["Enums"]["notification_kind"]
+          recipient_email?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           blocker_id: string | null
@@ -589,7 +613,7 @@ export type Database = {
       blocker_status: "OUVERT" | "EN COURS" | "SURVEILLANCE" | "RÉSOLU"
       news_audience: "équipe" | "entreprise"
       news_status: "brouillon" | "publiée"
-      notification_kind: "nouvelle_demande"
+      notification_kind: "nouvelle_demande" | "changement_statut" | "resume_hebdo"
       rejection_category:
         | "à clarifier"
         | "en désaccord avec les process"
@@ -728,7 +752,7 @@ export const Constants = {
       blocker_status: ["OUVERT", "EN COURS", "SURVEILLANCE", "RÉSOLU"],
       news_audience: ["équipe", "entreprise"],
       news_status: ["brouillon", "publiée"],
-      notification_kind: ["nouvelle_demande"],
+      notification_kind: ["nouvelle_demande", "changement_statut", "resume_hebdo"],
       rejection_category: [
         "à clarifier",
         "en désaccord avec les process",

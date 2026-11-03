@@ -827,6 +827,43 @@ export async function markAllNotificationsRead(email: string) {
   if (error) throw error;
 }
 
+export type NotificationPreference = Pick<
+  Tables<"notification_preferences">,
+  "kind" | "in_app" | "by_email"
+>;
+
+/** Seules les préférences modifiées ont une ligne : un type absent vaut « dans l'app » et « par mail ». */
+export async function fetchMyNotificationPreferences(
+  email: string,
+): Promise<NotificationPreference[]> {
+  const { data, error } = await supabase
+    .from("notification_preferences")
+    .select("kind, in_app, by_email")
+    .eq("recipient_email", email.toLowerCase());
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Enregistre un seul canal ; à la création de la ligne, l'autre garde sa valeur par défaut. */
+export async function saveNotificationPreference(
+  email: string,
+  kind: Database["public"]["Enums"]["notification_kind"],
+  channel: "in_app" | "by_email",
+  checked: boolean,
+) {
+  const { error } = await supabase
+    .from("notification_preferences")
+    .upsert(
+      {
+        recipient_email: email.toLowerCase(),
+        kind,
+        ...(channel === "in_app" ? { in_app: checked } : { by_email: checked }),
+      },
+      { onConflict: "recipient_email,kind" },
+    );
+  if (error) throw error;
+}
+
 /** `null` si la demande est supprimée ou si la RLS ne la laisse plus lire. */
 export async function fetchReadableSubmission(id: string): Promise<Submission | null> {
   const { data, error } = await supabase.from("submissions").select("*").eq("id", id).maybeSingle();

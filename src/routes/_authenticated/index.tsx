@@ -12,6 +12,7 @@ import { DS_FOCUS } from "@/components/ds/focus";
 import { rejectionErrorMessage } from "@/components/expandable-card";
 import { NewsReader } from "@/components/news-reader";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
+import { useNotificationPreferences } from "@/components/notifications/useNotificationPreferences";
 import { BlockersSection } from "@/components/overview/BlockersSection";
 import { KpiSection } from "@/components/overview/KpiSection";
 import {
@@ -128,6 +129,7 @@ function ManagerSpace() {
   });
   const audienceTeams = isAdmin ? selectableTeams : myTeams;
   const search = useGlobalSearch({ role, email: myEmail, managerTeams: myTeams.data ?? [] });
+  const notificationPreferences = useNotificationPreferences(myEmail, role);
   const [rejecting, setRejecting] = useState<Submission | null>(null);
   const [reading, setReading] = useState<Submission | null>(null);
   const [threadOf, setThreadOf] = useState<Submission | null>(null);
@@ -318,6 +320,7 @@ function ManagerSpace() {
           role={role}
           exporting={exportReport.isPending}
           onExport={() => exportReport.mutate()}
+          preferences={notificationPreferences}
           search={<GlobalSearch {...search} canEditNews={canEditNews} onEditNews={editNews} />}
           notifications={
             myEmail && (

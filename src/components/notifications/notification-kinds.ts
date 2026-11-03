@@ -3,9 +3,7 @@ import type { Database } from "@/integrations/supabase/types";
 export type AppRole = Database["public"]["Enums"]["app_role"];
 export type NotificationChannel = "in_app" | "by_email";
 
-// Phase 1 de l'US13 : 'changement_statut' et 'resume_hebdo' ne sont pas encore dans l'enum notification_kind.
-export type PreferenceKind =
-  Database["public"]["Enums"]["notification_kind"] | "changement_statut" | "resume_hebdo";
+export type PreferenceKind = Database["public"]["Enums"]["notification_kind"];
 
 export type NotificationKindDef = {
   kind: PreferenceKind;
