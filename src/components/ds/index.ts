@@ -11,6 +11,7 @@ export { DsIconButton } from "./ds-icon-button";
 export { DsKpiTile } from "./ds-kpi-tile";
 export { DsListItem } from "./ds-list-item";
 export { DsPopover } from "./ds-popover";
+export { DsSaveStatus, type DsSaveState } from "./ds-save-status";
 export { DsSection } from "./ds-section";
 export { DsStatTile } from "./ds-stat-tile";
 export { toastUndo } from "./ds-toast-undo";

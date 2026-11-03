@@ -98,6 +98,12 @@ Props : `at` (date ISO), `stale`. Affiche « Mis à jour il y a X » (via `timeA
 <DsFreshness at={metric.updated_at} stale={isOld} />
 ```
 
+### DsSaveStatus
+Props : `state` (`idle` | `saving` | `saved` | `error`), `at` (heure du dernier enregistrement), `onRetry`, `className`. État d'un enregistrement automatique : « Enregistrement… », « Enregistré à HH:MM », ou « Échec de l'enregistrement » en `text-error` avec le bouton « Réessayer » (`link`). La zone `aria-live` polie reste présente, même vide (`idle`), pour que chaque changement soit annoncé. Pas de toast pour un enregistrement automatique : l'indicateur suffit. Logique d'enregistrement : `useAutosaveDraft` (`src/components/news/use-autosave-draft.ts`).
+```tsx
+<DsSaveStatus state={status.state} at={status.at} onRetry={flush} />
+```
+
 ### DsKpiTile
 Props : `label`, `value`, `valueFont` (`display` | `headline`), `trend`, `trendDirection` (`up` | `down` | `flat`), `updatedAt`, `stale`, `helpHref` (lien) ou `onHelp` (bouton qui ouvre une fenêtre), `helpLabel`, `children` (ajout en bas de tuile).
 ```tsx

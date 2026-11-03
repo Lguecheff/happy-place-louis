@@ -13,6 +13,7 @@ import {
   DsKpiTile,
   DsListItem,
   DsPopover,
+  DsSaveStatus,
   DsSection,
   DsStatTile,
   toastUndo,
@@ -149,6 +150,17 @@ function DesignSystemPage() {
           <Demo title="Normal et ancien (stale)">
             <DsFreshness at={ago(12)} />
             <DsFreshness at={ago(60 * 24 * 9)} stale />
+          </Demo>
+        </DsSection>
+
+        <DsSection id="enregistrement" title="DsSaveStatus">
+          <Demo title="En cours, enregistré, échec avec « Réessayer » (zone aria-live polie)">
+            <DsSaveStatus state="saving" />
+            <DsSaveStatus state="saved" at={new Date(NOW)} />
+            <DsSaveStatus
+              state="error"
+              onRetry={() => toastUndo("Nouvel essai (exemple)", () => {})}
+            />
           </Demo>
         </DsSection>
 

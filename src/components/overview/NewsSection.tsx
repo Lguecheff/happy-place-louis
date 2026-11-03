@@ -9,10 +9,12 @@ import {
   DsEmptyState,
   DsField,
   DsListItem,
+  DsSaveStatus,
   DsSection,
 } from "@/components/ds";
 import { NewsAudienceBadge } from "@/components/news/NewsAudienceBadge";
 import { NewsAudienceField } from "@/components/news/NewsAudienceField";
+import { useAutosaveDraft, type AutosaveFn } from "@/components/news/use-autosave-draft";
 import { NewsMediaEditor } from "@/components/news-media";
 import { ConfirmDialog } from "@/components/overview/ConfirmDialog";
 import {
@@ -39,6 +41,7 @@ import {
   linkErrors,
   mediaFromNews,
   toNewsLinks,
+  type LinkDraft,
   type MediaDraft,
   type NewsLink,
 } from "@/lib/news-media";
@@ -54,6 +57,24 @@ export type DraftInput = {
   media: MediaDraft;
   audience: NewsAudienceValue;
 };
+
+/** Ce que l'enregistrement automatique envoie : tout sauf l'image, qui reste au bouton « Enregistrer le brouillon ». */
+export type AutosaveInput = Omit<DraftInput, "id" | "media">;
+
+/** Les liens encore invalides restent dans le rédacteur, sans être enregistrés. */
+function autosaveInput(
+  title: string,
+  body: string,
+  links: LinkDraft[],
+  audience: NewsAudienceValue,
+): AutosaveInput {
+  const errs = linkErrors(links);
+  const valid = links.filter((_, i) => !(i in errs));
+  return { title: title.trim(), body, links: toNewsLinks(valid), audience };
+}
+
+const EMPTY_AUTOSAVE = autosaveInput("", "", [], emptyAudience());
+const isAutosaveEmpty = (v: AutosaveInput) => !v.title && !v.body.trim();
 
 /** Ouvre le rédacteur sur une actu publiée depuis l'extérieur de la section (fenêtre de lecture). */
 export type NewsSectionHandle = { editPublished: (n: News) => void };
@@ -108,6 +129,8 @@ export function NewsSection({
   editRef,
   savingEdit = false,
   onSaveEdit,
+  onAutosave,
+  initialDraft,
 }: {
   canWrite: boolean;
   email: string;
@@ -134,9 +157,13 @@ export function NewsSection({
   savingEdit?: boolean;
   /** Enregistre la modification d'une actu publiée, qui reste publiée. */
   onSaveEdit?: (input: DraftInput & { id: string }, onSaved: () => void) => void;
+  /** Enregistrement automatique d'un brouillon (sans valeur, il est désactivé). */
+  onAutosave?: AutosaveFn<AutosaveInput>;
+  /** Contenu de départ d'un nouveau brouillon (maquettes). */
+  initialDraft?: { title: string; body: string };
 }) {
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
+  const [title, setTitle] = useState(initialDraft?.title ?? "");
+  const [body, setBody] = useState(initialDraft?.body ?? "");
   const [editing, setEditing] = useState<News | null>(null);
   const [media, setMedia] = useState<MediaDraft>(emptyMedia);
   const [showLinkErrs, setShowLinkErrs] = useState(false);
@@ -151,6 +178,16 @@ export function NewsSection({
   const linkErrs = showLinkErrs ? linkErrors(media.links) : {};
   const editingPublished = editing?.status === "publiée";
   const busy = saving || savingEdit;
+  const autosaveOn =
+    !!onAutosave && composerOpen && !editingPublished && !saving && !publishing && !removing;
+  const autosave = useAutosaveDraft({
+    value: autosaveInput(title, body, media.links, audience),
+    isEmpty: isAutosaveEmpty,
+    // Le rédacteur s'ouvre sur un nouveau brouillon : un contenu de départ reste à enregistrer.
+    baseline: EMPTY_AUTOSAVE,
+    save: (value, id) => onAutosave!(value, id),
+    enabled: autosaveOn,
+  });
   const drafts = myDrafts(news.data ?? [], email);
   const published = (news.data?.filter((n) => n.status === "publiée") ?? []).sort((a, b) =>
     newsPublishedAt(b).localeCompare(newsPublishedAt(a)),
@@ -167,18 +204,44 @@ export function NewsSection({
     setBodyError(undefined);
     setAudienceErr(undefined);
     setEditErrors({});
+    autosave.reset(EMPTY_AUTOSAVE);
   }
 
-  useImperativeHandle(editRef, () => ({ editPublished: startEditing }));
+  useImperativeHandle(editRef, () => ({ editPublished: (n) => void openNews(n) }));
+
+  /** Enregistre d'abord le brouillon en cours. En cas d'échec, il reste ouvert et rien n'est perdu. */
+  async function leaveDraft() {
+    return !autosaveOn || (await autosave.flush());
+  }
+
+  async function openNews(n: News) {
+    if (!(await leaveDraft())) return;
+    // Brouillon créé par l'enregistrement automatique : le rédacteur a déjà sa dernière version.
+    if (composerOpen && n.id === autosave.draftId()) {
+      setEditing(n);
+      return;
+    }
+    startEditing(n);
+  }
 
   function startEditing(n: News) {
+    const nextMedia = mediaFromNews(n);
+    const saved = { audience: n.audience ?? null, teams: n.teams ?? [] };
+    const nextAudience =
+      n.status !== "publiée"
+        ? editableAudience(saved, audienceTeams)
+        : audienceTeamsNotice
+          ? saved
+          : publishedAudience(saved, audienceTeams);
     setEditing(n);
     setTitle(n.title);
     setBody(n.body ?? "");
-    setMedia(mediaFromNews(n));
-    const saved = { audience: n.audience ?? null, teams: n.teams ?? [] };
-    if (n.status !== "publiée") setAudience(editableAudience(saved, audienceTeams));
-    else setAudience(audienceTeamsNotice ? saved : publishedAudience(saved, audienceTeams));
+    setMedia(nextMedia);
+    setAudience(nextAudience);
+    autosave.reset(
+      autosaveInput(n.title, n.body ?? "", nextMedia.links, nextAudience),
+      n.status !== "publiée" ? n.id : undefined,
+    );
     setShowLinkErrs(false);
     setTitleError(undefined);
     setBodyError(undefined);
@@ -188,9 +251,20 @@ export function NewsSection({
     titleRef.current?.focus();
   }
 
-  function closeComposer() {
+  /** Après un enregistrement manuel, une publication ou une suppression : rien à enregistrer. */
+  function done() {
     reset();
     onComposerOpenChange(false);
+  }
+
+  async function closeComposer() {
+    if (await leaveDraft()) done();
+  }
+
+  /** Masquer le rédacteur garde son contenu, comme avant ; il est enregistré au passage. */
+  async function toggleComposer() {
+    if (composerOpen && !(await leaveDraft())) return;
+    onComposerOpenChange(!composerOpen);
   }
 
   function draftInput(): DraftInput {
@@ -220,11 +294,14 @@ export function NewsSection({
     return errors;
   }
 
-  function save(e: React.FormEvent) {
+  async function save(e: React.FormEvent) {
     e.preventDefault();
     if (Object.keys(contentErrors("brouillon")).length) return;
     if (!linksAreValid("d'enregistrer")) return;
-    onSave(draftInput(), closeComposer);
+    // Attend l'enregistrement automatique en cours pour mettre à jour le même brouillon.
+    const id = onAutosave ? await autosave.idle() : undefined;
+    const input = draftInput();
+    onSave({ ...input, id: id ?? input.id }, done);
   }
 
   function publish() {
@@ -261,7 +338,7 @@ export function NewsSection({
       closeComposer();
       return;
     }
-    onSaveEdit?.(input, closeComposer);
+    onSaveEdit?.(input, done);
   }
 
   return (
@@ -275,7 +352,7 @@ export function NewsSection({
               aria-expanded={composerOpen}
               aria-controls="redacteur-actu"
               className="w-full"
-              onClick={() => onComposerOpenChange(!composerOpen)}
+              onClick={() => void toggleComposer()}
             >
               Rédiger une actualité
             </DsButton>
@@ -338,10 +415,17 @@ export function NewsSection({
                 setAudienceErr(undefined);
               }}
             />
+            {onAutosave && !editingPublished && (
+              <DsSaveStatus
+                state={autosave.status.state}
+                at={autosave.status.at}
+                onRetry={() => void autosave.flush()}
+              />
+            )}
             <div className="flex flex-wrap items-center justify-end gap-xs">
               {editingPublished ? (
                 <>
-                  <DsButton variant="link" onClick={closeComposer}>
+                  <DsButton variant="link" onClick={() => void closeComposer()}>
                     Annuler
                   </DsButton>
                   <DsButton type="submit" variant="confirm" pending={savingEdit}>
@@ -360,7 +444,7 @@ export function NewsSection({
                       >
                         Supprimer
                       </DsButton>
-                      <DsButton variant="link" onClick={closeComposer}>
+                      <DsButton variant="link" onClick={() => void closeComposer()}>
                         Annuler
                       </DsButton>
                     </>
@@ -393,7 +477,7 @@ export function NewsSection({
                 icon="draft"
                 title={n.title || <span className="italic">Sans titre</span>}
                 meta={`Créé le ${formatDay(n.created_at)} · ${formatDays(daysSince(n.created_at))}`}
-                onClick={() => startEditing(n)}
+                onClick={() => void openNews(n)}
               />
             ))}
           </div>
@@ -437,9 +521,12 @@ export function NewsSection({
         description={audienceSentence(audience)}
         confirmLabel="Publier"
         onCancel={() => setConfirmPublish(false)}
-        onConfirm={() => {
-          if (editing) onPublish({ ...draftInput(), id: editing.id }, closeComposer);
+        onConfirm={async () => {
           setConfirmPublish(false);
+          if (!editing) return;
+          // Aucun enregistrement automatique ne doit arriver après la publication.
+          if (onAutosave) await autosave.idle();
+          onPublish({ ...draftInput(), id: editing.id }, done);
         }}
       />
       <ConfirmDialog
@@ -452,7 +539,7 @@ export function NewsSection({
         onConfirm={() => {
           if (removeTarget) onRemove(removeTarget);
           setRemoveTarget(null);
-          closeComposer();
+          done();
         }}
       />
     </DsSection>
