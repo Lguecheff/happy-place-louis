@@ -90,6 +90,8 @@ function metric(
     previous_value: delta === null ? null : value - delta,
     delta,
     updated_at: daysAgo(days),
+    definition: null,
+    impact: null,
   };
 }
 

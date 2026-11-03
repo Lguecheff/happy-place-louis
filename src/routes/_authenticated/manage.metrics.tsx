@@ -12,6 +12,7 @@ import {
   TextInput,
 } from "@/components/manage/crud-ui";
 import { metricSchema, validate, type FieldErrors } from "@/lib/manage-schemas";
+import { KpiTextField } from "@/components/manage/kpi-text-field";
 import { MetricHistory } from "@/components/manage/metric-history";
 import {
   createMetric,
@@ -29,9 +30,15 @@ export const Route = createFileRoute("/_authenticated/manage/metrics")({
   head: () => ({
     meta: [
       { title: "Gestion des indicateurs — Happy Place" },
-      { name: "description", content: "Créez, modifiez et supprimez les indicateurs de Happy Place." },
+      {
+        name: "description",
+        content: "Créez, modifiez et supprimez les indicateurs de Happy Place.",
+      },
       { property: "og:title", content: "Gestion des indicateurs — Happy Place" },
-      { property: "og:description", content: "Gérez les indicateurs de performance dans Happy Place." },
+      {
+        property: "og:description",
+        content: "Gérez les indicateurs de performance dans Happy Place.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -39,9 +46,18 @@ export const Route = createFileRoute("/_authenticated/manage/metrics")({
   component: ManageMetrics,
 });
 
-type FormState = { key: string; label: string; value: string; unit: string };
+type FormState = {
+  key: string;
+  label: string;
+  value: string;
+  unit: string;
+  definition: string;
+  impact: string;
+};
 
-const empty: FormState = { key: "", label: "", value: "", unit: "" };
+const empty: FormState = { key: "", label: "", value: "", unit: "", definition: "", impact: "" };
+
+const orNull = (text: string) => (text.trim() === "" ? null : text);
 
 function ManageMetrics() {
   const qc = useQueryClient();
@@ -89,7 +105,9 @@ function ManageMetrics() {
       key: form.key,
       label: form.label,
       value: raw === "" || Number.isNaN(Number(raw)) ? Number.NaN : Number(raw),
-      unit: form.unit.trim() === "" ? null : form.unit,
+      unit: orNull(form.unit),
+      definition: orNull(form.definition),
+      impact: orNull(form.impact),
     };
     const res = validate(metricSchema, candidate);
     if (!res.ok) {
@@ -153,6 +171,8 @@ function ManageMetrics() {
                   label: m.label,
                   value: String(m.value),
                   unit: m.unit ?? "",
+                  definition: m.definition ?? "",
+                  impact: m.impact ?? "",
                 });
               }}
               onDelete={() => setToDelete(m)}
@@ -199,6 +219,23 @@ function ManageMetrics() {
                 onChange={(e) => setForm({ ...form, unit: e.target.value })}
               />
             </Field>
+            <KpiTextField
+              id="kpi-definition"
+              label="Ce que ça mesure"
+              value={form.definition}
+              error={errors.definition}
+              onChange={(definition) => setForm({ ...form, definition })}
+            />
+            <KpiTextField
+              id="kpi-impact"
+              label="Ce que ça change pour toi"
+              value={form.impact}
+              error={errors.impact}
+              onChange={(impact) => setForm({ ...form, impact })}
+            />
+            <p className="font-body-sm text-body-sm text-on-surface-variant">
+              Un texte vide affiche « Définition à venir. ».
+            </p>
             <FormActions pending={save.isPending} onCancel={close} />
           </form>
         </Modal>

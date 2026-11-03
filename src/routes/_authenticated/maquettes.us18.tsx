@@ -2,12 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BrandHeader } from "@/components/brand-header";
-import { DS_INPUT, DsButton, DsField, DsKpiTile, DsSection } from "@/components/ds";
+import { DS_INPUT, DsField } from "@/components/ds";
 import { KpiSection } from "@/components/overview/KpiSection";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
-import { formatMetricValue, metricTrend, type Metric } from "@/lib/dashboard";
-import { cn } from "@/lib/utils";
+import type { Metric } from "@/lib/dashboard";
 
 export const Route = createFileRoute("/_authenticated/maquettes/us18")({
   head: () => ({
@@ -20,13 +19,12 @@ export const Route = createFileRoute("/_authenticated/maquettes/us18")({
 // Données factices (fictif)
 // ---------------------------------------------------------------------------
 
-const MAX_TEXT = 200;
 const DAY_MS = 24 * 60 * 60_000;
 const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
 
 type Texts = { definition: string; impact: string };
 
-/** Textes proposés pour les 3 KPI existants, à valider par Louis avant la migration. */
+/** Mêmes textes que la migration des définitions de KPI. */
 const PROPOSED: Record<string, Texts> = {
   training_kpi: {
     definition:
@@ -48,7 +46,7 @@ const PROPOSED: Record<string, Texts> = {
   },
 };
 
-const BASE: Metric[] = [
+const BASE: Omit<Metric, "definition" | "impact">[] = [
   {
     key: "training_kpi",
     label: "Taux de placement",
@@ -91,7 +89,6 @@ type MockState = {
   metrics: Metric[];
   /** Colonne étroite, comme sur un téléphone. */
   narrow?: boolean;
-  admin?: boolean;
 };
 
 const STATES: MockState[] = [
@@ -117,13 +114,6 @@ const STATES: MockState[] = [
     metrics: withTexts(PROPOSED),
     narrow: true,
   },
-  {
-    value: "admin",
-    label: "Formulaire admin",
-    note: "Dans « Gérer les données > KPI », l'admin saisit les deux textes, 200 caractères maximum chacun. « Enregistrer les modifications » met à jour les tuiles ci-dessous (fictif). Ici, l'écran est vu par un admin.",
-    metrics: withTexts(PROPOSED),
-    admin: true,
-  },
 ];
 
 const notWired = () => toast.info("Non branché dans la maquette (fictif).");
@@ -135,21 +125,15 @@ const notWired = () => toast.info("Non branché dans la maquette (fictif).");
 function Us18Mockup() {
   const [stateValue, setStateValue] = useState(STATES[0].value);
   const state = STATES.find((s) => s.value === stateValue) ?? STATES[0];
-  const [metrics, setMetrics] = useState(state.metrics);
-
-  function changeState(value: string) {
-    const next = STATES.find((s) => s.value === value) ?? STATES[0];
-    setStateValue(next.value);
-    setMetrics(next.metrics);
-  }
+  const { metrics } = state;
 
   return (
     <div className="bg-background text-on-surface font-body-md min-h-screen flex flex-col">
       <BrandHeader>
         <OverviewHeader
-          isAdmin={!!state.admin}
-          name={state.admin ? "Olivia Laurent (fictif)" : "Gontran (fictif)"}
-          role={state.admin ? "admin" : "collaborateur"}
+          isAdmin={false}
+          name="Gontran (fictif)"
+          role="collaborateur"
           exporting={false}
           onExport={notWired}
           search={
@@ -170,7 +154,7 @@ function Us18Mockup() {
               id="maquette-etat"
               className={DS_INPUT}
               value={state.value}
-              onChange={(e) => changeState(e.target.value)}
+              onChange={(e) => setStateValue(e.target.value)}
             >
               {STATES.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -185,138 +169,22 @@ function Us18Mockup() {
         </div>
         <div className="space-y-xs">
           <h1 className="font-headline-lg text-headline-lg text-primary wrap-anywhere">
-            {state.admin ? "Bonjour Olivia (fictif)" : "Bonjour Gontran (fictif)"}
+            Bonjour Gontran (fictif)
           </h1>
           <p className="font-body-md text-body-md text-on-surface-variant">
             Voici ce qui demande ton attention aujourd'hui.
           </p>
         </div>
-        <div className={cn("grid gap-md", state.admin && "lg:grid-cols-2")}>
-          {state.admin && (
-            <AdminForm
-              metrics={metrics}
-              onSave={(key, texts) =>
-                setMetrics((ms) => ms.map((m) => (m.key === key ? { ...m, ...texts } : m)))
-              }
-            />
-          )}
-          <div className={state.narrow ? "max-w-xs" : "max-w-lg"}>
-            <KpiSection
-              key={state.value}
-              metrics={{ data: metrics, isError: false }}
-              canEditNps={false}
-              savingNps={false}
-              onSaveNps={notWired}
-            />
-          </div>
+        <div className={state.narrow ? "max-w-xs" : "max-w-lg"}>
+          <KpiSection
+            key={state.value}
+            metrics={{ data: metrics, isError: false }}
+            canEditNps={false}
+            savingNps={false}
+            onSaveNps={notWired}
+          />
         </div>
       </main>
     </div>
-  );
-}
-
-/** Aperçu des deux champs ajoutés au formulaire de /manage/metrics. */
-function AdminForm({
-  metrics,
-  onSave,
-}: {
-  metrics: Metric[];
-  onSave: (key: string, texts: Texts) => void;
-}) {
-  const [key, setKey] = useState(metrics[0].key);
-  const current = metrics.find((m) => m.key === key) ?? metrics[0];
-  const [texts, setTexts] = useState<Texts>({
-    definition: current.definition ?? "",
-    impact: current.impact ?? "",
-  });
-
-  function choose(next: string) {
-    const m = metrics.find((x) => x.key === next) ?? metrics[0];
-    setKey(m.key);
-    setTexts({ definition: m.definition ?? "", impact: m.impact ?? "" });
-  }
-
-  return (
-    <DsSection id="formulaire-kpi" title="Modifier l'indicateur (fictif)">
-      <form
-        className="space-y-sm"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSave(key, { definition: texts.definition.trim(), impact: texts.impact.trim() });
-          toast.success("Indicateur modifié (fictif)");
-        }}
-      >
-        <DsField id="kpi-choix" label="Indicateur">
-          <select
-            id="kpi-choix"
-            className={DS_INPUT}
-            value={key}
-            onChange={(e) => choose(e.target.value)}
-          >
-            {metrics.map((m) => (
-              <option key={m.key} value={m.key}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-        </DsField>
-        <TextField
-          id="kpi-definition"
-          label="Ce que ça mesure"
-          value={texts.definition}
-          onChange={(definition) => setTexts((t) => ({ ...t, definition }))}
-        />
-        <TextField
-          id="kpi-impact"
-          label="Ce que ça change pour toi"
-          value={texts.impact}
-          onChange={(impact) => setTexts((t) => ({ ...t, impact }))}
-        />
-        <p className="font-body-sm text-body-sm text-on-surface-variant">
-          Un champ vide affiche « Définition à venir. ».
-        </p>
-        <DsButton type="submit" variant="confirm" icon="check">
-          Enregistrer les modifications
-        </DsButton>
-      </form>
-      <DsKpiTile
-        label={`Aperçu : ${current.label}`}
-        value={formatMetricValue(current.value, current.unit)}
-        {...metricTrend(current)}
-        definition={texts}
-      />
-    </DsSection>
-  );
-}
-
-function TextField({
-  id,
-  label,
-  value,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <DsField id={id} label={label}>
-      <textarea
-        id={id}
-        rows={3}
-        maxLength={MAX_TEXT}
-        aria-describedby={`${id}-compte`}
-        className={DS_INPUT}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <p
-        id={`${id}-compte`}
-        className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant"
-      >
-        {value.length}/{MAX_TEXT} caractères
-      </p>
-    </DsField>
   );
 }

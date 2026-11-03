@@ -82,9 +82,9 @@ export type Metric = {
   delta: number | string | null;
   updated_at: string;
   /** « Ce que ça mesure » (US18). */
-  definition?: string | null;
+  definition: string | null;
   /** « Ce que ça change pour toi » (US18). */
-  impact?: string | null;
+  impact: string | null;
 };
 
 export const TREND_LABELS: Record<Metric["trend"], string> = {
@@ -509,6 +509,8 @@ export type MetricInput = {
   label: string;
   value: number;
   unit: string | null;
+  definition: string | null;
+  impact: string | null;
 };
 
 export async function fetchAllNews(): Promise<News[]> {
