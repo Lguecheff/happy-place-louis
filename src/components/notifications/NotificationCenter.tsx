@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { SubmissionThreadSteps } from "@/components/submission-status-thread";
+import { SubmissionThreadModal } from "@/components/submission-status-thread";
 import { supabase } from "@/integrations/supabase/client";
 import {
   fetchMyNotifications,
@@ -12,14 +12,18 @@ import {
 } from "@/lib/dashboard";
 import { NotificationBell } from "./NotificationBell";
 
-/** Cloche branchée sur les notifications de `email`, lues sous RLS et tenues à jour en temps réel. */
+/**
+ * Cloche branchée sur les notifications de `email`, lues sous RLS et tenues à jour en temps réel.
+ * Sans `onOpenSubmission`, une notification ouvre le suivi de sa demande en lecture seule.
+ */
 export function NotificationCenter({
   email,
-  canReadAttachment,
+  onOpenSubmission,
 }: {
   email: string;
-  canReadAttachment?: (submission: Submission) => boolean;
+  onOpenSubmission?: (submission: Submission) => void;
 }) {
+  const [threadOf, setThreadOf] = useState<Submission | null>(null);
   const recipient = email.toLowerCase();
   const qc = useQueryClient();
 
@@ -63,13 +67,17 @@ export function NotificationCenter({
   });
 
   return (
-    <NotificationBell
-      notifications={notifications.data}
-      onMarkRead={(id) => markRead.mutate(id)}
-      onMarkAllRead={() => markAllRead.mutate()}
-      loadSubmission={fetchReadableSubmission}
-      canReadAttachment={canReadAttachment}
-      thread={(submission) => <SubmissionThreadSteps submissionId={submission.id} />}
-    />
+    <>
+      <NotificationBell
+        notifications={notifications.data}
+        onMarkRead={(id) => markRead.mutate(id)}
+        onMarkAllRead={() => markAllRead.mutate()}
+        loadSubmission={fetchReadableSubmission}
+        onOpenSubmission={onOpenSubmission ?? setThreadOf}
+      />
+      {threadOf && (
+        <SubmissionThreadModal submission={threadOf} onClose={() => setThreadOf(null)} />
+      )}
+    </>
   );
 }

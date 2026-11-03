@@ -1,5 +1,4 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import type { ReactNode } from "react";
 import { Linkify } from "@/components/linkify";
 import { AttachmentLink } from "@/components/attachment-link";
 import { formatExactDate } from "@/components/expandable-card";
@@ -18,7 +17,6 @@ export function SubmissionReader({
   onApprove,
   approving,
   statusActions,
-  thread,
 }: {
   submission: Submission | null;
   statusLabel?: string;
@@ -32,8 +30,6 @@ export function SubmissionReader({
   approving?: boolean;
   /** Autres changements de statut possibles (le manager peut en changer autant de fois que nécessaire). */
   statusActions?: { label: string; onClick: () => void }[];
-  /** Fil de la demande, sous son contenu. */
-  thread?: ReactNode;
 }) {
   return (
     <DialogPrimitive.Root open={!!s} onOpenChange={(o) => !o && onClose()}>
@@ -72,20 +68,6 @@ export function SubmissionReader({
                   <p className="font-bold">Motif : {s.rejection_category}</p>
                   <p className="whitespace-pre-line">Raison : <Linkify text={s.rejection_note ?? ""} /></p>
                 </div>
-              )}
-              {thread && (
-                <section
-                  aria-labelledby="lecture-suivi"
-                  className="space-y-sm border-t border-outline-variant pt-md"
-                >
-                  <h3
-                    id="lecture-suivi"
-                    className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant"
-                  >
-                    Suivi de la demande
-                  </h3>
-                  {thread}
-                </section>
               )}
             </div>
             {(onReject || onApprove || statusActions?.length) && (

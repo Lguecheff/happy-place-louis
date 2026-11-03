@@ -36,6 +36,12 @@ export const NOTIFICATION_KINDS: NotificationKindDef[] = [
     lockedHint: "Toujours active pour tes propres demandes.",
   },
   {
+    kind: "changement_statut_suivi",
+    label: "Changement d'état des demandes que je suis",
+    roles: ["collaborateur", "manager"],
+    channels: ["in_app", "by_email"],
+  },
+  {
     kind: "resume_hebdo",
     label: "Résumé hebdomadaire",
     roles: ["collaborateur", "manager"],

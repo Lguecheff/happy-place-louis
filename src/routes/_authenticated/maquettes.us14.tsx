@@ -13,7 +13,11 @@ import {
 } from "@/components/notifications/notification-kinds";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
-import { StatusThread, sortSteps, type ThreadStep } from "@/components/submission-status-thread";
+import {
+  SubmissionThreadView,
+  sortSteps,
+  type ThreadStep,
+} from "@/components/submission-status-thread";
 import type { AppNotification, Submission } from "@/lib/dashboard";
 
 export const Route = createFileRoute("/_authenticated/maquettes/us14")({
@@ -37,6 +41,7 @@ const CONTENT =
 const EXCERPT = `${CONTENT.slice(0, 59)}…`;
 const GONTRAN = "Gontran Martin (fictif)";
 const KESHA = "Kesha Diallo (fictif)";
+const LEA = "Léa Petit (fictif)";
 
 const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
 
@@ -68,6 +73,8 @@ type MockState = {
   note: string;
   status: string;
   rejection?: { category: string; note: string };
+  /** Autrice d'une demande que Gontran suit sans l'avoir faite ; sans valeur, c'est la sienne. */
+  author?: string;
   steps: Step[];
   /** Notifications de la plus ancienne à la plus récente ; la dernière est non lue. */
   alerts: { message: string; actor: string; at: string }[];
@@ -196,11 +203,35 @@ const STATES: MockState[] = [
     ],
   },
   {
+    value: "suivie",
+    label: "Demande suivie (pas la sienne)",
+    status: "validée",
+    author: LEA,
+    note: "Gontran suit la demande de Léa sans en être l'auteur (US15) : le texte nomme l'autrice, et l'alerte dépend de la ligne « Changement d'état des demandes que je suis ».",
+    steps: [
+      { ...CREATED, changed_by_name: LEA },
+      {
+        ...CREATED,
+        old_status: "en attente",
+        new_status: "validée",
+        changed_by_name: KESHA,
+        changed_at: ago(20 * MINUTE_MS),
+      },
+    ],
+    alerts: [
+      {
+        message: `La demande de ${LEA} a été validée : « ${EXCERPT} »`,
+        actor: KESHA,
+        at: ago(20 * MINUTE_MS),
+      },
+    ],
+  },
+  {
     value: "preferences",
     label: "Préférences (case verrouillée)",
     status: "validée",
     preferences: true,
-    note: "Ouvre le menu du profil, puis « Préférences » : « Changement d'état de mes demandes » a la case « Dans l'app » cochée et verrouillée ; « Par mail » reste modifiable.",
+    note: "Ouvre le menu du profil, puis « Préférences » : « Changement d'état de mes demandes » a la case « Dans l'app » cochée et verrouillée ; « Changement d'état des demandes que je suis » reste modifiable.",
     steps: [],
     alerts: [],
   },
@@ -209,7 +240,7 @@ const STATES: MockState[] = [
 function notificationsFor(state: MockState): AppNotification[] {
   return state.alerts.map((a, i) => ({
     id: `${state.value}-${i}`,
-    kind: "changement_statut",
+    kind: state.author ? "changement_statut_suivi" : "changement_statut",
     submission_id: SUBMISSION_ID,
     message: `${a.message} (fictif)`,
     actor_name: a.actor,
@@ -221,7 +252,7 @@ function notificationsFor(state: MockState): AppNotification[] {
 function mockSubmission(state: MockState): Submission {
   return {
     id: SUBMISSION_ID,
-    author_name: GONTRAN,
+    author_name: state.author ?? GONTRAN,
     team: "Product",
     content: CONTENT,
     status: state.status,
@@ -240,6 +271,7 @@ function Us14Mockup() {
   const state = STATES.find((s) => s.value === stateValue) ?? STATES[0];
   const [notifications, setNotifications] = useState(() => notificationsFor(state));
   const [values, setValues] = useState<PreferenceValues>({});
+  const [threadOf, setThreadOf] = useState<Submission | null>(null);
 
   function changeState(value: string) {
     const next = STATES.find((s) => s.value === value) ?? STATES[0];
@@ -297,9 +329,7 @@ function Us14Mockup() {
               onMarkRead={markRead}
               onMarkAllRead={markAllRead}
               loadSubmission={async () => mockSubmission(state)}
-              thread={() => (
-                <StatusThread steps={sortSteps(state.steps.map((s, i) => step(i, s)))} />
-              )}
+              onOpenSubmission={setThreadOf}
             />
           }
         />
@@ -333,6 +363,14 @@ function Us14Mockup() {
           </p>
         </div>
       </main>
+      {threadOf && (
+        <SubmissionThreadView
+          content={threadOf.content}
+          team={threadOf.team}
+          steps={sortSteps(state.steps.map((s, i) => step(i, s)))}
+          onClose={() => setThreadOf(null)}
+        />
+      )}
     </div>
   );
 }

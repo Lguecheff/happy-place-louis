@@ -230,6 +230,11 @@ function ManagerSpace() {
     else review.mutate({ id: s.id, status });
   }
 
+  /** Comme dans « À traiter » : un manager change le statut des demandes de ses équipes. */
+  function canChangeStatus(s: Submission) {
+    return role === "manager" && (myTeams.data ?? []).includes(s.team);
+  }
+
   function openThread(s: Submission, editable: boolean) {
     setThreadEditable(editable);
     setThreadOf(s);
@@ -324,7 +329,10 @@ function ManagerSpace() {
           search={<GlobalSearch {...search} canEditNews={canEditNews} onEditNews={editNews} />}
           notifications={
             myEmail && (
-              <NotificationCenter email={myEmail} canReadAttachment={search.canReadAttachment} />
+              <NotificationCenter
+                email={myEmail}
+                onOpenSubmission={(s) => openThread(s, canChangeStatus(s))}
+              />
             )
           }
         />

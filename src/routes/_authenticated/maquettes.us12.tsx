@@ -7,6 +7,7 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { arrivalAnnouncement } from "@/components/notifications/notification-utils";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
+import { SubmissionThreadView } from "@/components/submission-status-thread";
 import type { AppNotification, Submission } from "@/lib/dashboard";
 
 export const Route = createFileRoute("/_authenticated/maquettes/us12")({
@@ -128,6 +129,7 @@ function Us12Mockup() {
   const [stateValue, setStateValue] = useState(STATES[0].value);
   const [notifications, setNotifications] = useState(threeUnread);
   const [announced, setAnnounced] = useState("");
+  const [threadOf, setThreadOf] = useState<Submission | null>(null);
   const arrivals = useRef(0);
 
   const state = STATES.find((s) => s.value === stateValue) ?? STATES[0];
@@ -186,6 +188,7 @@ function Us12Mockup() {
               onMarkRead={markRead}
               onMarkAllRead={markAllRead}
               loadSubmission={loadSubmission}
+              onOpenSubmission={setThreadOf}
             />
           }
         />
@@ -225,6 +228,14 @@ function Us12Mockup() {
           </p>
         </div>
       </main>
+      {threadOf && (
+        <SubmissionThreadView
+          content={threadOf.content}
+          team={threadOf.team}
+          steps={[]}
+          onClose={() => setThreadOf(null)}
+        />
+      )}
     </div>
   );
 }

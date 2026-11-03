@@ -645,7 +645,11 @@ export type Database = {
       blocker_status: "OUVERT" | "EN COURS" | "SURVEILLANCE" | "RÉSOLU"
       news_audience: "équipe" | "entreprise"
       news_status: "brouillon" | "publiée"
-      notification_kind: "nouvelle_demande" | "changement_statut" | "resume_hebdo"
+      notification_kind:
+        | "nouvelle_demande"
+        | "changement_statut"
+        | "resume_hebdo"
+        | "changement_statut_suivi"
       rejection_category:
         | "à clarifier"
         | "en désaccord avec les process"
@@ -784,7 +788,12 @@ export const Constants = {
       blocker_status: ["OUVERT", "EN COURS", "SURVEILLANCE", "RÉSOLU"],
       news_audience: ["équipe", "entreprise"],
       news_status: ["brouillon", "publiée"],
-      notification_kind: ["nouvelle_demande", "changement_statut", "resume_hebdo"],
+      notification_kind: [
+        "nouvelle_demande",
+        "changement_statut",
+        "resume_hebdo",
+        "changement_statut_suivi",
+      ],
       rejection_category: [
         "à clarifier",
         "en désaccord avec les process",

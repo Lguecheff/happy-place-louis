@@ -135,6 +135,7 @@ function Us13Mockup() {
               onMarkRead={() => {}}
               onMarkAllRead={() => {}}
               loadSubmission={async () => null}
+              onOpenSubmission={() => {}}
             />
           }
         />

@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { DsButton, DsIconButton, DsPopover } from "@/components/ds";
 import { ReaderDialog } from "@/components/reader-dialog";
-import { SubmissionReader } from "@/components/submission-reader";
 import type { AppNotification, Submission } from "@/lib/dashboard";
 import { NotificationPanel } from "./NotificationPanel";
 import {
@@ -36,14 +35,13 @@ function useArrivalAnnouncement(notifications: AppNotification[] | undefined) {
   return announcement;
 }
 
-/** Cloche de l'en-tête, son panneau et la lecture de la demande, en lecture seule. */
+/** Cloche de l'en-tête et son panneau ; une notification ouvre le suivi de sa demande. */
 export function NotificationBell({
   notifications,
   onMarkRead,
   onMarkAllRead,
   loadSubmission,
-  canReadAttachment,
-  thread,
+  onOpenSubmission,
 }: {
   /** Sans valeur tant que le premier chargement n'est pas terminé. */
   notifications: AppNotification[] | undefined;
@@ -51,13 +49,10 @@ export function NotificationBell({
   onMarkAllRead: () => void;
   /** Renvoie `null` si la demande n'est plus lisible. */
   loadSubmission: (id: string) => Promise<Submission | null>;
-  /** Sans valeur, la pièce jointe de la demande est proposée. */
-  canReadAttachment?: (submission: Submission) => boolean;
-  /** Fil de la demande, affiché dans sa fenêtre de lecture. */
-  thread?: (submission: Submission) => ReactNode;
+  /** Ouvre le suivi de la demande, comme « Voir le suivi ». */
+  onOpenSubmission: (submission: Submission) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [reading, setReading] = useState<Submission | null>(null);
   const [unavailable, setUnavailable] = useState<AppNotification | null>(null);
   const bellRef = useRef<HTMLButtonElement>(null);
   const announcement = useArrivalAnnouncement(notifications);
@@ -70,7 +65,7 @@ export function NotificationBell({
     try {
       const { submission_id: id } = notification;
       const submission = id ? await loadSubmission(id) : null;
-      if (submission) setReading(submission);
+      if (submission) onOpenSubmission(submission);
       else setUnavailable(notification);
     } catch (e) {
       toast.error((e as Error).message);
@@ -109,13 +104,6 @@ export function NotificationBell({
       <p role="status" className="sr-only">
         {announcement}
       </p>
-      <SubmissionReader
-        submission={reading}
-        hideAttachment={!!reading && canReadAttachment?.(reading) === false}
-        thread={reading && thread?.(reading)}
-        onClose={() => setReading(null)}
-        onCloseAutoFocus={focusBell}
-      />
       {unavailable && (
         <ReaderDialog
           title="Demande indisponible"
