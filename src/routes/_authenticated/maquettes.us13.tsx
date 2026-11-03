@@ -54,14 +54,14 @@ const STATES: {
     label: "Manager",
     role: "manager",
     name: "Kesha",
-    note: "Ouvre la cloche, puis « Préférences » : deux lignes, toutes les cases cochées par défaut. Chaque clic s'enregistre et le confirme en bas de la fenêtre.",
+    note: "Ouvre le menu du profil, puis « Préférences » : deux lignes, toutes les cases cochées par défaut. Chaque clic s'enregistre et le confirme par un toast.",
   },
   {
     value: "collaborateur",
     label: "Collaborateur",
     role: "collaborateur",
     name: "Gontran",
-    note: "Un collaborateur ne voit que « Résumé hebdomadaire », avec la seule case « Par mail ».",
+    note: "Un collaborateur voit « Changement de statut de mes demandes » et « Résumé hebdomadaire », ce dernier avec la seule case « Par mail ».",
   },
   {
     value: "admin",
@@ -113,6 +113,11 @@ function Us13Mockup() {
           role={state.role}
           exporting={false}
           onExport={() => toast.info("Non branché dans la maquette (fictif).")}
+          preferences={{
+            kinds: notificationKindsFor(state.role),
+            values,
+            onChange: savePreference,
+          }}
           search={
             <GlobalSearch
               source={{
@@ -129,11 +134,6 @@ function Us13Mockup() {
               onMarkRead={() => {}}
               onMarkAllRead={() => {}}
               loadSubmission={async () => null}
-              preferences={{
-                kinds: notificationKindsFor(state.role),
-                values,
-                onChange: savePreference,
-              }}
             />
           }
         />

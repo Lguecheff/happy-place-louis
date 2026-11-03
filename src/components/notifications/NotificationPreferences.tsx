@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { DsChoice, DsChoiceGroup, DsEmptyState, DsIcon } from "@/components/ds";
+import { toast } from "sonner";
+import { DsChoice, DsChoiceGroup, DsEmptyState } from "@/components/ds";
 import { ReaderDialog } from "@/components/reader-dialog";
 import {
+  CHANNEL_HINTS,
   CHANNEL_LABELS,
   DEFAULT_CHANNELS,
   type NotificationChannel,
@@ -34,7 +36,6 @@ export function NotificationPreferences({
   const [shown, setShown] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState<Set<string>>(new Set());
   const [errors, setErrors] = useState<Partial<Record<PreferenceKind, string>>>({});
-  const [saved, setSaved] = useState("");
 
   function isChecked(def: NotificationKindDef, channel: NotificationChannel) {
     if (def.locked?.includes(channel)) return true;
@@ -48,12 +49,11 @@ export function NotificationPreferences({
     setShown((s) => ({ ...s, [k]: checked }));
     setSaving((s) => new Set(s).add(k));
     setErrors((e) => ({ ...e, [def.kind]: undefined }));
-    setSaved("");
     try {
       await onChange(def.kind, channel, checked);
-      setSaved(
-        `${def.label}, ${CHANNEL_LABELS[channel].toLowerCase()} : ${checked ? "activé" : "désactivé"}.`,
-      );
+      toast.success("Préférence enregistrée", {
+        description: `${def.label} · ${CHANNEL_LABELS[channel]} : ${checked ? "activé" : "désactivé"}`,
+      });
     } catch {
       setShown((s) => ({ ...s, [k]: previous }));
       setErrors((e) => ({
@@ -82,44 +82,28 @@ export function NotificationPreferences({
           Aucune notification ne te concerne pour l'instant : rien à régler ici.
         </DsEmptyState>
       ) : (
-        <>
-          <p className="font-body-sm text-body-sm text-on-surface-variant">
-            L'app n'envoie pas encore de mail : ton choix « Par mail » est gardé pour plus tard.
-          </p>
-          {kinds.map((def) => (
-            <DsChoiceGroup key={def.kind} legend={def.label} error={errors[def.kind]}>
-              <div className="grid gap-xs sm:grid-cols-2">
-                {def.channels.map((channel) => {
-                  const locked = def.locked?.includes(channel);
-                  return (
-                    <DsChoice
-                      key={channel}
-                      type="checkbox"
-                      label={CHANNEL_LABELS[channel]}
-                      hint={locked ? "Toujours activé" : undefined}
-                      disabled={locked}
-                      checked={isChecked(def, channel)}
-                      aria-busy={saving.has(key(def.kind, channel)) || undefined}
-                      onChange={(e) => toggle(def, channel, e.target.checked)}
-                    />
-                  );
-                })}
-              </div>
-            </DsChoiceGroup>
-          ))}
-        </>
+        kinds.map((def) => (
+          <DsChoiceGroup key={def.kind} legend={def.label} error={errors[def.kind]}>
+            <div className="grid gap-xs sm:grid-cols-2">
+              {def.channels.map((channel) => {
+                const locked = def.locked?.includes(channel);
+                return (
+                  <DsChoice
+                    key={channel}
+                    type="checkbox"
+                    label={CHANNEL_LABELS[channel]}
+                    hint={locked ? "Toujours activé" : CHANNEL_HINTS[channel]}
+                    disabled={locked}
+                    checked={isChecked(def, channel)}
+                    aria-busy={saving.has(key(def.kind, channel)) || undefined}
+                    onChange={(e) => toggle(def, channel, e.target.checked)}
+                  />
+                );
+              })}
+            </div>
+          </DsChoiceGroup>
+        ))
       )}
-      <p
-        role="status"
-        className="flex items-center gap-xs font-body-sm text-body-sm text-on-surface-variant"
-      >
-        {saved && (
-          <>
-            <DsIcon name="check" className="text-success" />
-            Enregistré : {saved}
-          </>
-        )}
-      </p>
     </ReaderDialog>
   );
 }

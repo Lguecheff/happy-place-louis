@@ -3,8 +3,9 @@ import type { Database } from "@/integrations/supabase/types";
 export type AppRole = Database["public"]["Enums"]["app_role"];
 export type NotificationChannel = "in_app" | "by_email";
 
-// Phase 1 de l'US13 : 'resume_hebdo' n'est pas encore dans l'enum notification_kind.
-export type PreferenceKind = Database["public"]["Enums"]["notification_kind"] | "resume_hebdo";
+// Phase 1 de l'US13 : 'changement_statut' et 'resume_hebdo' ne sont pas encore dans l'enum notification_kind.
+export type PreferenceKind =
+  Database["public"]["Enums"]["notification_kind"] | "changement_statut" | "resume_hebdo";
 
 export type NotificationKindDef = {
   kind: PreferenceKind;
@@ -26,6 +27,12 @@ export const NOTIFICATION_KINDS: NotificationKindDef[] = [
     channels: ["in_app", "by_email"],
   },
   {
+    kind: "changement_statut",
+    label: "Changement de statut de mes demandes",
+    roles: ["collaborateur"],
+    channels: ["in_app", "by_email"],
+  },
+  {
     kind: "resume_hebdo",
     label: "Résumé hebdomadaire",
     roles: ["collaborateur", "manager"],
@@ -36,6 +43,12 @@ export const NOTIFICATION_KINDS: NotificationKindDef[] = [
 export const CHANNEL_LABELS: Record<NotificationChannel, string> = {
   in_app: "Dans l'app",
   by_email: "Par mail",
+};
+
+/** Ce que fait chaque canal, affiché sous sa case. */
+export const CHANNEL_HINTS: Record<NotificationChannel, string> = {
+  in_app: "Une alerte dans la cloche, en haut de l'écran",
+  by_email: "Un mail envoyé à ton adresse",
 };
 
 export type ChannelValues = Record<NotificationChannel, boolean>;

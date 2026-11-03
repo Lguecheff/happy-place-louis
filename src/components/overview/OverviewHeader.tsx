@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { DsAvatar, DsIcon } from "@/components/ds";
 import { DS_FOCUS } from "@/components/ds/focus";
 import {
@@ -10,6 +10,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  NotificationPreferences,
+  type NotificationPreferencesProps,
+} from "@/components/notifications/NotificationPreferences";
 import { signOut, type AppRole } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +46,7 @@ export function OverviewHeader({
   onExport,
   search,
   notifications,
+  preferences,
 }: {
   isAdmin: boolean;
   name: string;
@@ -50,7 +55,12 @@ export function OverviewHeader({
   onExport: () => void;
   search: ReactNode;
   notifications?: ReactNode;
+  /** Sans valeur, le menu ne propose pas « Préférences ». */
+  preferences?: Omit<NotificationPreferencesProps, "onClose" | "onCloseAutoFocus">;
 }) {
+  const [settingUp, setSettingUp] = useState(false);
+  const menuRef = useRef<HTMLButtonElement>(null);
+
   return (
     <>
       <nav aria-label="Navigation principale" className="basis-full xl:basis-auto">
@@ -80,6 +90,7 @@ export function OverviewHeader({
       {notifications}
       <DropdownMenu>
         <DropdownMenuTrigger
+          ref={menuRef}
           aria-label={`Menu du compte : ${name}, ${ROLE_LABELS[role]}`}
           className={cn(
             "flex min-h-11 min-w-0 shrink-0 items-center gap-xs px-xs text-left hover:bg-surface-container",
@@ -95,7 +106,12 @@ export function OverviewHeader({
           </span>
           <DsIcon name="expand_more" className="text-primary" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-64 max-w-[calc(100vw-2rem)] rounded-none">
+        <DropdownMenuContent
+          // Le focus rendu au menu fermerait la fenêtre des préférences à peine ouverte.
+          onCloseAutoFocus={(e) => settingUp && e.preventDefault()}
+          align="end"
+          className="w-64 max-w-[calc(100vw-2rem)] rounded-none"
+        >
           <DropdownMenuLabel className="font-normal">
             <span className="block font-body-sm text-body-sm text-primary wrap-anywhere">
               {name}
@@ -105,6 +121,11 @@ export function OverviewHeader({
             </span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          {preferences && (
+            <DropdownMenuItem onSelect={() => setSettingUp(true)} className={MENU_ITEM}>
+              Préférences
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem asChild className={MENU_ITEM}>
             <Link to="/choisir-role">Changer de rôle</Link>
           </DropdownMenuItem>
@@ -116,6 +137,16 @@ export function OverviewHeader({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      {preferences && settingUp && (
+        <NotificationPreferences
+          {...preferences}
+          onClose={() => setSettingUp(false)}
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            menuRef.current?.focus();
+          }}
+        />
+      )}
     </>
   );
 }
