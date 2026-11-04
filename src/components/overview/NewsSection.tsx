@@ -21,6 +21,8 @@ import {
   NewsTemplatePicker,
   type NewsTemplatePickerInitial,
 } from "@/components/news/NewsTemplatePicker";
+import { NewsAiWriter, type NewsAiWriterInitial } from "@/components/news/NewsAiWriter";
+import type { AiGenerate } from "@/lib/news-ai";
 import { useAutosaveDraft, type AutosaveFn } from "@/components/news/use-autosave-draft";
 import { NewsMediaEditor } from "@/components/news-media";
 import { ConfirmDialog } from "@/components/overview/ConfirmDialog";
@@ -147,6 +149,7 @@ export function NewsSection({
   onAutosave,
   initialDraft,
   initialTemplatePicker,
+  aiWriter,
   ideas,
 }: {
   canWrite: boolean;
@@ -180,6 +183,8 @@ export function NewsSection({
   initialDraft?: { title: string; body: string };
   /** Fenêtre des modèles ouverte au départ (maquettes). */
   initialTemplatePicker?: NewsTemplatePickerInitial;
+  /** « Rédiger avec l'IA » (US27) ; sans valeur, le bouton n'apparaît pas. */
+  aiWriter?: { generate: AiGenerate; initial?: NewsAiWriterInitial };
   /** Bloc « Idées de sujets » (US26), managers seulement ; placé sous le compteur du mois. */
   ideas?: ReactNode;
 }) {
@@ -424,19 +429,36 @@ export function NewsSection({
               </div>
             )}
             {!editingPublished && (
-              <NewsTemplatePicker
-                key={picker.key}
-                hasText={!!title.trim() || !!body.trim()}
-                disabled={busy}
-                initial={picker.initial}
-                onApply={(t) => {
-                  setTitle(t.title);
-                  setBody(t.body);
-                  setTitleError(undefined);
-                  setBodyError(undefined);
-                  titleRef.current?.focus();
-                }}
-              />
+              <div className="flex flex-wrap gap-xs">
+                <NewsTemplatePicker
+                  key={picker.key}
+                  hasText={!!title.trim() || !!body.trim()}
+                  disabled={busy}
+                  initial={picker.initial}
+                  onApply={(t) => {
+                    setTitle(t.title);
+                    setBody(t.body);
+                    setTitleError(undefined);
+                    setBodyError(undefined);
+                    titleRef.current?.focus();
+                  }}
+                />
+                {aiWriter && (
+                  <NewsAiWriter
+                    hasText={!!title.trim() || !!body.trim()}
+                    disabled={busy}
+                    generate={aiWriter.generate}
+                    initial={aiWriter.initial}
+                    onApply={(d) => {
+                      setTitle(d.title);
+                      setBody(d.body);
+                      setTitleError(undefined);
+                      setBodyError(undefined);
+                      titleRef.current?.focus();
+                    }}
+                  />
+                )}
+              </div>
             )}
             <DsField id="actu-titre" label="Titre" error={titleError}>
               <input
