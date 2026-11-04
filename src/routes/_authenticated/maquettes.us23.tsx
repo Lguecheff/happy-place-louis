@@ -125,6 +125,14 @@ const DATA: SearchData = {
       "entreprise",
     ),
     news(
+      "n4",
+      5,
+      "Onboarding Marketing : les outils de campagne",
+      "Une demi-journée de prise en main pour chaque arrivée.",
+      "équipe",
+      ["Marketing"],
+    ),
+    news(
       "n3",
       40,
       "Retour sur l'onboarding de septembre",
@@ -184,7 +192,7 @@ const STATES: State[] = [
     label: "Moins de 3 caractères",
     query: "on",
     filters: EMPTY_FILTERS,
-    hint: "Les trois filtres sont visibles mais désactivés. Le message reste affiché. Ajoute une lettre : ils deviennent actifs.",
+    hint: "Les trois filtres sont visibles mais désactivés. Le message reste affiché. Ajoute une lettre : ils deviennent actifs. La croix vide le champ et les filtres.",
   },
   {
     value: "type",
@@ -197,8 +205,8 @@ const STATES: State[] = [
     value: "equipe",
     label: "Filtre Équipe",
     query: "onboarding",
-    filters: { ...EMPTY_FILTERS, team: "Product" },
-    hint: "Équipe « Product » : l'actu « Toute l'entreprise », le point bloquant sans équipe et les KPI disparaissent. À trancher : voir la note de fin de phase 1.",
+    filters: { ...EMPTY_FILTERS, teams: ["Product", "Relation clients"] },
+    hint: "Équipes « Product » et « Relation clients » (« Product +1 ») : seul ce qui vise uniquement d'autres équipes disparaît (l'actu, la demande et le point du Marketing). L'actu « Toute l'entreprise », le point sans équipe et les KPI restent. Clique sur Équipe pour cocher ou décocher.",
   },
   {
     value: "periode",
@@ -211,8 +219,8 @@ const STATES: State[] = [
     value: "aucun",
     label: "Aucun résultat avec ces filtres",
     query: "onboarding",
-    filters: { ...EMPTY_FILTERS, type: "kpi", team: "Product" },
-    hint: "KPI et équipe « Product » : les KPI n'ont pas d'équipe, rien ne reste. « Effacer les filtres » remet Tous, Toutes, Tout.",
+    filters: { ...EMPTY_FILTERS, type: "demandes", teams: ["Relation clients"] },
+    hint: "Demandes de l'équipe « Relation clients » : aucune ne parle d'onboarding. « Effacer les filtres » remet Tous, Toutes, Tout et garde le mot cherché ; la croix vide aussi le mot.",
   },
 ];
 

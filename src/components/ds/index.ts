@@ -15,6 +15,7 @@ export {
 } from "./ds-kpi-definition";
 export { DsKpiTile } from "./ds-kpi-tile";
 export { DsListItem } from "./ds-list-item";
+export { DsMultiSelect } from "./ds-multi-select";
 export { DsPopover } from "./ds-popover";
 export { DsSaveStatus, type DsSaveState } from "./ds-save-status";
 export { DsSection } from "./ds-section";

@@ -179,6 +179,12 @@ Props : `id`, `label`, `error`, `children`. Relie le libellé au champ par `html
 </DsChoiceGroup>
 ```
 
+### DsMultiSelect
+Props : `label`, `options`, `value` (valeurs cochées), `onChange`, `allLabel` (ex. « Toutes »), `disabled`, `className`. Liste déroulante à choix multiple : un bouton au style d'un champ (44 px), qui résume le choix (« Toutes », « Product », « Product +2 », comme les équipes d'un point bloquant) et ouvre des `DsChoice` en cases à cocher. La première case, `allLabel`, est cochée quand rien n'est choisi ; la cocher vide le choix. Échap ferme la liste et rend le focus au bouton, sans fermer ce qui l'entoure ; un clic ou le focus hors du composant la ferme aussi. La liste reste dans la page (pas de portail) : elle peut s'ouvrir dans un panneau déjà ouvert, comme celui de la recherche. Les lecteurs d'écran lisent le libellé puis toutes les valeurs choisies. Pour un choix unique, garde un `<select>` dans un `DsField`. Pour un choix toujours visible dans un formulaire, utilise `DsChoiceGroup`.
+```tsx
+<DsMultiSelect label="Équipe" allLabel="Toutes" options={equipes} value={choix} onChange={setChoix} />
+```
+
 ### DsIcon
 Props : `name`, `filled`, `label`, `className`. Décorative (`aria-hidden`) par défaut ; avec `label`, elle est annoncée.
 ```tsx

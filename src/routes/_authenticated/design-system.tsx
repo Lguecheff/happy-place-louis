@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { BrandHeader } from "@/components/brand-header";
 import {
   DS_INPUT,
@@ -15,6 +16,7 @@ import {
   DsKpiDefinition,
   DsKpiTile,
   DsListItem,
+  DsMultiSelect,
   DsPopover,
   DsSaveStatus,
   DsSection,
@@ -42,6 +44,38 @@ function Demo({ title, children }: { title: string; children: React.ReactNode })
         {title}
       </h3>
       <div className="flex flex-wrap items-start gap-sm">{children}</div>
+    </div>
+  );
+}
+
+const DEMO_TEAMS = ["Marketing", "Pôle Data et IA", "Product", "Relation clients"];
+
+function MultiSelectDemo() {
+  const [teams, setTeams] = useState<string[]>(["Product", "Marketing"]);
+  return (
+    <div className="grid w-full gap-md md:grid-cols-3">
+      <DsMultiSelect
+        label="Équipe"
+        allLabel="Toutes"
+        options={DEMO_TEAMS}
+        value={teams}
+        onChange={setTeams}
+      />
+      <DsMultiSelect
+        label="Rien de choisi"
+        allLabel="Toutes"
+        options={DEMO_TEAMS}
+        value={[]}
+        onChange={() => {}}
+      />
+      <DsMultiSelect
+        label="Désactivé"
+        allLabel="Toutes"
+        options={DEMO_TEAMS}
+        value={[]}
+        onChange={() => {}}
+        disabled
+      />
     </div>
   );
 }
@@ -352,6 +386,12 @@ function DesignSystemPage() {
               <DsChoice type="checkbox" label="Marketing" />
             </DsChoiceGroup>
           </div>
+        </DsSection>
+
+        <DsSection id="choix-multiple" title="DsMultiSelect">
+          <Demo title="Plusieurs équipes (Product +1), rien de choisi, désactivé">
+            <MultiSelectDemo />
+          </Demo>
         </DsSection>
 
         <DsSection id="icones" title="DsIcon">

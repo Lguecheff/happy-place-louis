@@ -9,7 +9,16 @@ import {
   type ReactNode,
 } from "react";
 import { BlockerReader } from "@/components/blocker-reader";
-import { DS_INPUT, DsBadge, DsButton, DsField, DsIcon, DsStaleBadge } from "@/components/ds";
+import {
+  DS_INPUT,
+  DsBadge,
+  DsButton,
+  DsField,
+  DsIcon,
+  DsIconButton,
+  DsMultiSelect,
+  DsStaleBadge,
+} from "@/components/ds";
 import { MetricReader } from "@/components/metric-reader";
 import { NewsReader } from "@/components/news-reader";
 import { BlockerBadges } from "@/components/overview/BlockersSection";
@@ -164,6 +173,7 @@ function SearchFiltersBar({
           onEscape();
         }
       }}
+      data-search-filters=""
       className="grid gap-xs border-b border-outline-variant p-sm sm:grid-cols-3"
     >
       <DsField id={`${id}-type`} label="Type">
@@ -181,22 +191,14 @@ function SearchFiltersBar({
           ))}
         </select>
       </DsField>
-      <DsField id={`${id}-equipe`} label="Équipe">
-        <select
-          id={`${id}-equipe`}
-          className={DS_INPUT}
-          disabled={disabled}
-          value={filters.team}
-          onChange={(e) => onChange({ ...filters, team: e.target.value })}
-        >
-          <option value="">Toutes</option>
-          {teams.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-      </DsField>
+      <DsMultiSelect
+        label="Équipe"
+        allLabel="Toutes"
+        options={teams}
+        value={filters.teams}
+        disabled={disabled}
+        onChange={(value) => onChange({ ...filters, teams: value })}
+      />
       <DsField id={`${id}-periode`} label="Période">
         <select
           id={`${id}-periode`}
@@ -307,6 +309,14 @@ export function GlobalSearch({
     setFilters(EMPTY_FILTERS);
   }
 
+  /** La croix vide le champ et les filtres, et laisse le focus dans le champ. */
+  function clearSearch() {
+    setQuery("");
+    setTerm("");
+    setFilters(EMPTY_FILTERS);
+    inputRef.current?.focus();
+  }
+
   function clearFilters() {
     setFilters(EMPTY_FILTERS);
     inputRef.current?.focus();
@@ -390,12 +400,21 @@ export function GlobalSearch({
           }}
           onClick={() => setOpen(true)}
           placeholder="Rechercher dans Happy Place"
-          className={cn(DS_INPUT, "truncate pl-10")}
+          className={cn(DS_INPUT, "truncate pl-10", query && "pr-12")}
         />
+        {query && (
+          <DsIconButton
+            icon="close"
+            label={withFilters ? "Effacer la recherche et les filtres" : "Effacer la recherche"}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={clearSearch}
+            className="absolute right-0 top-1/2 -translate-y-1/2"
+          />
+        )}
         <div
           // Un clic dans le panneau ne doit pas retirer le focus du champ, sauf sur un filtre.
           onMouseDown={(e) => {
-            if (!(e.target as HTMLElement).closest("select, label")) e.preventDefault();
+            if (!(e.target as HTMLElement).closest("[data-search-filters]")) e.preventDefault();
           }}
           hidden={!panelOpen}
           className="absolute left-0 top-full z-40 mt-xs w-full min-w-[min(32rem,calc(100vw-1.5rem))] border border-outline bg-surface-container-lowest xl:left-auto xl:right-0"

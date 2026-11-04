@@ -30,10 +30,10 @@ export type TextPart = { text: string; match: boolean };
 export type SearchType = "tous" | "actus" | "demandes" | "blocages" | "kpi";
 export type SearchPeriod = "tout" | "7" | "30";
 
-/** Filtres de la recherche (US23) ; `team` vide = toutes les équipes. */
-export type SearchFilters = { type: SearchType; team: string; period: SearchPeriod };
+/** Filtres de la recherche (US23) ; `teams` vide = toutes les équipes. */
+export type SearchFilters = { type: SearchType; teams: string[]; period: SearchPeriod };
 
-export const EMPTY_FILTERS: SearchFilters = { type: "tous", team: "", period: "tout" };
+export const EMPTY_FILTERS: SearchFilters = { type: "tous", teams: [], period: "tout" };
 
 export const SEARCH_TYPES: { value: SearchType; label: string }[] = [
   { value: "tous", label: "Tous" },
@@ -49,10 +49,8 @@ export const SEARCH_PERIODS: { value: SearchPeriod; label: string }[] = [
   { value: "30", label: "30 derniers jours" },
 ];
 
-export function hasFilters({ type, team, period }: SearchFilters) {
-  return (
-    type !== EMPTY_FILTERS.type || team !== EMPTY_FILTERS.team || period !== EMPTY_FILTERS.period
-  );
+export function hasFilters({ type, teams, period }: SearchFilters) {
+  return type !== EMPTY_FILTERS.type || teams.length > 0 || period !== EMPTY_FILTERS.period;
 }
 
 const DAY_MS = 86_400_000;
@@ -86,7 +84,7 @@ function group<T>(matches: T[], dateOf: (item: T) => string): SearchGroup<T> {
 export function searchAll(
   { news, submissions, blockers, metrics }: SearchData,
   query: string,
-  { type, team, period }: SearchFilters = EMPTY_FILTERS,
+  { type, teams, period }: SearchFilters = EMPTY_FILTERS,
   now = Date.now(),
 ): SearchResults {
   const term = normalizeText(query.trim());
@@ -95,6 +93,10 @@ export function searchAll(
   const inPeriod = (iso: string | null | undefined) =>
     since === null || (!!iso && new Date(iso).getTime() >= since);
   const shown = (t: SearchType) => type === "tous" || type === t;
+  // Équipes choisies : on écarte seulement ce qui vise d'autres équipes. Les actus « Toute
+  // l'entreprise », les points bloquants sans équipe et les KPI concernent tout le monde.
+  const forTeams = (targets: string[]) =>
+    !teams.length || !targets.length || targets.some((t) => teams.includes(t));
   return {
     news: group(
       news.filter(
@@ -103,8 +105,7 @@ export function searchAll(
           n.status === "publiée" &&
           (contains(n.title, term) || contains(n.body, term)) &&
           inPeriod(newsPublishedAt(n)) &&
-          // Une équipe choisie écarte les actus « Toute l'entreprise ».
-          (!team || (n.audience === "équipe" && !!n.teams?.includes(team))),
+          forTeams(n.audience === "équipe" ? (n.teams ?? []) : []),
       ),
       newsPublishedAt,
     ),
@@ -114,7 +115,7 @@ export function searchAll(
           shown("demandes") &&
           contains(s.content, term) &&
           inPeriod(s.created_at) &&
-          (!team || s.team === team),
+          forTeams([s.team]),
       ),
       (s) => s.created_at,
     ),
@@ -124,15 +125,12 @@ export function searchAll(
           shown("blocages") &&
           (contains(b.title, term) || contains(b.description, term)) &&
           inPeriod(b.updated_at) &&
-          // Une équipe choisie écarte les points sans équipe (qui concernent toutes les équipes).
-          (!team || b.teams.includes(team)),
+          forTeams(b.teams),
       ),
       (b) => b.created_at,
     ),
     metrics: group(
-      metrics.filter(
-        (m) => shown("kpi") && !team && contains(m.label, term) && inPeriod(m.updated_at),
-      ),
+      metrics.filter((m) => shown("kpi") && contains(m.label, term) && inPeriod(m.updated_at)),
       (m) => m.updated_at,
     ),
   };
