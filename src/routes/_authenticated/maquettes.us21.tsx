@@ -1,13 +1,30 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { BlockerReader } from "@/components/blocker-reader";
 import { BrandHeader } from "@/components/brand-header";
-import { DS_INPUT, DsField, DsListItem, DsSection } from "@/components/ds";
+import {
+  DS_INPUT,
+  DsButton,
+  DsEmptyState,
+  DsField,
+  DsFreshness,
+  DsListItem,
+  DsSection,
+  DsStaleBadge,
+} from "@/components/ds";
 import { BlockersSection, type OpenBlocker } from "@/components/overview/BlockersSection";
 import { KpiSection } from "@/components/overview/KpiSection";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
-import { formatDay } from "@/components/overview/overview-utils";
+import {
+  formatDay,
+  hasMetricThresholds,
+  isVerified,
+  metricAlert,
+  metricOutOfRange,
+  metricRangeLabel,
+} from "@/components/overview/overview-utils";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
 import {
   StatusChip,
@@ -16,7 +33,14 @@ import {
   verificationStep,
   type ThreadStep,
 } from "@/components/submission-status-thread";
-import type { Blocker, Metric, Submission } from "@/lib/dashboard";
+import {
+  fetchMetrics,
+  formatMetricValue,
+  simulateOutOfRangeMetric,
+  type Blocker,
+  type Metric,
+  type Submission,
+} from "@/lib/dashboard";
 
 export const Route = createFileRoute("/_authenticated/maquettes/us21")({
   head: () => ({
@@ -248,8 +272,8 @@ type MockState = {
   reminded?: Record<string, string>;
   /** KPI ou demandes déjà vérifiés à l'ouverture de l'état. */
   verified?: string[];
-  /** Ce que montre la page : vue d'ensemble ou Mes demandes. */
-  page?: "overview" | "requests";
+  /** Ce que montre la page : vue d'ensemble, Mes demandes, ou simulation sur les vrais KPI. */
+  page?: "overview" | "requests" | "simulation";
   /** Aperçu de la notification de relance reçue. */
   notification?: boolean;
 };
@@ -306,6 +330,14 @@ const STATES: MockState[] = [
     viewer: KESHA,
     activeDays: 12,
     verified: ["active_users"],
+  },
+  {
+    value: "simulation-kpi",
+    label: "Simulation KPI (vraies données)",
+    note: "Pour la présentation, sur les vrais KPI (admin) : « Simuler N jours hors plage » fait comme si un KPI hors de sa plage l'était depuis sa durée + 1 jour. Le badge « À vérifier » et le bouton « Marquer comme vérifié » apparaissent aussitôt, ici et sur l'accueil. L'historique du KPI recule d'autant ; son auteur ne change pas. Un KPI dans sa plage, ou sans plage, ne se simule pas : change d'abord sa valeur ou sa plage dans « Gérer les données > KPI ».",
+    viewer: ADMIN,
+    activeDays: 3,
+    page: "simulation",
   },
   {
     value: "demande-ancienne",
@@ -367,7 +399,77 @@ const concerns = (viewer: Viewer, b: Blocker) =>
 // Présentation
 // ---------------------------------------------------------------------------
 
+/** Simulation pour la présentation, sur les vrais KPI. */
+function KpiSimulation({ isAdmin }: { isAdmin: boolean }) {
+  const qc = useQueryClient();
+  const metrics = useQuery({ queryKey: ["metrics"], queryFn: fetchMetrics, enabled: isAdmin });
+  const simulate = useMutation({
+    mutationFn: simulateOutOfRangeMetric,
+    onSuccess: (days) => {
+      toast.success(`KPI hors plage depuis ${days} jours (simulation).`);
+      qc.invalidateQueries({ queryKey: ["metrics"] });
+    },
+    onError: (e: unknown) => toast.error((e as Error).message),
+  });
+
+  return (
+    <DsSection id="simulation" title="Simulation pour la présentation">
+      {!isAdmin ? (
+        <DsEmptyState>
+          La simulation est réservée aux admins : change de rôle pour l'essayer.
+        </DsEmptyState>
+      ) : metrics.isError ? (
+        <DsEmptyState>Les KPI sont indisponibles.</DsEmptyState>
+      ) : (
+        <ul className="space-y-xs">
+          {metrics.data?.map((m) => {
+            const alert = metricAlert(m);
+            const days = (m.stale_after_days ?? 0) + 1;
+            return (
+              <li key={m.key}>
+                <DsListItem
+                  icon="monitoring"
+                  title={`${m.label} — ${formatMetricValue(m.value, m.unit)}`}
+                  meta={
+                    !hasMetricThresholds(m)
+                      ? "Seuil à définir"
+                      : `Plage : ${metricRangeLabel(m)} · ${
+                          metricOutOfRange(m) ? "hors plage" : "dans la plage"
+                        }`
+                  }
+                  actions={
+                    metricOutOfRange(m) && !alert ? (
+                      <DsButton
+                        icon="fast_forward"
+                        pending={simulate.isPending && simulate.variables === m.key}
+                        disabled={simulate.isPending}
+                        onClick={() => simulate.mutate(m.key)}
+                      >
+                        Simuler {days} jours hors plage
+                      </DsButton>
+                    ) : undefined
+                  }
+                >
+                  <span className="flex flex-wrap items-center gap-xs">
+                    {alert && <DsStaleBadge days={alert.days} text={alert.text} />}
+                    <DsFreshness
+                      at={m.updated_at}
+                      by={m.updated_by_name}
+                      verified={isVerified(m)}
+                    />
+                  </span>
+                </DsListItem>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </DsSection>
+  );
+}
+
 function Us21Mockup() {
+  const { role } = Route.useRouteContext();
   const [stateValue, setStateValue] = useState(STATES[0].value);
   const state = STATES.find((s) => s.value === stateValue) ?? STATES[0];
   const viewer = state.viewer;
@@ -515,6 +617,11 @@ function Us21Mockup() {
                 ))}
               </div>
             </DsSection>
+          </div>
+        )}
+        {page === "simulation" && (
+          <div className="flex max-w-lg flex-col gap-md">
+            <KpiSimulation isAdmin={role === "admin"} />
           </div>
         )}
         {page === "overview" && (

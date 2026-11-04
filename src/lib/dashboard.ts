@@ -516,6 +516,13 @@ export async function fetchMetrics(): Promise<Metric[]> {
   return (data ?? []) as Metric[];
 }
 
+/** Démo (US21) : fait comme si le KPI était hors plage depuis sa durée + 1 jour ; renvoie ces jours. */
+export async function simulateOutOfRangeMetric(key: string): Promise<number> {
+  const { data, error } = await supabase.rpc("simuler_kpi_hors_plage", { _key: key });
+  if (error) throw error;
+  return data;
+}
+
 /** « Marquer comme vérifié » (US21) : admin et manager, vérifié par la base. */
 export async function verifyMetric(key: string) {
   const { error } = await supabase.rpc("verify_metric", { _key: key });

@@ -756,6 +756,10 @@ export type Database = {
         Args: { _key: string }
         Returns: undefined
       }
+      simuler_kpi_hors_plage: {
+        Args: { _key: string }
+        Returns: number
+      }
       simuler_point_bloquant_a_revoir: {
         Args: { _blocker_id: string }
         Returns: number
