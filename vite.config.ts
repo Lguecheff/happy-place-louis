@@ -19,7 +19,12 @@ export default defineConfig({
       // Point d'entrée serveur : src/server.ts (page d'erreur propre en cas de plantage)
       server: { entry: "server" },
     }),
-    nitro(),
+    // Hébergement sur Cloudflare Workers : Nitro produit le Worker et le wrangler.json
+    nitro({
+      preset: "cloudflare_module",
+      compatibilityDate: "2025-09-01",
+      cloudflare: { deployConfig: true, nodeCompat: true, wrangler: { name: "happy-place" } },
+    }),
     viteReact(),
     tailwindcss(),
   ],
