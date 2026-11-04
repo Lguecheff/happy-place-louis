@@ -3,7 +3,8 @@
  * laisse déjà lire au manager. Aucune donnée n'est ajoutée : une idée ne fait que résumer
  * une demande validée, un point bloquant résolu ou un KPI en hausse des 30 derniers jours.
  */
-import { formatMetricValue, type Blocker, type Metric } from "@/lib/dashboard";
+import { db, formatMetricValue, type Blocker, type Metric } from "@/lib/dashboard";
+import { NEWS_TEMPLATES } from "@/lib/news-templates";
 
 export const IDEAS_MAX = 3;
 export const IDEAS_WINDOW_DAYS = 30;
@@ -55,6 +56,12 @@ export function excerpt(text: string, max = IDEA_EXCERPT) {
 function teamsLabel(teams: string[]) {
   if (teams.length === 0) return "Toutes les équipes";
   return teams.length === 1 ? teams[0] : `${teams[0]} +${teams.length - 1}`;
+}
+
+/** Brouillon de « Rédiger » : le titre proposé et le texte du modèle le plus proche (US25). */
+export function ideaDraft(idea: NewsIdea) {
+  const template = NEWS_TEMPLATES.find((t) => t.id === idea.draft.templateId);
+  return { title: idea.draft.title, body: template?.body ?? "" };
 }
 
 export function requestIdea(r: ValidatedRequest): NewsIdea {
@@ -128,4 +135,54 @@ export function pickNewsIdeas(
   const firsts = groups.flatMap((g) => g.slice(0, 1));
   const rest = groups.flatMap((g) => g.slice(1)).sort(byDate);
   return [...firsts.sort(byDate), ...rest].slice(0, IDEAS_MAX);
+}
+
+// ---------------------------------------------------------------------------
+// Données (US26) : lues sous RLS, rien de plus que ce que le manager lit déjà.
+// ---------------------------------------------------------------------------
+
+export type IdeaDismissalReason = "masquée" | "utilisée";
+
+/**
+ * Demandes validées dans les 30 derniers jours, encore validées ou déjà clôturées.
+ * La date est celle du dernier passage à « validée » dans le fil des statuts (US1).
+ */
+export async function fetchIdeaRequests(now = Date.now()): Promise<ValidatedRequest[]> {
+  const since = new Date(now - IDEAS_WINDOW_DAYS * DAY_MS).toISOString();
+  const { data: history, error } = await db
+    .from("submission_status_history")
+    .select("submission_id, changed_at")
+    .eq("new_status", "validée")
+    .gte("changed_at", since)
+    .order("changed_at", { ascending: true });
+  if (error) throw error;
+  const validatedAt = new Map((history ?? []).map((h) => [h.submission_id, h.changed_at]));
+  if (!validatedAt.size) return [];
+  const { data, error: subError } = await db
+    .from("submissions")
+    .select("id, team, content")
+    .in("id", [...validatedAt.keys()])
+    .in("status", ["validée", "clôturée"]);
+  if (subError) throw subError;
+  return (data ?? []).map((s) => ({ ...s, validated_at: validatedAt.get(s.id)! }));
+}
+
+export async function fetchIdeaDismissals(): Promise<Set<string>> {
+  const { data, error } = await db.from("news_idea_dismissals").select("idea_key");
+  if (error) throw error;
+  return new Set((data ?? []).map((d) => d.idea_key));
+}
+
+/** Une idée déjà retirée le reste : un second ajout ne fait rien. */
+export async function dismissIdea(key: string, reason: IdeaDismissalReason) {
+  const { error } = await db
+    .from("news_idea_dismissals")
+    .upsert({ idea_key: key, reason }, { onConflict: "user_id,idea_key", ignoreDuplicates: true });
+  if (error) throw error;
+}
+
+/** « Annuler » après « Masquer ». */
+export async function restoreIdea(key: string) {
+  const { error } = await db.from("news_idea_dismissals").delete().eq("idea_key", key);
+  if (error) throw error;
 }

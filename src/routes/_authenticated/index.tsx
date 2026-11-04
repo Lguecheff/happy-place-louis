@@ -11,6 +11,8 @@ import { DsButton, toastUndo } from "@/components/ds";
 import { DS_FOCUS } from "@/components/ds/focus";
 import { rejectionErrorMessage } from "@/components/expandable-card";
 import { NewsReader } from "@/components/news-reader";
+import { NewsIdeas } from "@/components/news/NewsIdeas";
+import { useNewsIdeas } from "@/components/news/use-news-ideas";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { useNotificationPreferences } from "@/components/notifications/useNotificationPreferences";
 import { BlockerArchive, BlockersSection } from "@/components/overview/BlockersSection";
@@ -63,6 +65,7 @@ import {
   verifyMetric,
   type SubmissionInput,
 } from "@/lib/dashboard";
+import { ideaDraft, type NewsIdea } from "@/lib/news-ideas";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -167,6 +170,13 @@ function ManagerSpace() {
   const blockers = useQuery({ queryKey: ["blockers"], queryFn: fetchBlockers, retry: false });
   const metrics = useQuery({ queryKey: ["metrics"], queryFn: fetchMetrics, retry: false });
   const onError = (e: unknown) => toast.error((e as Error).message);
+  // US26 : managers seulement ; les collaborateurs et les admins ne voient pas le bloc.
+  const newsIdeas = useNewsIdeas({
+    enabled: role === "manager",
+    email: myEmail,
+    myTeams: myTeams.data,
+    metrics,
+  });
 
   const exportReport = useMutation({
     mutationFn: () => {
@@ -373,6 +383,12 @@ function ManagerSpace() {
     );
   }
 
+  /** « Rédiger » : un brouillon avec le titre proposé et le modèle le plus proche (US25). */
+  async function writeFromIdea(idea: NewsIdea) {
+    const opened = await newsSection.current?.startDraft(ideaDraft(idea));
+    if (opened) await newsIdeas.use(idea).catch(() => {});
+  }
+
   const canEditNews = (n: News) => canEditPublishedNews(n, role, myEmail);
   const editNews = (n: News) => newsSection.current?.editPublished(n);
 
@@ -495,6 +511,18 @@ function ManagerSpace() {
               onRead={setReadingNews}
               savingEdit={editPublished.isPending}
               onSaveEdit={(input, onSaved) => editPublished.mutate(input, { onSuccess: onSaved })}
+              ideas={
+                role === "manager" && (
+                  <NewsIdeas
+                    ideas={newsIdeas.ideas}
+                    isLoading={newsIdeas.isLoading}
+                    isError={newsIdeas.isError}
+                    onWrite={(idea) => void writeFromIdea(idea)}
+                    onDismiss={(idea) => void newsIdeas.dismiss(idea).catch(() => {})}
+                    onFromTemplate={() => void newsSection.current?.openTemplates()}
+                  />
+                )
+              }
             />
           </div>
           <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-md">

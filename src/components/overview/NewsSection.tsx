@@ -86,7 +86,13 @@ const EMPTY_AUTOSAVE = autosaveInput("", "", [], emptyAudience());
 const isAutosaveEmpty = (v: AutosaveInput) => !v.title && !v.body.trim();
 
 /** Ouvre le rédacteur sur une actu publiée depuis l'extérieur de la section (fenêtre de lecture). */
-export type NewsSectionHandle = { editPublished: (n: News) => void };
+export type NewsSectionHandle = {
+  editPublished: (n: News) => void;
+  /** Ouvre un nouveau brouillon prérempli (US26, « Rédiger » sur une idée). */
+  startDraft: (draft: { title: string; body: string }) => Promise<boolean>;
+  /** Ouvre le rédacteur et la fenêtre des modèles (US26, « Partir d'un modèle »). */
+  openTemplates: () => Promise<void>;
+};
 
 function MonthlyProgress({ count }: { count: number }) {
   const percent = Math.min(count / NEWS_MONTHLY_TARGET, 1) * 100;
@@ -190,6 +196,8 @@ export function NewsSection({
   const audienceInput = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const [confirmPublish, setConfirmPublish] = useState(false);
+  /** La fenêtre des modèles se rouvre en remontant le sélecteur (US26). */
+  const [picker, setPicker] = useState({ key: 0, initial: initialTemplatePicker });
   const [removeTarget, setRemoveTarget] = useState<News | null>(null);
   const linkErrs = showLinkErrs ? linkErrors(media.links) : {};
   const editingPublished = editing?.status === "publiée";
@@ -224,7 +232,24 @@ export function NewsSection({
     autosave.reset(EMPTY_AUTOSAVE);
   }
 
-  useImperativeHandle(editRef, () => ({ editPublished: (n) => void openNews(n) }));
+  useImperativeHandle(editRef, () => ({
+    editPublished: (n) => void openNews(n),
+    startDraft: async (draft) => {
+      if (!(await leaveDraft())) return false;
+      reset();
+      setTitle(draft.title);
+      setBody(draft.body);
+      flushSync(() => onComposerOpenChange(true));
+      titleRef.current?.focus();
+      return true;
+    },
+    openTemplates: async () => {
+      if (!(await leaveDraft())) return;
+      reset();
+      flushSync(() => onComposerOpenChange(true));
+      setPicker((p) => ({ key: p.key + 1, initial: {} }));
+    },
+  }));
 
   /** Enregistre d'abord le brouillon en cours. En cas d'échec, il reste ouvert et rien n'est perdu. */
   async function leaveDraft() {
@@ -400,9 +425,10 @@ export function NewsSection({
             )}
             {!editingPublished && (
               <NewsTemplatePicker
+                key={picker.key}
                 hasText={!!title.trim() || !!body.trim()}
                 disabled={busy}
-                initial={initialTemplatePicker}
+                initial={picker.initial}
                 onApply={(t) => {
                   setTitle(t.title);
                   setBody(t.body);

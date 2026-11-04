@@ -381,6 +381,27 @@ export type Database = {
         }
         Relationships: []
       }
+      news_idea_dismissals: {
+        Row: {
+          created_at: string
+          idea_key: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          idea_key: string
+          reason: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          idea_key?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       news_teams: {
         Row: {
           news_id: string

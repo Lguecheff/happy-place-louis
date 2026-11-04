@@ -1,16 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { BrandHeader } from "@/components/brand-header";
 import { DS_INPUT, DsButton, DsField, toastUndo } from "@/components/ds";
 import { NewsIdeas } from "@/components/news/NewsIdeas";
-import type { NewsTemplatePickerInitial } from "@/components/news/NewsTemplatePicker";
-import { NewsSection, type DraftInput } from "@/components/overview/NewsSection";
+import {
+  NewsSection,
+  type DraftInput,
+  type NewsSectionHandle,
+} from "@/components/overview/NewsSection";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
 import type { Blocker, Metric, News } from "@/lib/dashboard";
-import { pickNewsIdeas, type NewsIdea, type ValidatedRequest } from "@/lib/news-ideas";
-import { NEWS_TEMPLATES } from "@/lib/news-templates";
+import { ideaDraft, pickNewsIdeas, type NewsIdea, type ValidatedRequest } from "@/lib/news-ideas";
 
 export const Route = createFileRoute("/_authenticated/maquettes/us26")({
   head: () => ({
@@ -160,18 +162,12 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
-function draftFor(idea: NewsIdea) {
-  const template = NEWS_TEMPLATES.find((t) => t.id === idea.draft.templateId) ?? NEWS_TEMPLATES[0];
-  return { title: idea.draft.title, body: template.body };
-}
-
 /** Idée de départ du scénario « Rédiger » : calculée sans le marquage « utilisée ». */
-function initialDraft(s: Scenario) {
+function initialIdea(s: Scenario) {
   if (!s.writeFrom) return undefined;
-  const idea = pickNewsIdeas({ ...s.data, myTeams: KESHA.teams, dismissed: new Set() }).find(
+  return pickNewsIdeas({ ...s.data, myTeams: KESHA.teams, dismissed: new Set() }).find(
     (i) => i.key === s.writeFrom,
   );
-  return idea && draftFor(idea);
 }
 
 function Us26Mockup() {
@@ -179,11 +175,10 @@ function Us26Mockup() {
   const scenario = SCENARIOS.find((s) => s.value === scenarioValue) ?? SCENARIOS[0];
   const [dismissals, setDismissals] = useState<Dismissal[]>(scenario.dismissals);
   const [news, setNews] = useState<News[]>([]);
-  const [composerOpen, setComposerOpen] = useState(!!scenario.writeFrom);
-  const [draft, setDraft] = useState(() => initialDraft(scenario));
-  const [picker, setPicker] = useState<NewsTemplatePickerInitial | undefined>();
+  const [composerOpen, setComposerOpen] = useState(false);
   const [mount, setMount] = useState(0);
   const composerTitle = useRef<HTMLInputElement>(null);
+  const newsSection = useRef<NewsSectionHandle>(null);
 
   const ideas = useMemo(
     () =>
@@ -195,32 +190,25 @@ function Us26Mockup() {
     [scenario, dismissals],
   );
 
+  // Scénario « Rédiger » : le brouillon s'ouvre comme après un clic, par le vrai NewsSection.
+  useEffect(() => {
+    const idea = initialIdea(scenario);
+    if (idea) void newsSection.current?.startDraft(ideaDraft(idea));
+  }, [scenario, mount]);
+
   function chooseScenario(value: string) {
     const next = SCENARIOS.find((s) => s.value === value) ?? SCENARIOS[0];
     setScenarioValue(next.value);
     setDismissals(next.dismissals);
     setNews([]);
-    setDraft(initialDraft(next));
-    setPicker(undefined);
-    setComposerOpen(!!next.writeFrom);
+    setComposerOpen(false);
     setMount((m) => m + 1);
   }
 
-  /** Le rédacteur est remonté avec son contenu de départ, puis reçoit le focus. */
-  function reopenComposer(
-    nextDraft?: { title: string; body: string },
-    nextPicker?: NewsTemplatePickerInitial,
-  ) {
-    setDraft(nextDraft);
-    setPicker(nextPicker);
-    setComposerOpen(true);
-    setMount((m) => m + 1);
-    if (!nextPicker) setTimeout(() => composerTitle.current?.focus(), 0);
-  }
-
-  function write(idea: NewsIdea) {
-    setDismissals((list) => [...list, { idea_key: idea.key, reason: "utilisée" }]);
-    reopenComposer(draftFor(idea));
+  async function write(idea: NewsIdea) {
+    if (await newsSection.current?.startDraft(ideaDraft(idea))) {
+      setDismissals((list) => [...list, { idea_key: idea.key, reason: "utilisée" }]);
+    }
   }
 
   function dismiss(idea: NewsIdea) {
@@ -313,7 +301,11 @@ function Us26Mockup() {
             <DsButton onClick={() => toast.info("Non branché dans la maquette (fictif).")}>
               Faire une demande
             </DsButton>
-            <DsButton variant="primary" icon="add" onClick={() => reopenComposer()}>
+            <DsButton
+              variant="primary"
+              icon="add"
+              onClick={() => void newsSection.current?.startDraft({ title: "", body: "" })}
+            >
               Publier une actu
             </DsButton>
           </div>
@@ -322,6 +314,7 @@ function Us26Mockup() {
           <div className="flex min-w-0 flex-[999_1_620px] flex-col gap-md">
             <NewsSection
               key={mount}
+              editRef={newsSection}
               canWrite
               email={KESHA.email}
               news={{ data: news, isError: false, isLoading: false }}
@@ -342,14 +335,12 @@ function Us26Mockup() {
               }}
               onRemove={(n) => setNews((list) => list.filter((x) => x.id !== n.id))}
               onRead={() => {}}
-              initialDraft={draft}
-              initialTemplatePicker={picker}
               ideas={
                 <NewsIdeas
                   ideas={ideas}
-                  onWrite={write}
+                  onWrite={(idea) => void write(idea)}
                   onDismiss={dismiss}
-                  onFromTemplate={() => reopenComposer(undefined, {})}
+                  onFromTemplate={() => void newsSection.current?.openTemplates()}
                 />
               }
             />
