@@ -17,6 +17,10 @@ import {
 } from "@/components/ds";
 import { NewsAudienceBadge } from "@/components/news/NewsAudienceBadge";
 import { NewsAudienceField } from "@/components/news/NewsAudienceField";
+import {
+  NewsTemplatePicker,
+  type NewsTemplatePickerInitial,
+} from "@/components/news/NewsTemplatePicker";
 import { useAutosaveDraft, type AutosaveFn } from "@/components/news/use-autosave-draft";
 import { NewsMediaEditor } from "@/components/news-media";
 import { ConfirmDialog } from "@/components/overview/ConfirmDialog";
@@ -48,6 +52,7 @@ import {
   type MediaDraft,
   type NewsLink,
 } from "@/lib/news-media";
+import { bracketErrors } from "@/lib/news-templates";
 
 /** Première tranche de « Publiées récemment » ; chaque « Voir plus » en ajoute 10 (US24). */
 const RECENT_NEWS = 4;
@@ -135,6 +140,7 @@ export function NewsSection({
   onSaveEdit,
   onAutosave,
   initialDraft,
+  initialTemplatePicker,
 }: {
   canWrite: boolean;
   email: string;
@@ -165,6 +171,8 @@ export function NewsSection({
   onAutosave?: AutosaveFn<AutosaveInput>;
   /** Contenu de départ d'un nouveau brouillon (maquettes). */
   initialDraft?: { title: string; body: string };
+  /** Fenêtre des modèles ouverte au départ (maquettes). */
+  initialTemplatePicker?: NewsTemplatePickerInitial;
 }) {
   const [title, setTitle] = useState(initialDraft?.title ?? "");
   const [body, setBody] = useState(initialDraft?.body ?? "");
@@ -177,6 +185,7 @@ export function NewsSection({
   const [audienceErr, setAudienceErr] = useState<string | undefined>();
   const [editErrors, setEditErrors] = useState<FieldErrors>({});
   const audienceInput = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
   const [confirmPublish, setConfirmPublish] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<News | null>(null);
   const linkErrs = showLinkErrs ? linkErrors(media.links) : {};
@@ -309,11 +318,18 @@ export function NewsSection({
     onSave({ ...input, id: id ?? input.id }, done);
   }
 
+  /** Les crochets d'un modèle (US25) sont vérifiés ici, avant la confirmation de publication. */
   function publish() {
     const content = contentErrors("publiée");
+    const brackets = bracketErrors(title, body);
+    const titleErr = content.title ?? brackets.title;
+    const bodyErr = content.body ?? brackets.body;
+    setTitleError(titleErr);
+    setBodyError(bodyErr);
     const missing = audienceError(audience);
     setAudienceErr(missing);
-    if (Object.keys(content).length) titleRef.current?.focus();
+    if (titleErr) titleRef.current?.focus();
+    else if (bodyErr) bodyRef.current?.focus();
     else if (missing) audienceInput.current?.focus();
     else if (linksAreValid("de publier")) setConfirmPublish(true);
   }
@@ -378,6 +394,20 @@ export function NewsSection({
                 <ErrorSummary errors={editErrors} />
               </div>
             )}
+            {!editingPublished && (
+              <NewsTemplatePicker
+                hasText={!!title.trim() || !!body.trim()}
+                disabled={busy}
+                initial={initialTemplatePicker}
+                onApply={(t) => {
+                  setTitle(t.title);
+                  setBody(t.body);
+                  setTitleError(undefined);
+                  setBodyError(undefined);
+                  titleRef.current?.focus();
+                }}
+              />
+            )}
             <DsField id="actu-titre" label="Titre" error={titleError}>
               <input
                 id="actu-titre"
@@ -392,6 +422,7 @@ export function NewsSection({
             <DsField id="actu-contenu" label="Contenu" error={bodyError}>
               <textarea
                 id="actu-contenu"
+                ref={bodyRef}
                 rows={4}
                 className={DS_INPUT}
                 placeholder="Rédige l'actualité…"

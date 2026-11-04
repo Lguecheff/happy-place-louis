@@ -1,7 +1,7 @@
 /**
  * Modèles d'actu (US25) : une liste fixe, sans table. Ils préremplissent le titre
  * et le texte ; le public reste choisi par l'auteur (US8).
- * Textes proposés par Claude, à valider par Louis avant le branchement.
+ * Textes proposés par Claude et validés par Louis (2026-11-04).
  */
 export type NewsTemplate = { id: string; name: string; title: string; body: string };
 
@@ -59,4 +59,12 @@ const BRACKET = /\[[^\]\n]+\]/g;
 /** Éléments entre crochets encore présents, sans doublon, dans l'ordre du texte. */
 export function bracketsLeft(text: string): string[] {
   return [...new Set(text.match(BRACKET) ?? [])];
+}
+
+/** Erreurs de publication par champ : le message de BRACKETS_LEFT là où il reste des crochets. */
+export function bracketErrors(title: string, body: string): { title?: string; body?: string } {
+  return {
+    ...(bracketsLeft(title).length > 0 && { title: BRACKETS_LEFT }),
+    ...(bracketsLeft(body).length > 0 && { body: BRACKETS_LEFT }),
+  };
 }

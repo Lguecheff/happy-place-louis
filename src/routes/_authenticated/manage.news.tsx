@@ -14,6 +14,7 @@ import {
   TextInput,
 } from "@/components/manage/crud-ui";
 import { NewsAudienceField } from "@/components/news/NewsAudienceField";
+import { NewsTemplatePicker } from "@/components/news/NewsTemplatePicker";
 import { newsSchema, validate, type FieldErrors } from "@/lib/manage-schemas";
 import {
   createNews,
@@ -27,6 +28,7 @@ import {
   type News,
   type NewsInput,
 } from "@/lib/dashboard";
+import { bracketErrors } from "@/lib/news-templates";
 import { audienceError, emptyAudience, type NewsAudienceValue } from "@/lib/news-audience";
 import { NewsImage, NewsLinks, NewsMediaEditor } from "@/components/news-media";
 import { emptyMedia, linkErrors, mediaFromNews, toNewsLinks, type MediaDraft } from "@/lib/news-media";
@@ -119,6 +121,13 @@ function ManageNews() {
       return;
     }
     const published = editing?.status === "publiée";
+    // US25 : une publication est refusée tant qu'il reste des crochets d'un modèle.
+    const brackets =
+      res.data.status === "publiée" && !published ? bracketErrors(form.title, form.body) : {};
+    if (Object.keys(brackets).length) {
+      setErrors(brackets);
+      return;
+    }
     setErrors(published && media.rejectedImage ? { image: media.rejectedImage } : {});
     setShowLinkErrs(true);
     if (Object.keys(linkErrors(media.links)).length) return;
@@ -210,6 +219,16 @@ function ManageNews() {
         <Modal title={editing ? "Modifier l'actualité" : "Nouvelle actualité"} onClose={close}>
           <form onSubmit={submit} className="space-y-sm" noValidate>
             <ErrorSummary errors={errors} />
+            {editing?.status !== "publiée" && (
+              <NewsTemplatePicker
+                hasText={!!form.title.trim() || !!form.body.trim()}
+                disabled={save.isPending}
+                onApply={(t) => {
+                  setForm((f) => f && { ...f, title: t.title, body: t.body });
+                  setErrors({});
+                }}
+              />
+            )}
             <Field label="Titre" error={errors.title}>
               <TextInput
                 value={form.title}
