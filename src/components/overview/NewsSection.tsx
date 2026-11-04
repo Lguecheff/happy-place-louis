@@ -22,7 +22,8 @@ import {
   type NewsTemplatePickerInitial,
 } from "@/components/news/NewsTemplatePicker";
 import { NewsAiWriter, type NewsAiWriterInitial } from "@/components/news/NewsAiWriter";
-import type { AiGenerate } from "@/lib/news-ai";
+import { NewsAiImprover, type NewsAiImproverInitial } from "@/components/news/NewsAiImprover";
+import type { AiGenerate, AiImprove } from "@/lib/news-ai";
 import { useAutosaveDraft, type AutosaveFn } from "@/components/news/use-autosave-draft";
 import { NewsMediaEditor } from "@/components/news-media";
 import { ConfirmDialog } from "@/components/overview/ConfirmDialog";
@@ -150,6 +151,7 @@ export function NewsSection({
   initialDraft,
   initialTemplatePicker,
   aiWriter,
+  aiImprover,
   ideas,
 }: {
   canWrite: boolean;
@@ -185,6 +187,8 @@ export function NewsSection({
   initialTemplatePicker?: NewsTemplatePickerInitial;
   /** « Rédiger avec l'IA » (US27) ; sans valeur, le bouton n'apparaît pas. */
   aiWriter?: { generate: AiGenerate; initial?: NewsAiWriterInitial };
+  /** « Améliorer avec l'IA » (US28), brouillon et actu publiée ; sans valeur, le bouton n'apparaît pas. */
+  aiImprover?: { improve: AiImprove; initial?: NewsAiImproverInitial };
   /** Bloc « Idées de sujets » (US26), managers seulement ; placé sous le compteur du mois. */
   ideas?: ReactNode;
 }) {
@@ -482,6 +486,22 @@ export function NewsSection({
                 onChange={(e) => setBody(e.target.value)}
               />
             </DsField>
+            {aiImprover && (
+              <NewsAiImprover
+                title={title}
+                body={body}
+                disabled={busy || publishing}
+                improve={aiImprover.improve}
+                initial={aiImprover.initial}
+                onReplace={(d) => {
+                  setTitle(d.title);
+                  setBody(d.body);
+                  setTitleError(undefined);
+                  setBodyError(undefined);
+                  bodyRef.current?.focus();
+                }}
+              />
+            )}
             <NewsMediaEditor
               value={media}
               onChange={setMedia}

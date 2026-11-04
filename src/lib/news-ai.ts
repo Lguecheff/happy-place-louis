@@ -44,6 +44,46 @@ export type AiGenerate = (
   signal: AbortSignal,
 ) => Promise<AiResult>;
 
+// ---------------------------------------------------------------------------
+// Amélioration d'un texte écrit par l'auteur (US28), même fonction ai-writer,
+// avec un paramètre d'action. Même limite partagée de 20 par jour.
+// ---------------------------------------------------------------------------
+
+export type AiImproveAction = "corriger" | "clarifier" | "raccourcir" | "rechauffer";
+
+export const AI_IMPROVE_ACTIONS: {
+  value: AiImproveAction;
+  label: string;
+  icon: string;
+  /** « Corriger les fautes » touche aussi le titre ; les autres, le texte seulement. */
+  withTitle: boolean;
+}[] = [
+  { value: "corriger", label: "Corriger les fautes", icon: "spellcheck", withTitle: true },
+  { value: "clarifier", label: "Rendre plus clair", icon: "lightbulb", withTitle: false },
+  { value: "raccourcir", label: "Raccourcir", icon: "short_text", withTitle: false },
+  { value: "rechauffer", label: "Rendre plus chaleureux", icon: "favorite", withTitle: false },
+];
+
+export const AI_IMPROVE_MESSAGES = {
+  privacy: "Le texte de ton actu est envoyé au service d'IA. Évite les données personnelles.",
+  loading: "L'IA améliore ton texte…",
+  replaced: "Texte remplacé par la proposition de l'IA.",
+  unchanged: "L'IA n'a rien trouvé à changer.",
+} as const;
+
+/** Durée pendant laquelle « Annuler le remplacement » reste possible. */
+export const AI_UNDO_MS = 10_000;
+
+/** Le titre n'est renvoyé que pour « Corriger les fautes ». */
+export type AiImproveResult =
+  | { ok: true; title?: string; body: string }
+  | { ok: false; reason: "error" | "limit" | "forbidden" | "personal" };
+
+export type AiImprove = (
+  input: { action: AiImproveAction; title: string; body: string },
+  signal: AbortSignal,
+) => Promise<AiImproveResult>;
+
 /** Mêmes règles que la fonction ai-writer, qui refuse aussi la consigne côté serveur. */
 const EMAIL = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 const PHONE = /(?:(?:\+|00)\d{2,3}[\s.-]?|\b0)[1-9](?:[\s.-]?\d{2}){4}\b/;
