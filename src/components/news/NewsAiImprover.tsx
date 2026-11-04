@@ -92,6 +92,17 @@ export function NewsAiImprover({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Texte écrit par le dernier remplacement, tant que son annulation est possible.
+  const replacedWith = useRef<AiDraft | null>(null);
+  useEffect(() => {
+    const r = replacedWith.current;
+    if (!r || (r.title === title && r.body === body)) return;
+    // Le texte a changé depuis (saisie, autre brouillon, rédacteur fermé) : annuler
+    // écraserait ce changement, le toast disparaît.
+    replacedWith.current = null;
+    if (toastId.current !== undefined) toast.dismiss(toastId.current);
+  }, [title, body]);
+
   useEffect(
     () => () => {
       abort.current?.abort("cancel");
@@ -147,12 +158,19 @@ export function NewsAiImprover({
   function replace(previous: AiDraft, next: AiDraft) {
     close();
     if (toastId.current !== undefined) toast.dismiss(toastId.current);
+    replacedWith.current = null;
     // Après la fermeture, la fenêtre rend le focus au bouton : le formulaire le reprend ensuite.
     setTimeout(() => {
       onReplace(next);
-      toastId.current = toastUndo(AI_IMPROVE_MESSAGES.replaced, () => onReplace(previous), {
-        duration: AI_UNDO_MS,
-      });
+      replacedWith.current = next;
+      toastId.current = toastUndo(
+        AI_IMPROVE_MESSAGES.replaced,
+        () => {
+          replacedWith.current = null;
+          onReplace(previous);
+        },
+        { duration: AI_UNDO_MS },
+      );
     }, 0);
   }
 

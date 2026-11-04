@@ -109,7 +109,7 @@ const SCENARIOS: Scenario[] = [
   {
     value: "remplace",
     label: "Après remplacement (annulation possible)",
-    note: "Le texte de l'IA est dans le formulaire. Le toast garde « Annuler » 10 secondes : il rétablit le texte d'avant. Rechoisis cet état pour rejouer le toast.",
+    note: "Le texte de l'IA est dans le formulaire. Le toast garde « Annuler » 10 secondes : il rétablit le texte d'avant. Il disparaît si tu modifies le texte entre-temps. Rechoisis cet état pour rejouer le toast.",
     initial: { phase: "replaced", before: WRITTEN, after: IMPROVED.corriger },
     answer: "ok",
   },
@@ -127,7 +127,7 @@ const KINDS: { value: Kind; label: string }[] = [
   { value: "publiee", label: "Actu publiée en modification" },
 ];
 
-/** Comme la future fonction serveur, sans appel réseau (fictif). */
+/** Comme la fonction ai-writer (improveNewsWithAi), sans appel réseau (fictif). */
 function fakeImprove(answer: Scenario["answer"]): AiImprove {
   return ({ action }, signal) =>
     new Promise<AiImproveResult>((resolve, reject) => {

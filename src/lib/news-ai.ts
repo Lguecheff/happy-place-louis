@@ -126,3 +126,24 @@ async function readReason(error: unknown): Promise<"error" | "limit" | "forbidde
     return "error";
   }
 }
+
+/**
+ * US28 : appelle la même fonction ai-writer avec une action. Seuls le texte, et le titre
+ * pour « Corriger les fautes », partent vers le service d'IA.
+ */
+export const improveNewsWithAi: AiImprove = async ({ action, title, body }, signal) => {
+  const withTitle = AI_IMPROVE_ACTIONS.find((a) => a.value === action)?.withTitle;
+  const { data, error } = await supabase.functions.invoke("ai-writer", {
+    body: withTitle ? { action, title, body } : { action, body },
+    signal,
+  });
+  if (!error) {
+    if (!data?.ok || typeof data.body !== "string") return { ok: false, reason: "error" };
+    return {
+      ok: true,
+      body: data.body,
+      ...(withTitle && typeof data.title === "string" && { title: data.title }),
+    };
+  }
+  return { ok: false, reason: await readReason(error) };
+};
