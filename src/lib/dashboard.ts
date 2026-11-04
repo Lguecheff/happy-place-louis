@@ -42,7 +42,7 @@ export type Submission = {
   content: string;
   status: string;
   created_at: string;
-  /** Dernier changement de statut, lu dans l'historique (renseigné par `fetchSubmissions`). */
+  /** Dernier changement de statut d'une demande en attente, lu dans l'historique (`withPendingSince`). */
   pending_since?: string;
   rejection_category?: string | null;
   rejection_note?: string | null;
@@ -297,6 +297,26 @@ export async function deleteDraftNews(id: string, imagePath?: string | null) {
   if (!data?.length) throw new Error("Vous n'avez pas le droit de supprimer cette actualité.");
 }
 
+/**
+ * Ajoute `pending_since` (dernier changement de statut) aux demandes en attente : `submissions`
+ * n'a pas de date de mise à jour, l'historique note chaque changement de statut. La RLS de
+ * l'historique suit celle des demandes : chacun lit l'historique des demandes qu'il voit.
+ */
+async function withPendingSince(submissions: Submission[]): Promise<Submission[]> {
+  const ids = submissions.filter((s) => s.status === "en attente").map((s) => s.id);
+  if (!ids.length) return submissions;
+  const { data: history, error } = await db
+    .from("submission_status_history")
+    .select("submission_id, changed_at")
+    .in("submission_id", ids)
+    .order("changed_at", { ascending: true });
+  if (error) throw error;
+  const lastChange = new Map((history ?? []).map((h) => [h.submission_id, h.changed_at]));
+  return submissions.map((s) =>
+    lastChange.has(s.id) ? { ...s, pending_since: lastChange.get(s.id) } : s,
+  );
+}
+
 export async function fetchSubmissions(): Promise<Submission[]> {
   const { data, error } = await db
     .from("submissions")
@@ -304,21 +324,7 @@ export async function fetchSubmissions(): Promise<Submission[]> {
     .eq("status", "en attente")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  const submissions = (data ?? []) as Submission[];
-  if (!submissions.length) return submissions;
-
-  // `submissions` n'a pas de date de mise à jour : l'historique note chaque changement de statut.
-  const { data: history, error: historyError } = await db
-    .from("submission_status_history")
-    .select("submission_id, changed_at")
-    .in(
-      "submission_id",
-      submissions.map((s) => s.id),
-    )
-    .order("changed_at", { ascending: true });
-  if (historyError) throw historyError;
-  const lastChange = new Map((history ?? []).map((h) => [h.submission_id, h.changed_at]));
-  return submissions.map((s) => ({ ...s, pending_since: lastChange.get(s.id) }));
+  return withPendingSince((data ?? []) as Submission[]);
 }
 
 /** Demandes de tous statuts visibles du manager (ses équipes), pour corriger un statut. */
@@ -329,7 +335,7 @@ export async function fetchManagedSubmissions(): Promise<Submission[]> {
     .order("created_at", { ascending: false })
     .limit(200);
   if (error) throw error;
-  return (data ?? []) as Submission[];
+  return withPendingSince((data ?? []) as Submission[]);
 }
 
 /** Toutes les demandes que la RLS laisse lire, pour la recherche : ni filtre ni limite ici. */
@@ -350,7 +356,7 @@ export async function fetchMySubmissions(email: string): Promise<Submission[]> {
     .order("created_at", { ascending: false })
     .limit(10);
   if (error) throw error;
-  return (data ?? []) as Submission[];
+  return withPendingSince((data ?? []) as Submission[]);
 }
 
 function csvCell(value: string) {
@@ -643,7 +649,7 @@ export async function fetchAllSubmissions(): Promise<Submission[]> {
     .select("*")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as Submission[];
+  return withPendingSince((data ?? []) as Submission[]);
 }
 
 function submissionRow(input: SubmissionInput) {

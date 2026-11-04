@@ -4,6 +4,7 @@ import { Linkify } from "@/components/linkify";
 import { AttachmentLink } from "@/components/attachment-link";
 import { formatExactDate } from "@/components/expandable-card";
 import { DsButton } from "@/components/ds";
+import { LongWaitBadge } from "@/components/overview/LongWaitBadge";
 import { statusLabel as formatStatus } from "@/components/overview/overview-utils";
 import type { Submission } from "@/lib/dashboard";
 
@@ -50,15 +51,21 @@ export function SubmissionReader({
                   {s.author_name}
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Description className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
-                  {s.team} · {formatStatus(statusLabel ?? s.status)} · Créée le {formatExactDate(s.created_at)}
+                  {s.team} · {formatStatus(statusLabel ?? s.status)} · Créée le{" "}
+                  {formatExactDate(s.created_at)}
                 </DialogPrimitive.Description>
+                <div className="mt-xs empty:hidden">
+                  <LongWaitBadge submission={s} />
+                </div>
                 {follow && <div className="mt-xs">{follow}</div>}
               </div>
               <DialogPrimitive.Close
                 aria-label="Fermer"
                 className="inline-flex size-11 shrink-0 items-center justify-center text-on-surface-variant hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <span aria-hidden="true" className="material-symbols-outlined">close</span>
+                <span aria-hidden="true" className="material-symbols-outlined">
+                  close
+                </span>
               </DialogPrimitive.Close>
             </div>
             <div className="flex-1 overflow-y-auto p-md space-y-md">
@@ -71,14 +78,21 @@ export function SubmissionReader({
               {s.status === "refusée" && s.rejection_category && (
                 <div className="p-sm bg-error-container text-on-error-container text-body-sm wrap-anywhere">
                   <p className="font-bold">Motif : {s.rejection_category}</p>
-                  <p className="whitespace-pre-line">Raison : <Linkify text={s.rejection_note ?? ""} /></p>
+                  <p className="whitespace-pre-line">
+                    Raison : <Linkify text={s.rejection_note ?? ""} />
+                  </p>
                 </div>
               )}
             </div>
             {(onReject || onApprove || statusActions?.length) && (
               <div className="flex flex-wrap gap-xs border-t border-outline-variant p-md">
                 {statusActions?.map((a) => (
-                  <DsButton key={a.label} disabled={approving} onClick={a.onClick} className="flex-1">
+                  <DsButton
+                    key={a.label}
+                    disabled={approving}
+                    onClick={a.onClick}
+                    className="flex-1"
+                  >
                     {a.label}
                   </DsButton>
                 ))}
@@ -88,7 +102,12 @@ export function SubmissionReader({
                   </DsButton>
                 )}
                 {onApprove && (
-                  <DsButton variant="confirm" disabled={approving} onClick={onApprove} className="flex-1">
+                  <DsButton
+                    variant="confirm"
+                    disabled={approving}
+                    onClick={onApprove}
+                    className="flex-1"
+                  >
                     Valider
                   </DsButton>
                 )}

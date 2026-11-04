@@ -16,6 +16,7 @@ import {
 import { AttachmentLink } from "@/components/attachment-link";
 import { CharCounter, rejectionErrorMessage } from "@/components/expandable-card";
 import { Linkify } from "@/components/linkify";
+import { LongWaitBadge } from "@/components/overview/LongWaitBadge";
 import { SubmissionThreadModal } from "@/components/submission-status-thread";
 import { SubmissionHistory } from "@/components/manage/submission-history";
 import { submissionSchema, validate, type FieldErrors } from "@/lib/manage-schemas";
@@ -154,6 +155,7 @@ function ManageSubmissions() {
               <p className="text-[11px] font-label-sm text-on-surface-variant uppercase mt-xs">
                  {submissionStatusLabels[s.status] ?? s.status} • {timeAgo(s.created_at)}
               </p>
+              <LongWaitBadge submission={s} />
               {s.status === "refusée" && s.rejection_category && (
                 <p className="text-body-sm text-error mt-xs wrap-anywhere">
                   Motif : {s.rejection_category} — <Linkify text={s.rejection_note ?? ""} />

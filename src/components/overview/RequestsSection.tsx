@@ -1,24 +1,12 @@
 import { useRef, useState } from "react";
 import { AttachmentLink } from "@/components/attachment-link";
 import { ManagedSubmissions, ValidatedSubmissions } from "@/components/dashboard-extras";
-import {
-  DsAvatar,
-  DsBadge,
-  DsButton,
-  DsEmptyState,
-  DsIcon,
-  DsListItem,
-  DsSection,
-} from "@/components/ds";
+import { DsAvatar, DsButton, DsEmptyState, DsListItem, DsSection } from "@/components/ds";
 import { DS_FOCUS } from "@/components/ds/focus";
 import { SubmissionPreview } from "@/components/expandable-card";
 import { Linkify } from "@/components/linkify";
-import {
-  LONG_WAIT_DAYS,
-  daysSince,
-  formatDays,
-  pendingSince,
-} from "@/components/overview/overview-utils";
+import { LongWaitBadge } from "@/components/overview/LongWaitBadge";
+import { pendingSince } from "@/components/overview/overview-utils";
 import type { Status } from "@/components/status-actions";
 import { StatusChip } from "@/components/submission-status-thread";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -56,7 +44,6 @@ function PendingRow({
   onThread: () => void;
   onRead: () => void;
 }) {
-  const days = daysSince(pendingSince(s));
   return (
     <DsListItem
       leading={<DsAvatar name={s.author_name} />}
@@ -91,13 +78,7 @@ function PendingRow({
         </>
       }
     >
-      <p className="flex flex-wrap items-center gap-xs font-body-sm text-body-sm text-on-surface-variant">
-        <span className="inline-flex items-center gap-1">
-          <DsIcon name="schedule" className="text-base" />
-          En attente depuis {formatDays(days)}
-        </span>
-        {days > LONG_WAIT_DAYS && <DsBadge variant="watch">Plus de {LONG_WAIT_DAYS} jours</DsBadge>}
-      </p>
+      <LongWaitBadge submission={s} />
       <SubmissionPreview content={s.content} onOpen={onRead} />
       <AttachmentLink path={s.attachment_path} name={s.attachment_name} />
     </DsListItem>
@@ -128,6 +109,7 @@ function MyRequests({
             </DsButton>
           }
         >
+          <LongWaitBadge submission={s} />
           <SubmissionPreview content={s.content} onOpen={() => onRead(s)} />
           <AttachmentLink path={s.attachment_path} name={s.attachment_name} />
           {s.status === "refusée" && s.rejection_category && (

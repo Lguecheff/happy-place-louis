@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AttachmentLink } from "@/components/attachment-link";
 import { SubmissionPreview, formatExactDate } from "@/components/expandable-card";
+import { LongWaitBadge } from "@/components/overview/LongWaitBadge";
 import { ManageIcon } from "@/components/manage/crud-ui";
 import { DS_INPUT } from "@/components/ds";
 import { cn } from "@/lib/utils";
@@ -151,6 +152,7 @@ export function ManagedSubmissions({
               <span className="text-primary font-bold">{s.author_name}</span> · {s.team} ·{" "}
               {formatExactDate(s.created_at)}
             </p>
+            <LongWaitBadge submission={s} />
             <SubmissionPreview content={s.content} onOpen={() => onRead(s)} />
             <div className="flex flex-wrap items-center gap-xs pt-xs">
               <button

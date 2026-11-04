@@ -19,7 +19,10 @@ export function CharCounter({ value, max, min }: { value: string; max: number; m
   const under = min !== undefined && n > 0 && n < min;
   const fmt = (x: number) => x.toLocaleString("fr-FR");
   return (
-    <div className="mt-1 font-label-md text-label-md normal-case tracking-normal" aria-live="polite">
+    <div
+      className="mt-1 font-label-md text-label-md normal-case tracking-normal"
+      aria-live="polite"
+    >
       <p className={`text-right ${over ? "text-error font-bold" : "text-on-surface-variant"}`}>
         {fmt(n)} / {fmt(max)}
       </p>
@@ -38,8 +41,8 @@ export function formatExactDate(iso: string) {
 }
 
 /**
- * Aperçu sur 3 lignes. « Voir plus » n'apparaît que si le texte dépasse
- * réellement 3 lignes (recalculé au redimensionnement) et ouvre la fenêtre de lecture.
+ * Aperçu sur 3 lignes. Le bouton ouvre toujours la fenêtre de lecture (US22) : « Voir plus » si
+ * le texte dépasse réellement 3 lignes (recalculé au redimensionnement), « Lire la demande » sinon.
  */
 export function SubmissionPreview({ content, onOpen }: { content: string; onOpen: () => void }) {
   const ref = useRef<HTMLParagraphElement>(null);
@@ -63,16 +66,14 @@ export function SubmissionPreview({ content, onOpen }: { content: string; onOpen
       >
         “<Linkify text={content} />”
       </p>
-      {overflows && (
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          onClick={onOpen}
-          className="inline-flex min-h-11 items-center font-label-md text-label-md normal-case tracking-normal text-primary font-bold underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          Voir plus
-        </button>
-      )}
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        onClick={onOpen}
+        className="inline-flex min-h-11 items-center font-label-md text-label-md normal-case tracking-normal text-primary font-bold underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        {overflows ? "Voir plus" : "Lire la demande"}
+      </button>
     </div>
   );
 }

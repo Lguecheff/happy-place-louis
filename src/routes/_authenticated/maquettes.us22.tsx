@@ -1,21 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { BrandHeader } from "@/components/brand-header";
-import {
-  DS_INPUT,
-  DsAvatar,
-  DsBadge,
-  DsButton,
-  DsField,
-  DsListItem,
-  DsSection,
-} from "@/components/ds";
+import { DS_INPUT, DsAvatar, DsButton, DsField, DsListItem, DsSection } from "@/components/ds";
 import { DS_FOCUS } from "@/components/ds/focus";
-import { Linkify } from "@/components/linkify";
+import { SubmissionPreview } from "@/components/expandable-card";
+import { LongWaitBadge } from "@/components/overview/LongWaitBadge";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
 import { TodayStrip } from "@/components/overview/TodayStrip";
-import { LONG_WAIT_DAYS, daysSince, pendingSince } from "@/components/overview/overview-utils";
+import { pendingSince } from "@/components/overview/overview-utils";
 import { StatusChip } from "@/components/submission-status-thread";
 import { SubmissionReader } from "@/components/submission-reader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,65 +21,6 @@ export const Route = createFileRoute("/_authenticated/maquettes/us22")({
   }),
   component: Us22Mockup,
 });
-
-// ---------------------------------------------------------------------------
-// Repère proposé (à ajouter dans ds/ en phase 2 sous le nom DsWaitingSince).
-// ---------------------------------------------------------------------------
-
-/** Jours sans réponse d'une demande en attente ; null pour tout autre statut. */
-function waitingDays(s: Submission) {
-  return s.status === "en attente" ? daysSince(pendingSince(s)) : null;
-}
-
-/** Badge « Plus de 30 jours » au-delà de LONG_WAIT_DAYS ; rien en deçà (mention retirée par Louis). */
-function WaitingSince({ days }: { days: number }) {
-  if (days <= LONG_WAIT_DAYS) return null;
-  return (
-    <p className="flex">
-      <DsBadge variant="watch" icon="hourglass_bottom">
-        Plus de {LONG_WAIT_DAYS} jours
-      </DsBadge>
-    </p>
-  );
-}
-
-/**
- * SubmissionPreview proposé (phase 2, dans expandable-card.tsx) : la fenêtre de lecture s'ouvre
- * dans tous les cas. « Voir plus » si le texte est coupé, « Lire la demande » sinon.
- */
-function Preview({ content, onOpen }: { content: string; onOpen: () => void }) {
-  const ref = useRef<HTMLParagraphElement>(null);
-  const [overflows, setOverflows] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const measure = () => setOverflows(el.scrollHeight > el.clientHeight + 1);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [content]);
-
-  return (
-    <div className="min-w-0 space-y-xs">
-      <p
-        ref={ref}
-        className="font-body-sm text-body-sm italic text-on-surface-variant whitespace-pre-line wrap-anywhere line-clamp-3"
-      >
-        “<Linkify text={content} />”
-      </p>
-      <button
-        type="button"
-        aria-haspopup="dialog"
-        onClick={onOpen}
-        className="inline-flex min-h-11 items-center font-label-md text-label-md normal-case tracking-normal text-primary font-bold underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-      >
-        {overflows ? "Voir plus" : "Lire la demande"}
-      </button>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Données factices (fictif).
@@ -251,7 +185,6 @@ const TAB = cn(
 // ---------------------------------------------------------------------------
 
 function MyRow({ s, onRead }: { s: Submission; onRead: () => void }) {
-  const days = waitingDays(s);
   return (
     <DsListItem
       title={<StatusChip status={s.status} />}
@@ -262,8 +195,8 @@ function MyRow({ s, onRead }: { s: Submission; onRead: () => void }) {
         </DsButton>
       }
     >
-      {days !== null && <WaitingSince days={days} />}
-      <Preview content={s.content} onOpen={onRead} />
+      <LongWaitBadge submission={s} />
+      <SubmissionPreview content={s.content} onOpen={onRead} />
     </DsListItem>
   );
 }
@@ -288,22 +221,21 @@ function PendingRow({ s, onRead }: { s: Submission; onRead: () => void }) {
         </>
       }
     >
-      <WaitingSince days={waitingDays(s) ?? 0} />
-      <Preview content={s.content} onOpen={onRead} />
+      <LongWaitBadge submission={s} />
+      <SubmissionPreview content={s.content} onOpen={onRead} />
     </DsListItem>
   );
 }
 
 function ManagedCard({ s, onRead }: { s: Submission; onRead: () => void }) {
-  const days = waitingDays(s);
   return (
     <div className="min-w-0 space-y-xs border border-outline-variant bg-surface-container-lowest p-sm">
       <StatusChip status={s.status} />
       <p className="font-label-md text-label-md text-on-surface-variant wrap-anywhere">
         <span className="font-bold text-primary">{s.author_name}</span> · {s.team}
       </p>
-      {days !== null && <WaitingSince days={days} />}
-      <Preview content={s.content} onOpen={onRead} />
+      <LongWaitBadge submission={s} />
+      <SubmissionPreview content={s.content} onOpen={onRead} />
     </div>
   );
 }
@@ -320,7 +252,6 @@ function Us22Mockup() {
 
   const queue = [...QUEUE].sort((a, b) => pendingSince(a).localeCompare(pendingSince(b)));
   const pending = canReview ? QUEUE : state.mine.filter((s) => s.status === "en attente");
-  const readingDays = reading && waitingDays(reading);
 
   return (
     <div className="bg-background text-on-surface font-body-md min-h-screen flex flex-col">
@@ -438,12 +369,7 @@ function Us22Mockup() {
           </div>
         </div>
       </main>
-      <SubmissionReader
-        submission={reading}
-        onClose={() => setReading(null)}
-        hideAttachment
-        follow={readingDays != null ? <WaitingSince days={readingDays} /> : undefined}
-      />
+      <SubmissionReader submission={reading} onClose={() => setReading(null)} hideAttachment />
     </div>
   );
 }
