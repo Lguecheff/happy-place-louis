@@ -1,6 +1,6 @@
 import { DsKpiDefinition, DsKpiTile } from "@/components/ds";
 import { VerifyMetricButton } from "@/components/overview/KpiSection";
-import { isVerified, metricStaleDays } from "@/components/overview/overview-utils";
+import { isVerified, metricAlert } from "@/components/overview/overview-utils";
 import { ReaderDialog } from "@/components/reader-dialog";
 import { formatMetricValue, metricTrend, type Metric } from "@/lib/dashboard";
 
@@ -20,7 +20,7 @@ export function MetricReader({
   verifying?: boolean;
 }) {
   if (!m) return null;
-  const staleDays = metricStaleDays(m);
+  const alert = metricAlert(m);
   return (
     <ReaderDialog
       title={m.label}
@@ -34,12 +34,10 @@ export function MetricReader({
         {...metricTrend(m)}
         updatedAt={m.updated_at}
         updatedBy={m.updated_by_name}
-        staleDays={staleDays}
+        alert={alert}
         verified={isVerified(m)}
       >
-        {onVerify && staleDays != null && (
-          <VerifyMetricButton pending={verifying} onVerify={onVerify} />
-        )}
+        {onVerify && alert && <VerifyMetricButton pending={verifying} onVerify={onVerify} />}
       </DsKpiTile>
       <DsKpiDefinition definition={m.definition} impact={m.impact} />
     </ReaderDialog>

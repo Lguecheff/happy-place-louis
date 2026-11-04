@@ -207,7 +207,10 @@ function DesignSystemPage() {
               trend="Stable sur 30 jours"
               updatedAt={ago(60 * 24 * 3)}
               updatedBy="Automatique"
-              staleDays={3}
+              alert={{
+                days: 12,
+                text: "En dessous de 150 depuis 12 jours. Vérifie si c'est un souci ou une bonne nouvelle.",
+              }}
               helpHref="#kpi"
             />
             <DsKpiTile

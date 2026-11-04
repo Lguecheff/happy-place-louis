@@ -10,7 +10,7 @@ import {
   DsSection,
 } from "@/components/ds";
 import { DS_FOCUS } from "@/components/ds/focus";
-import { isVerified, metricStaleDays } from "@/components/overview/overview-utils";
+import { isVerified, metricAlert } from "@/components/overview/overview-utils";
 import { formatMetricValue, metricTrend, type Metric } from "@/lib/dashboard";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +39,7 @@ function tileProps(metric: Metric | undefined, onHelp: () => void) {
     ...metricTrend(metric),
     updatedAt: metric.updated_at,
     updatedBy: metric.updated_by_name,
-    staleDays: metricStaleDays(metric),
+    alert: metricAlert(metric),
     verified: isVerified(metric),
     onHelp,
     definition,
@@ -68,7 +68,7 @@ export function KpiSection({
   const npsMetric = metric("nps");
   const npsValue = nps !== "" ? nps : (npsMetric?.value ?? "");
   const verify = (m: Metric | undefined) =>
-    m && onVerify && metricStaleDays(m) != null ? (
+    m && onVerify && metricAlert(m) ? (
       <VerifyMetricButton pending={verifyingKey === m.key} onVerify={() => onVerify(m)} />
     ) : null;
 

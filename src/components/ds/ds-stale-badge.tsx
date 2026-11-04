@@ -11,14 +11,16 @@ function staleText(days: number) {
 type DsStaleBadgeProps = {
   /** Jours sans mise à jour (`daysSince`). */
   days: number;
+  /** Texte de l'infobulle à la place de « Sans mise à jour depuis N jours… » (KPI hors plage). */
+  text?: string;
   /** false dans un élément déjà cliquable (ligne de recherche) : pas d'infobulle, texte lu en entier. */
   tooltip?: boolean;
   className?: string;
 };
 
 /** Badge « À vérifier » : KPI ou point bloquant sans mise à jour depuis trop longtemps. */
-export function DsStaleBadge({ days, tooltip = true, className }: DsStaleBadgeProps) {
-  const text = staleText(days);
+export function DsStaleBadge({ days, text: custom, tooltip = true, className }: DsStaleBadgeProps) {
+  const text = custom ?? staleText(days);
   if (!tooltip) {
     return (
       <DsBadge variant="watch" icon="history" className={className}>

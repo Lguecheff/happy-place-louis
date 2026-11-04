@@ -99,7 +99,7 @@ Props : `at` (date ISO), `by`, `stale`, `verified`. Affiche « Mis à jour il y 
 ```
 
 ### DsStaleBadge
-Props : `days`, `tooltip` (défaut `true`), `className`. Badge « À vérifier » (`watch`, icône `history`) d'un KPI, d'un point bloquant ou d'une demande sans mise à jour depuis trop longtemps (règles : `metricStaleDays`, `blockerStaleDays` et `submissionStaleDays` dans `overview-utils.ts`, calcul `daysSince`). Une demande ne le porte que dans son détail. Au survol et au focus clavier, une `DsTooltip` affiche « Sans mise à jour depuis N jours. L'information est peut-être dépassée. » : le badge est donc focusable. Au toucher, la mention `DsFreshness` placée à côté donne l'ancienneté. Dans un élément déjà cliquable (ligne de recherche), passe `tooltip={false}` : pas d'élément focusable imbriqué, le texte complet est lu par les lecteurs d'écran.
+Props : `days`, `text`, `tooltip` (défaut `true`), `className`. Badge « À vérifier » (`watch`, icône `history`) d'un point bloquant ou d'une demande sans mise à jour depuis trop longtemps, ou d'un KPI hors de sa plage depuis trop longtemps (règles : `blockerStaleDays`, `submissionStaleDays` et `metricAlert` dans `overview-utils.ts`, calcul `daysSince`). Une demande ne le porte que dans son détail. `text` remplace l'infobulle par défaut (KPI : « En dessous de 150 depuis 12 jours. Vérifie si c'est un souci ou une bonne nouvelle. »). Jamais de rouge ni de vert : l'app ne sait pas si l'écart est bon ou mauvais. Au survol et au focus clavier, une `DsTooltip` affiche « Sans mise à jour depuis N jours. L'information est peut-être dépassée. » : le badge est donc focusable. Au toucher, la mention `DsFreshness` placée à côté donne l'ancienneté. Dans un élément déjà cliquable (ligne de recherche), passe `tooltip={false}` : pas d'élément focusable imbriqué, le texte complet est lu par les lecteurs d'écran.
 ```tsx
 <DsStaleBadge days={5} />
 ```
@@ -111,7 +111,7 @@ Props : `state` (`idle` | `saving` | `saved` | `error`), `at` (heure du dernier 
 ```
 
 ### DsKpiTile
-Props : `label`, `value`, `valueFont` (`display` | `headline`), `trend`, `trendDirection` (`up` | `down` | `flat`), `updatedAt`, `updatedBy` (passé à `DsFreshness`), `stale`, `staleDays` (badge `DsStaleBadge` au-dessus de la date ; vide, pas de badge), `verified` (passé à `DsFreshness`), `helpHref` (lien) ou `onHelp` (bouton qui ouvre une fenêtre), `helpLabel`, `definition` (`{ definition, impact }` : le libellé devient focusable, souligné en pointillés, et ouvre une `DsTooltip` avec `DsKpiDefinition`), `children` (ajout en bas de tuile). Avec `definition`, garde `onHelp` ou `helpHref` : c'est le seul accès aux textes sur un écran tactile.
+Props : `label`, `value`, `valueFont` (`display` | `headline`), `trend`, `trendDirection` (`up` | `down` | `flat`), `updatedAt`, `updatedBy` (passé à `DsFreshness`), `stale`, `alert` (`{ days, text }` de `metricAlert` : badge `DsStaleBadge` au-dessus de la date ; vide, pas de badge), `verified` (passé à `DsFreshness`), `helpHref` (lien) ou `onHelp` (bouton qui ouvre une fenêtre), `helpLabel`, `definition` (`{ definition, impact }` : le libellé devient focusable, souligné en pointillés, et ouvre une `DsTooltip` avec `DsKpiDefinition`), `children` (ajout en bas de tuile). Avec `definition`, garde `onHelp` ou `helpHref` : c'est le seul accès aux textes sur un écran tactile.
 ```tsx
 <DsKpiTile label="Taux de placement" value="78,4 %" trend="+2,1 points sur 30 jours" trendDirection="up" updatedAt={iso} helpHref="/aide#placement" />
 ```

@@ -22,8 +22,8 @@ type DsKpiTileProps = {
   /** Auteur de la dernière mise à jour, affiché après la date. */
   updatedBy?: string | null;
   stale?: boolean;
-  /** Jours sans mise à jour au-delà du seuil du KPI : badge « À vérifier » ; vide, pas de badge. */
-  staleDays?: number | null;
+  /** KPI hors de sa plage depuis trop longtemps : badge « À vérifier » et son infobulle ; vide, pas de badge. */
+  alert?: { days: number; text: string } | null;
   /** Dernière modification = une vérification : « Vérifié il y a X ». */
   verified?: boolean;
   /** Lien « Comprendre cet indicateur ». */
@@ -52,7 +52,7 @@ export function DsKpiTile({
   updatedAt,
   updatedBy,
   stale,
-  staleDays,
+  alert,
   verified,
   helpHref,
   onHelp,
@@ -96,7 +96,7 @@ export function DsKpiTile({
           {trend}
         </p>
       )}
-      {staleDays != null && <DsStaleBadge days={staleDays} className="self-start" />}
+      {alert && <DsStaleBadge days={alert.days} text={alert.text} className="self-start" />}
       {updatedAt && <DsFreshness at={updatedAt} by={updatedBy} stale={stale} verified={verified} />}
       {helpHref && (
         <a href={helpHref} className={HELP}>

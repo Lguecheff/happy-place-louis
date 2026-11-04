@@ -93,8 +93,15 @@ export type Metric = {
   updated_at: string;
   /** Nom copié par la base à chaque modification (US20) ; vide pour les KPI plus anciens. */
   updated_by_name?: string | null;
-  /** Seuil « à vérifier » en jours (US21) ; vide pour les KPI créés avant : pas de badge. */
+  /**
+   * Plage attendue (US21) : hors de [threshold_min, threshold_max] depuis plus de
+   * stale_after_days jours, le KPI porte « À vérifier ». Sans seuil, jamais de badge.
+   */
+  threshold_min?: number | null;
+  threshold_max?: number | null;
   stale_after_days?: number | null;
+  /** Début de la période hors plage en cours, lu dans l'historique par la base ; vide dans la plage. */
+  out_of_range_since?: string | null;
   /** Date du dernier « Marquer comme vérifié » (US21) ; égale à updated_at tant que rien n'a changé depuis. */
   verified_at?: string | null;
   /** « Ce que ça mesure » (US18). */

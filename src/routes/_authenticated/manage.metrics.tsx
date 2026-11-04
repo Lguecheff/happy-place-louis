@@ -17,7 +17,12 @@ import { metricSchema, validate, type FieldErrors } from "@/lib/manage-schemas";
 import { KpiTextField } from "@/components/manage/kpi-text-field";
 import { MetricHistory } from "@/components/manage/metric-history";
 import { VerifyMetricButton } from "@/components/overview/KpiSection";
-import { isVerified, metricStaleDays } from "@/components/overview/overview-utils";
+import {
+  hasMetricThresholds,
+  isVerified,
+  metricAlert,
+  metricRangeLabel,
+} from "@/components/overview/overview-utils";
 import {
   createMetric,
   deleteMetric,
@@ -79,8 +84,10 @@ function toNumber(text: string) {
   return raw === "" || Number.isNaN(Number(raw)) ? Number.NaN : Number(raw);
 }
 
-function thresholdLabel(days: number) {
-  return `Seuil « à vérifier » : ${days} jour${days > 1 ? "s" : ""}`;
+/** « Plage : de 30 à 80 % · plus de 7 jours hors plage ». */
+function thresholdLabel(m: Metric) {
+  const days = m.stale_after_days as number;
+  return `Plage : ${metricRangeLabel(m)} · plus de ${days} jour${days > 1 ? "s" : ""} hors plage`;
 }
 
 function ManageMetrics() {
@@ -182,7 +189,7 @@ function ManageMetrics() {
 
       <div className="space-y-xs">
         {list.data?.map((m) => {
-          const staleDays = metricStaleDays(m);
+          const alert = metricAlert(m);
           return (
             <DsListItem
               key={m.key}
@@ -225,15 +232,15 @@ function ManageMetrics() {
               }
             >
               <span className="flex flex-wrap items-center gap-xs">
-                {m.stale_after_days == null ? (
-                  <DsBadge icon="edit_calendar">Seuil à définir</DsBadge>
+                {hasMetricThresholds(m) ? (
+                  <DsBadge>{thresholdLabel(m)}</DsBadge>
                 ) : (
-                  <DsBadge>{thresholdLabel(m.stale_after_days)}</DsBadge>
+                  <DsBadge icon="edit_calendar">Seuil à définir</DsBadge>
                 )}
-                {staleDays != null && <DsStaleBadge days={staleDays} />}
+                {alert && <DsStaleBadge days={alert.days} text={alert.text} />}
                 <DsFreshness at={m.updated_at} by={m.updated_by_name} verified={isVerified(m)} />
               </span>
-              {staleDays != null && (
+              {alert && (
                 <VerifyMetricButton
                   pending={verify.isPending && verify.variables === m.key}
                   onVerify={() => verify.mutate(m.key)}

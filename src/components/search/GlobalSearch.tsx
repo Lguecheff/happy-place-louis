@@ -8,7 +8,7 @@ import { BlockerBadges } from "@/components/overview/BlockersSection";
 import {
   blockerStaleDays,
   formatDay,
-  metricStaleDays,
+  metricAlert,
   newsPublishedAt,
   plural,
 } from "@/components/overview/overview-utils";
@@ -108,6 +108,11 @@ function ResultRow({
 /** Dans une ligne de résultat (déjà cliquable) : badge sans infobulle, texte lu en entier. */
 function StaleSearchBadge({ days }: { days: number | null }) {
   return days != null ? <DsStaleBadge days={days} tooltip={false} /> : null;
+}
+
+function MetricSearchBadge({ metric }: { metric: Metric }) {
+  const alert = metricAlert(metric);
+  return alert ? <DsStaleBadge days={alert.days} text={alert.text} tooltip={false} /> : null;
 }
 
 function BlockerSearchBadges({ blocker }: { blocker: Blocker }) {
@@ -349,7 +354,7 @@ export function GlobalSearch({
                     title={<Highlighted text={m.label} query={term} />}
                     excerpt={formatMetricValue(m.value, m.unit)}
                     meta={`KPI · Mis à jour le ${formatDay(m.updated_at)}`}
-                    status={<StaleSearchBadge days={metricStaleDays(m)} />}
+                    status={<MetricSearchBadge metric={m} />}
                     onSelect={() => openMetric(m)}
                   />
                 ))}

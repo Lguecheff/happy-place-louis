@@ -1,5 +1,11 @@
 import type { AppRole } from "@/lib/auth";
-import type { Blocker, Metric, News, Submission } from "@/lib/dashboard";
+import {
+  formatMetricValue,
+  type Blocker,
+  type Metric,
+  type News,
+  type Submission,
+} from "@/lib/dashboard";
 
 /** Cible d'actus publiées par mois (North Star, décision du 2026-10-28). */
 export const NEWS_MONTHLY_TARGET = 4;
@@ -22,11 +28,47 @@ export function blockerStaleDays(b: Blocker) {
   return days > BLOCKER_STALE_DAYS ? days : null;
 }
 
-/** Jours sans mise à jour d'un KPI au-delà de son seuil ; null sans seuil ou s'il est récent. */
-export function metricStaleDays(m: Metric) {
-  if (m.stale_after_days == null) return null;
-  const days = daysSince(m.updated_at);
-  return days > m.stale_after_days ? days : null;
+/** Les seuils d'un KPI sont complets : une durée et au moins une borne. */
+export function hasMetricThresholds(m: Metric) {
+  return m.stale_after_days != null && (m.threshold_min != null || m.threshold_max != null);
+}
+
+/** Borne atteinte par la valeur actuelle (égale comprise), ou null dans la plage ou sans seuil. */
+export function metricOutOfRange(m: Metric): "min" | "max" | null {
+  if (!hasMetricThresholds(m)) return null;
+  if (m.threshold_max != null && m.value >= m.threshold_max) return "max";
+  if (m.threshold_min != null && m.value <= m.threshold_min) return "min";
+  return null;
+}
+
+/** Plage d'un KPI en clair : « de 30 à 80 % », « 30 minimum », « 80 % maximum ». */
+export function metricRangeLabel(m: Metric) {
+  const min = m.threshold_min != null ? formatMetricValue(m.threshold_min, m.unit) : null;
+  const max = m.threshold_max != null ? formatMetricValue(m.threshold_max, m.unit) : null;
+  if (min && max) return `de ${min} à ${max}`;
+  return min ? `${min} minimum` : `${max} maximum`;
+}
+
+/**
+ * KPI hors de sa plage depuis plus de stale_after_days jours : badge « À vérifier ». Le compteur
+ * part du franchissement, ou de la dernière vérification si elle est plus récente. `days` compte
+ * depuis le franchissement, pour l'infobulle.
+ */
+export function metricAlert(m: Metric): { days: number; text: string } | null {
+  const side = metricOutOfRange(m);
+  if (!side || !m.out_of_range_since || m.stale_after_days == null) return null;
+  const verified = m.verified_at && new Date(m.verified_at) > new Date(m.out_of_range_since);
+  if (daysSince(verified ? (m.verified_at as string) : m.out_of_range_since) <= m.stale_after_days)
+    return null;
+  const days = daysSince(m.out_of_range_since);
+  const bound =
+    side === "max"
+      ? `Au-dessus de ${formatMetricValue(m.threshold_max as number, m.unit)}`
+      : `En dessous de ${formatMetricValue(m.threshold_min as number, m.unit)}`;
+  return {
+    days,
+    text: `${bound} depuis ${days} jour${days > 1 ? "s" : ""}. Vérifie si c'est un souci ou une bonne nouvelle.`,
+  };
 }
 
 /** Dernière modification d'un KPI = « Marquer comme vérifié » (même horodatage, posé par la base). */

@@ -3,11 +3,26 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { BlockerReader } from "@/components/blocker-reader";
 import { BrandHeader } from "@/components/brand-header";
-import { DS_INPUT, DsField, DsListItem, DsSection } from "@/components/ds";
+import {
+  DS_INPUT,
+  DsBadge,
+  DsButton,
+  DsField,
+  DsFreshness,
+  DsListItem,
+  DsSection,
+  DsStaleBadge,
+} from "@/components/ds";
 import { BlockersSection, type OpenBlocker } from "@/components/overview/BlockersSection";
-import { KpiSection } from "@/components/overview/KpiSection";
+import { KpiSection, VerifyMetricButton } from "@/components/overview/KpiSection";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
-import { formatDay } from "@/components/overview/overview-utils";
+import {
+  formatDay,
+  hasMetricThresholds,
+  isVerified,
+  metricAlert,
+  metricRangeLabel,
+} from "@/components/overview/overview-utils";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
 import {
   StatusChip,
@@ -16,7 +31,7 @@ import {
   verificationStep,
   type ThreadStep,
 } from "@/components/submission-status-thread";
-import type { Blocker, Metric, Submission } from "@/lib/dashboard";
+import { formatMetricValue, type Blocker, type Metric, type Submission } from "@/lib/dashboard";
 
 export const Route = createFileRoute("/_authenticated/maquettes/us21")({
   head: () => ({
@@ -111,8 +126,11 @@ const METRIC_TEXTS = {
   },
 };
 
-/** `activeDays` : ancienneté de « Missions actives » (seuil 1 jour) selon l'état. */
-function metrics(activeDays: number): Metric[] {
+/**
+ * `outDays` : depuis combien de jours « Missions actives » est sous son minimum (150) ; le seuil
+ * de durée est de 7 jours.
+ */
+function metrics(outDays: number): Metric[] {
   return [
     {
       key: "training_kpi",
@@ -124,7 +142,10 @@ function metrics(activeDays: number): Metric[] {
       delta: 2.1,
       updated_at: ago(2 * DAY_MS),
       updated_by_name: OLIVIA,
+      threshold_min: 60,
+      threshold_max: 90,
       stale_after_days: 7,
+      out_of_range_since: null,
       ...METRIC_TEXTS.training_kpi,
     },
     {
@@ -135,9 +156,12 @@ function metrics(activeDays: number): Metric[] {
       trend: "baisse",
       previous_value: 150,
       delta: -8,
-      updated_at: ago(activeDays * DAY_MS),
+      updated_at: ago(12 * HOUR_MS),
       updated_by_name: "Automatique",
-      stale_after_days: 1,
+      threshold_min: 150,
+      threshold_max: null,
+      stale_after_days: 7,
+      out_of_range_since: ago(outDays * DAY_MS),
       ...METRIC_TEXTS.active_users,
     },
     {
@@ -151,6 +175,8 @@ function metrics(activeDays: number): Metric[] {
       updated_at: ago(20 * DAY_MS),
       updated_by_name: OLIVIA,
       // KPI créé avant l'US21 : sans seuil, jamais de badge.
+      threshold_min: null,
+      threshold_max: null,
       stale_after_days: null,
       ...METRIC_TEXTS.nps,
     },
@@ -231,13 +257,14 @@ type MockState = {
   label: string;
   note: string;
   viewer: Viewer;
+  /** Jours sous le minimum pour « Missions actives » (voir `metrics`). */
   activeDays: number;
   /** Relances déjà faites à l'ouverture de l'état : id du point → auteur. */
   reminded?: Record<string, string>;
   /** KPI ou demandes déjà vérifiés à l'ouverture de l'état. */
   verified?: string[];
-  /** Ce que montre la page : vue d'ensemble ou Mes demandes. */
-  page?: "overview" | "requests";
+  /** Ce que montre la page : vue d'ensemble, Mes demandes, ou aperçu des seuils d'un KPI. */
+  page?: "overview" | "requests" | "manage";
   /** Aperçu de la notification de relance reçue. */
   notification?: boolean;
 };
@@ -248,52 +275,67 @@ const STATES: MockState[] = [
     label: "Point à vérifier (vue collaborateur)",
     note: "Vue de Gontran. Tout point non résolu sans mise à jour depuis plus de 3 jours porte « À vérifier », quelle que soit sa sévérité. Survole le badge, ou atteins-le avec Tab. Gontran ne change aucun statut et ne relance personne.",
     viewer: GONTRAN,
-    activeDays: 0.5,
+    activeDays: 3,
   },
   {
     value: "point-manager",
     label: "Point à vérifier (vue manager)",
     note: "Vue de Kesha (Data, Product). Elle change le statut des points qui la concernent : ses équipes et « Toutes les équipes ». « Relancer équipes » n'apparaît que sur le point des Opérations, qui ne la concerne pas. Essaie le bouton, ou change un statut : le badge disparaît.",
     viewer: KESHA,
-    activeDays: 0.5,
+    activeDays: 3,
   },
   {
     value: "point-admin",
     label: "Point à vérifier (vue admin)",
     note: "Vue d'Olivia (admin) : statut modifiable et « Relancer équipes » sur tous les points à vérifier. Point « Toutes les équipes » : seuls les managers sont relancés. Autres points : collaborateurs et managers des équipes du point. Une seule relance tant que le point n'a pas été modifié.",
     viewer: ADMIN,
-    activeDays: 0.5,
+    activeDays: 3,
   },
   {
     value: "relance-recue",
     label: "Relance reçue (vue collaborateur)",
     note: "Olivia a relancé les équipes du point ATS. Gontran (Data) reçoit la notification dans sa cloche, sans bouton ; un clic ouvre la fenêtre de lecture du point. La ligne affiche « Relancé le … par Olivia » pour tout le monde, jusqu'à la prochaine modification du point.",
     viewer: GONTRAN,
-    activeDays: 0.5,
+    activeDays: 3,
     reminded: { b2: OLIVIA },
     notification: true,
   },
   {
-    value: "kpi-seuil",
-    label: "KPI au-delà de son seuil",
-    note: "« Missions actives » a un seuil d'1 jour et n'a pas bougé depuis 3 jours : badge, et « Marquer comme vérifié » pour Kesha (tous les KPI). « Taux de placement » (seuil 7 jours) n'a pas de badge. Le NPS n'a pas de seuil : pas de badge, même après 20 jours. Seuil et « Seuil à définir » : voir la vraie page « Gérer les données > KPI ».",
+    value: "kpi-recent",
+    label: "KPI hors plage depuis peu",
+    note: "« Missions actives » (142) est sous son minimum de 150 depuis 3 jours ; son seuil de durée est de 7 jours : pas encore de badge. « Taux de placement » (78,4 %) est dans sa plage de 60 à 90 %. Le NPS n'a pas de seuil.",
     viewer: KESHA,
     activeDays: 3,
   },
   {
+    value: "kpi-seuil",
+    label: "KPI hors plage depuis trop longtemps",
+    note: "« Missions actives » est sous 150 depuis 12 jours, plus que ses 7 jours : badge « À vérifier » et, pour Kesha (tous les KPI), « Marquer comme vérifié ». Survole le badge : « En dessous de 150 depuis 12 jours. Vérifie si c'est un souci ou une bonne nouvelle. ». Pas de couleur rouge ni verte : l'app ne sait pas si c'est bon ou mauvais.",
+    viewer: KESHA,
+    activeDays: 12,
+  },
+  {
     value: "kpi-verifie",
     label: "KPI vérifié",
-    note: "Kesha a vérifié « Missions actives » : le badge disparaît, la mention devient « Vérifié il y a 2 minutes par Kesha ». Valeur et tendance ne changent pas.",
+    note: "Kesha a vérifié « Missions actives » : le badge disparaît et le compteur repart de la vérification. S'il reste sous 150 pendant 7 jours de plus, le badge revient. La mention devient « Vérifié il y a 2 minutes par Kesha » ; valeur et tendance ne changent pas.",
     viewer: KESHA,
-    activeDays: 3,
+    activeDays: 12,
     verified: ["active_users"],
+  },
+  {
+    value: "kpi-seuils",
+    label: "Seuils d'un KPI (Gérer les données)",
+    note: "Aperçu de « Gérer les données > KPI » (admin) : chaque KPI affiche sa plage et sa durée, ou « Seuil à définir ». À la création : un minimum, un maximum, ou les deux, et une durée de 1 à 365 jours. Essaie d'enregistrer le formulaire vide, ou avec un minimum plus grand que le maximum.",
+    viewer: ADMIN,
+    activeDays: 12,
+    page: "manage",
   },
   {
     value: "demande-ancienne",
     label: "Demande de plus d'un an (détail)",
     note: "Mes demandes de Gontran : chaque ligne s'ouvre sur « Détail de la demande ». Aucun badge dans la liste. Dans le détail, une demande clôturée sans mise à jour depuis plus d'un an porte « À vérifier » et le bouton « Confirmer à jour ». Ni la demande validée, ni celle en attente depuis 500 jours ne sont concernées.",
     viewer: GONTRAN,
-    activeDays: 0.5,
+    activeDays: 3,
     page: "requests",
   },
   {
@@ -301,11 +343,123 @@ const STATES: MockState[] = [
     label: "Demande vérifiée",
     note: "Gontran a confirmé sa demande clôturée : le badge disparaît, la mention devient « Vérifié … par Gontran » et le fil gagne une ligne « Vérifiée à jour ». Personne n'est notifié.",
     viewer: GONTRAN,
-    activeDays: 0.5,
+    activeDays: 3,
     page: "requests",
     verified: ["s1"],
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Aperçu des seuils dans « Gérer les données > KPI » (admin)
+// ---------------------------------------------------------------------------
+
+type ThresholdForm = { min: string; max: string; days: string };
+
+/** Mêmes règles que la base prévue en phase 2 : une borne au moins, min < max, 1 à 365 jours. */
+function thresholdErrors({ min, max, days }: ThresholdForm) {
+  const num = (t: string) => (t.trim() === "" ? null : Number(t.replace(",", ".")));
+  const lo = num(min);
+  const hi = num(max);
+  const d = num(days);
+  const errors: Partial<Record<keyof ThresholdForm, string>> = {};
+  if (lo == null && hi == null) errors.min = "Indique un minimum, un maximum, ou les deux.";
+  else if (lo != null && hi != null && lo >= hi)
+    errors.max = "Le maximum doit être plus grand que le minimum.";
+  if (lo != null && Number.isNaN(lo)) errors.min = "Indique un nombre.";
+  if (hi != null && Number.isNaN(hi)) errors.max = "Indique un nombre.";
+  if (d == null || !Number.isInteger(d) || d < 1 || d > 365)
+    errors.days = "Indique un nombre entier de jours, de 1 à 365.";
+  return errors;
+}
+
+function ManageThresholdsPreview({
+  rows,
+  onVerify,
+}: {
+  rows: Metric[];
+  onVerify: (m: Metric) => void;
+}) {
+  const [form, setForm] = useState<ThresholdForm>({ min: "", max: "", days: "" });
+  const [submitted, setSubmitted] = useState(false);
+  const errors = submitted ? thresholdErrors(form) : {};
+  const field = (key: keyof ThresholdForm, label: string, hint: string) => (
+    <DsField id={`kpi-${key}`} label={label} error={errors[key]} className="flex-1 basis-40">
+      <input
+        id={`kpi-${key}`}
+        inputMode="decimal"
+        aria-invalid={!!errors[key]}
+        aria-describedby={`kpi-${key}-aide`}
+        className={DS_INPUT}
+        value={form[key]}
+        onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+      />
+      <p
+        id={`kpi-${key}-aide`}
+        className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant"
+      >
+        {hint}
+      </p>
+    </DsField>
+  );
+  return (
+    <>
+      <DsSection id="gerer-kpi" title="Gérer les données > KPI (aperçu, vue admin)">
+        <div className="space-y-xs">
+          {rows.map((m) => {
+            const alert = metricAlert(m);
+            const days = m.stale_after_days ?? 0;
+            return (
+              <DsListItem
+                key={m.key}
+                icon="monitoring"
+                title={`${m.label} — ${formatMetricValue(m.value, m.unit)}`}
+                meta={`${m.key} (fictif)`}
+                actions={<DsButton onClick={notWired}>Modifier</DsButton>}
+              >
+                <span className="flex flex-wrap items-center gap-xs">
+                  {hasMetricThresholds(m) ? (
+                    <DsBadge>
+                      Plage : {metricRangeLabel(m)} · plus de {days} jour{days > 1 ? "s" : ""} hors
+                      plage
+                    </DsBadge>
+                  ) : (
+                    <DsBadge icon="edit_calendar">Seuil à définir</DsBadge>
+                  )}
+                  {alert && <DsStaleBadge days={alert.days} text={alert.text} />}
+                  <DsFreshness at={m.updated_at} by={m.updated_by_name} verified={isVerified(m)} />
+                </span>
+                {alert && <VerifyMetricButton onVerify={() => onVerify(m)} />}
+              </DsListItem>
+            );
+          })}
+        </div>
+      </DsSection>
+      <DsSection id="nouveau-kpi" title="Nouvel indicateur (extrait du formulaire)">
+        <form
+          className="space-y-sm"
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            setSubmitted(true);
+            if (Object.keys(thresholdErrors(form)).length === 0)
+              toast.success("Seuils valides (fictif).");
+          }}
+        >
+          <div className="flex flex-wrap items-start gap-xs">
+            {field("min", "Seuil minimum (optionnel)", "Sous cette valeur, le compteur démarre.")}
+            {field("max", "Seuil maximum (optionnel)", "Au-dessus, le compteur démarre aussi.")}
+          </div>
+          {field(
+            "days",
+            "Durée hors plage avant « À vérifier » (jours)",
+            "Au-delà, le KPI porte le badge et le bouton « Marquer comme vérifié ».",
+          )}
+          <DsButton type="submit">Vérifier les champs</DsButton>
+        </form>
+      </DsSection>
+    </>
+  );
+}
 
 /** « Détail de la demande » sur données fictives : mêmes composants que le vrai détail. */
 function MockDetail({
@@ -477,6 +631,11 @@ function Us21Mockup() {
             {state.note}
           </p>
         </div>
+        {page === "manage" && (
+          <div className="flex max-w-lg flex-col gap-md">
+            <ManageThresholdsPreview rows={metricRows} onVerify={(m) => verify(m.key)} />
+          </div>
+        )}
         {page === "requests" && (
           <div className="flex max-w-lg flex-col gap-md">
             <DsSection id="mes-demandes" title="Mes demandes">
