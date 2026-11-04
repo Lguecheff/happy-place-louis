@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { DS_INPUT, DsButton, DsChoice, DsChoiceGroup, DsField, DsIcon } from "@/components/ds";
+import { flushSync } from "react-dom";
+import {
+  DS_INPUT,
+  DsButton,
+  DsChoice,
+  DsChoiceGroup,
+  DsField,
+  DsIcon,
+  DsIconButton,
+} from "@/components/ds";
 import { ConfirmDialog } from "@/components/overview/ConfirmDialog";
 import { ReaderDialog } from "@/components/reader-dialog";
 import {
@@ -13,6 +22,9 @@ import {
   type AiTone,
 } from "@/lib/news-ai";
 
+const TITLE = "Rédiger avec l'IA";
+const SUBTITLE = "L'IA propose un titre et un texte. Rien n'est enregistré sans ton accord.";
+
 type Phase = "prompt" | "loading" | "preview" | "error" | "limit";
 
 /** État de départ de la fenêtre (maquettes). */
@@ -23,6 +35,11 @@ export type NewsAiWriterInitial = {
   draft?: AiDraft;
   replacing?: boolean;
 };
+
+export type NewsAiFormat = "dialog" | "inline";
+
+const PANEL_ID = "ia-panneau";
+const TRIGGER_ID = "ia-bouton";
 
 const BOX = "space-y-xs border border-outline-variant bg-surface-container p-sm";
 
@@ -38,6 +55,7 @@ export function NewsAiWriter({
   generate,
   disabled,
   initial,
+  format = "dialog",
 }: {
   /** Le titre ou le texte est déjà rempli : utiliser le texte demande une confirmation. */
   hasText: boolean;
@@ -45,6 +63,8 @@ export function NewsAiWriter({
   generate: AiGenerate;
   disabled?: boolean;
   initial?: NewsAiWriterInitial;
+  /** A/B de la maquette : fenêtre (comme les modèles) ou panneau dans le formulaire. */
+  format?: NewsAiFormat;
 }) {
   const [open, setOpen] = useState(!!initial);
   const [phase, setPhase] = useState<Phase>(initial?.phase ?? "prompt");
@@ -61,6 +81,12 @@ export function NewsAiWriter({
   useEffect(() => {
     if (phase === "preview") previewTitle.current?.focus();
   }, [phase]);
+
+  // Dans le formulaire, rien ne déplace le focus à l'ouverture : on le pose sur la consigne.
+  function openWriter() {
+    flushSync(() => setOpen(true));
+    if (format === "inline") promptRef.current?.focus();
+  }
 
   // Maquette « Chargement » : la génération démarre à l'ouverture.
   useEffect(() => {
@@ -105,6 +131,8 @@ export function NewsAiWriter({
   function close() {
     abort.current?.abort("cancel");
     setOpen(false);
+    // La fenêtre rend le focus au bouton elle-même ; le panneau, non.
+    if (format === "inline") document.getElementById(TRIGGER_ID)?.focus();
     // L'aperçu non utilisé est abandonné ; la consigne et le ton restent.
     if (phase !== "limit") setPhase("prompt");
     setDraft(null);
@@ -119,151 +147,167 @@ export function NewsAiWriter({
     setTimeout(() => onApply(chosen), 0);
   }
 
+  const content = (
+    <>
+      <div className="space-y-md" aria-busy={loading}>
+        <DsField id="ia-consigne" label="De quoi veux-tu parler ?" error={promptError}>
+          <textarea
+            id="ia-consigne"
+            ref={promptRef}
+            rows={3}
+            maxLength={AI_PROMPT_MAX}
+            readOnly={loading}
+            aria-describedby="ia-consigne-aide"
+            aria-invalid={!!promptError || undefined}
+            className={DS_INPUT}
+            placeholder="Par exemple : on lance un afterwork chaque premier jeudi du mois."
+            value={prompt}
+            onChange={(e) => {
+              setPrompt(e.target.value);
+              if (promptError) setPromptError(aiPromptError(e.target.value));
+            }}
+          />
+          <p
+            id="ia-consigne-aide"
+            className="flex flex-wrap justify-between gap-xs font-label-md text-label-md text-on-surface-variant"
+          >
+            <span>{AI_MESSAGES.privacy}</span>
+            <span>
+              {prompt.length} caractères sur {AI_PROMPT_MAX}
+            </span>
+          </p>
+        </DsField>
+        <DsChoiceGroup legend="Ton">
+          <div className="grid gap-xs sm:grid-cols-3">
+            {AI_TONES.map((t) => (
+              <DsChoice
+                key={t.value}
+                name="ia-ton"
+                label={t.label}
+                checked={tone === t.value}
+                disabled={loading}
+                onChange={() => setTone(t.value)}
+              />
+            ))}
+          </div>
+        </DsChoiceGroup>
+
+        <div role="status" aria-live="polite" className="font-body-sm text-body-sm">
+          {loading && (
+            <p className="flex items-center gap-xs text-on-surface">
+              <DsIcon name="progress_activity" className="animate-spin" />
+              {AI_MESSAGES.loading}
+            </p>
+          )}
+        </div>
+        {phase === "error" && (
+          <p role="alert" className="font-body-sm text-body-sm text-error">
+            {AI_MESSAGES.error}
+          </p>
+        )}
+        {phase === "limit" && (
+          <p role="alert" className={`${BOX} font-body-sm text-body-sm text-on-surface`}>
+            {AI_MESSAGES.limit}
+          </p>
+        )}
+
+        {phase !== "preview" && (
+          <div className="flex flex-wrap items-center justify-end gap-xs">
+            {loading && (
+              <DsButton variant="link" onClick={cancelLoading}>
+                Annuler
+              </DsButton>
+            )}
+            {/* Pendant le chargement, le bouton garde le focus : aria-disabled, pas disabled. */}
+            <DsButton
+              icon="auto_awesome"
+              onClick={() => !loading && void run()}
+              disabled={phase === "limit"}
+              aria-disabled={loading || undefined}
+            >
+              {phase === "error" ? "Réessayer" : "Proposer un texte"}
+            </DsButton>
+          </div>
+        )}
+      </div>
+
+      {phase === "preview" && draft && (
+        <div className="space-y-md">
+          <h3
+            ref={previewTitle}
+            tabIndex={-1}
+            className="font-body-md text-body-md font-bold text-primary focus:outline-none"
+          >
+            Texte proposé
+          </h3>
+          <p className="flex items-start gap-xs font-body-sm text-body-sm text-on-surface">
+            <DsIcon name="info" />
+            {AI_MESSAGES.review}
+          </p>
+          <div className={BOX}>
+            <p className="font-body-md text-body-md font-bold text-primary wrap-anywhere">
+              {draft.title}
+            </p>
+            <p className="font-body-sm text-body-sm whitespace-pre-line text-on-surface wrap-anywhere">
+              {draft.body}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-xs">
+            <DsButton variant="link" className="mr-auto" onClick={close}>
+              Annuler
+            </DsButton>
+            <DsButton icon="refresh" onClick={() => void run()}>
+              Régénérer
+            </DsButton>
+            <DsButton variant="confirm" onClick={() => (hasText ? setReplacing(true) : apply())}>
+              Utiliser ce texte
+            </DsButton>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <>
       <DsButton
+        id={TRIGGER_ID}
         icon="auto_awesome"
-        aria-haspopup="dialog"
+        {...(format === "dialog"
+          ? { "aria-haspopup": "dialog" as const }
+          : { "aria-expanded": open, "aria-controls": PANEL_ID })}
         disabled={disabled}
-        onClick={() => setOpen(true)}
+        onClick={() => (open ? close() : openWriter())}
       >
         Rédiger avec l'IA
       </DsButton>
-      {open && (
-        <ReaderDialog
-          title="Rédiger avec l'IA"
-          subtitle="L'IA propose un titre et un texte. Rien n'est enregistré sans ton accord."
-          onClose={close}
-        >
-          <form
-            className="space-y-md"
-            noValidate
-            aria-busy={loading}
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!loading && phase !== "limit") void run();
-            }}
+      {open &&
+        (format === "dialog" ? (
+          <ReaderDialog title={TITLE} subtitle={SUBTITLE} onClose={close}>
+            {content}
+          </ReaderDialog>
+        ) : (
+          <div
+            id={PANEL_ID}
+            role="region"
+            aria-labelledby="ia-panneau-titre"
+            className="w-full basis-full space-y-md border border-outline-variant p-md"
           >
-            <DsField id="ia-consigne" label="De quoi veux-tu parler ?" error={promptError}>
-              <textarea
-                id="ia-consigne"
-                ref={promptRef}
-                rows={3}
-                maxLength={AI_PROMPT_MAX}
-                readOnly={loading}
-                aria-describedby="ia-consigne-aide"
-                aria-invalid={!!promptError || undefined}
-                className={DS_INPUT}
-                placeholder="Par exemple : on lance un afterwork chaque premier jeudi du mois."
-                value={prompt}
-                onChange={(e) => {
-                  setPrompt(e.target.value);
-                  if (promptError) setPromptError(aiPromptError(e.target.value));
-                }}
-              />
-              <p
-                id="ia-consigne-aide"
-                className="flex flex-wrap justify-between gap-xs font-label-md text-label-md text-on-surface-variant"
-              >
-                <span>{AI_MESSAGES.privacy}</span>
-                <span>
-                  {prompt.length} caractères sur {AI_PROMPT_MAX}
-                </span>
-              </p>
-            </DsField>
-            <DsChoiceGroup legend="Ton">
-              <div className="grid gap-xs sm:grid-cols-3">
-                {AI_TONES.map((t) => (
-                  <DsChoice
-                    key={t.value}
-                    name="ia-ton"
-                    label={t.label}
-                    checked={tone === t.value}
-                    disabled={loading}
-                    onChange={() => setTone(t.value)}
-                  />
-                ))}
-              </div>
-            </DsChoiceGroup>
-
-            <div role="status" aria-live="polite" className="font-body-sm text-body-sm">
-              {loading && (
-                <p className="flex items-center gap-xs text-on-surface">
-                  <DsIcon name="progress_activity" className="animate-spin" />
-                  {AI_MESSAGES.loading}
-                </p>
-              )}
-            </div>
-            {phase === "error" && (
-              <p role="alert" className="font-body-sm text-body-sm text-error">
-                {AI_MESSAGES.error}
-              </p>
-            )}
-            {phase === "limit" && (
-              <p role="alert" className={`${BOX} font-body-sm text-body-sm text-on-surface`}>
-                {AI_MESSAGES.limit}
-              </p>
-            )}
-
-            {phase !== "preview" && (
-              <div className="flex flex-wrap items-center justify-end gap-xs">
-                {loading && (
-                  <DsButton variant="link" onClick={cancelLoading}>
-                    Annuler
-                  </DsButton>
-                )}
-                {/* Pendant le chargement, le bouton garde le focus : aria-disabled, pas disabled. */}
-                <DsButton
-                  type="submit"
-                  icon="auto_awesome"
-                  disabled={phase === "limit"}
-                  aria-disabled={loading || undefined}
+            <div className="flex items-start justify-between gap-sm">
+              <div className="min-w-0">
+                <h3
+                  id="ia-panneau-titre"
+                  className="font-body-md text-body-md font-bold text-primary"
                 >
-                  {phase === "error" ? "Réessayer" : "Proposer un texte"}
-                </DsButton>
+                  {TITLE}
+                </h3>
+                <p className="font-body-sm text-body-sm text-on-surface-variant">{SUBTITLE}</p>
               </div>
-            )}
-          </form>
-
-          {phase === "preview" && draft && (
-            <div className="space-y-md">
-              <h3
-                ref={previewTitle}
-                tabIndex={-1}
-                className="font-body-md text-body-md font-bold text-primary focus:outline-none"
-              >
-                Texte proposé
-              </h3>
-              <p className="flex items-start gap-xs font-body-sm text-body-sm text-on-surface">
-                <DsIcon name="info" />
-                {AI_MESSAGES.review}
-              </p>
-              <div className={BOX}>
-                <p className="font-body-md text-body-md font-bold text-primary wrap-anywhere">
-                  {draft.title}
-                </p>
-                <p className="font-body-sm text-body-sm whitespace-pre-line text-on-surface wrap-anywhere">
-                  {draft.body}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center justify-end gap-xs">
-                <DsButton variant="link" className="mr-auto" onClick={close}>
-                  Annuler
-                </DsButton>
-                <DsButton icon="refresh" onClick={() => void run()}>
-                  Régénérer
-                </DsButton>
-                <DsButton
-                  variant="confirm"
-                  onClick={() => (hasText ? setReplacing(true) : apply())}
-                >
-                  Utiliser ce texte
-                </DsButton>
-              </div>
+              <DsIconButton icon="close" label="Fermer la rédaction avec l'IA" onClick={close} />
             </div>
-          )}
-        </ReaderDialog>
-      )}
+            {content}
+          </div>
+        ))}
       <ConfirmDialog
         open={replacing && !!draft}
         title="Remplacer ton texte par celui de l'IA ?"

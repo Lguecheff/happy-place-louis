@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { BrandHeader } from "@/components/brand-header";
 import { DS_INPUT, DsField } from "@/components/ds";
-import type { NewsAiWriterInitial } from "@/components/news/NewsAiWriter";
+import type { NewsAiFormat, NewsAiWriterInitial } from "@/components/news/NewsAiWriter";
 import type { AutosaveFn } from "@/components/news/use-autosave-draft";
 import {
   NewsSection,
@@ -123,7 +123,22 @@ function fakeGenerate(answer: Scenario["answer"]): AiGenerate {
     });
 }
 
+const FORMATS: { value: NewsAiFormat; label: string; note: string }[] = [
+  {
+    value: "dialog",
+    label: "A : fenêtre",
+    note: "Comme « Partir d'un modèle » : le formulaire est masqué pendant la rédaction.",
+  },
+  {
+    value: "inline",
+    label: "B : dans le formulaire",
+    note: "Le panneau s'ouvre sous les boutons : le titre et le texte restent visibles.",
+  },
+];
+
 function Us27Mockup() {
+  const [format, setFormat] = useState<NewsAiFormat>("dialog");
+  const formatInfo = FORMATS.find((f) => f.value === format) ?? FORMATS[0];
   const [scenarioValue, setScenarioValue] = useState(SCENARIOS[0].value);
   const scenario = SCENARIOS.find((s) => s.value === scenarioValue) ?? SCENARIOS[0];
   const [news, setNews] = useState<News[]>([]);
@@ -218,15 +233,32 @@ function Us27Mockup() {
               ))}
             </select>
           </DsField>
+          <DsField id="maquette-format" label="Format (A/B, fictif)" className="w-full md:w-72">
+            <select
+              id="maquette-format"
+              className={DS_INPUT}
+              value={format}
+              onChange={(e) => {
+                setFormat(e.target.value as NewsAiFormat);
+                chooseScenario(scenario.value);
+              }}
+            >
+              {FORMATS.map((f) => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </DsField>
           <p
             role="status"
             className="min-w-0 flex-1 basis-64 font-body-sm text-body-sm text-on-surface"
           >
-            Maquette (fictif) : {scenario.note}
+            Maquette (fictif) : {scenario.note} {formatInfo.note}
           </p>
         </div>
         <NewsSection
-          key={scenario.value}
+          key={`${scenario.value}-${format}`}
           canWrite
           email={KESHA.author_email}
           news={{ data: news, isError: false, isLoading: false }}
@@ -244,7 +276,7 @@ function Us27Mockup() {
           onRead={() => {}}
           onAutosave={autosave}
           initialDraft={scenario.draft}
-          aiWriter={{ generate, initial: scenario.ai }}
+          aiWriter={{ generate, initial: scenario.ai, format }}
         />
       </main>
     </div>
