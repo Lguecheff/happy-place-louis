@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { BrandHeader } from "@/components/brand-header";
 import {
@@ -13,7 +13,7 @@ import {
   DsSection,
 } from "@/components/ds";
 import { DS_FOCUS } from "@/components/ds/focus";
-import { SubmissionPreview } from "@/components/expandable-card";
+import { Linkify } from "@/components/linkify";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
 import { TodayStrip } from "@/components/overview/TodayStrip";
 import {
@@ -54,10 +54,48 @@ function WaitingSince({ days }: { days: number }) {
       </span>
       {days > LONG_WAIT_DAYS && (
         <DsBadge variant="watch" icon="hourglass_bottom">
-          Sans réponse depuis plus de {LONG_WAIT_DAYS} jours
+          Plus de {LONG_WAIT_DAYS} jours
         </DsBadge>
       )}
     </p>
+  );
+}
+
+/**
+ * SubmissionPreview proposé (phase 2, dans expandable-card.tsx) : la fenêtre de lecture s'ouvre
+ * dans tous les cas. « Voir plus » si le texte est coupé, « Lire la demande » sinon.
+ */
+function Preview({ content, onOpen }: { content: string; onOpen: () => void }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const [overflows, setOverflows] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setOverflows(el.scrollHeight > el.clientHeight + 1);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [content]);
+
+  return (
+    <div className="min-w-0 space-y-xs">
+      <p
+        ref={ref}
+        className="font-body-sm text-body-sm italic text-on-surface-variant whitespace-pre-line wrap-anywhere line-clamp-3"
+      >
+        “<Linkify text={content} />”
+      </p>
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        onClick={onOpen}
+        className="inline-flex min-h-11 items-center font-label-md text-label-md normal-case tracking-normal text-primary font-bold underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        {overflows ? "Voir plus" : "Lire la demande"}
+      </button>
+    </div>
   );
 }
 
@@ -117,7 +155,7 @@ const GVALIDATED = request(
   "Data",
   "validée",
   80,
-  "Partager le planning des formations du trimestre dans les actus.\n\nLes dates circulent aujourd'hui par messages, et plusieurs personnes ont raté une session.\n\nUne actu par trimestre, avec le lien d'inscription, réglerait le problème (fictif).",
+  "Partager le planning des formations du trimestre dans les actus (fictif).",
   70,
 );
 
@@ -184,14 +222,14 @@ const STATES: MockState[] = [
   {
     value: "attente-5",
     label: "Demande en attente depuis 5 jours",
-    note: "Vue de Gontran, onglet « Mes demandes ». La demande en attente affiche « Sans réponse depuis 5 jours » ; la demande validée n'a aucun repère. Clique sur le texte d'une demande pour ouvrir la fenêtre de lecture.",
+    note: "Vue de Gontran, onglet « Mes demandes ». La demande en attente affiche « Sans réponse depuis 5 jours » ; la demande validée n'a aucun repère. La fenêtre de lecture s'ouvre toujours : « Voir plus » si le texte est coupé, « Lire la demande » sinon.",
     viewer: GONTRAN,
     mine: [G5, GVALIDATED],
   },
   {
     value: "attente-42",
     label: "Demande en attente depuis 42 jours",
-    note: "Vue de Gontran. Créée il y a 60 jours, repassée en attente il y a 42 jours : le compteur part du dernier changement de statut. Au-delà de 30 jours, le badge s'ajoute.",
+    note: "Vue de Gontran. Créée il y a 60 jours, repassée en attente il y a 42 jours : le compteur part du dernier changement de statut. Au-delà de 30 jours, le badge « Plus de 30 jours » s'ajoute.",
     viewer: GONTRAN,
     mine: [G42, GVALIDATED],
   },
@@ -236,7 +274,7 @@ function MyRow({ s, onRead }: { s: Submission; onRead: () => void }) {
       }
     >
       {days !== null && <WaitingSince days={days} />}
-      <SubmissionPreview content={s.content} onOpen={onRead} />
+      <Preview content={s.content} onOpen={onRead} />
     </DsListItem>
   );
 }
@@ -262,7 +300,7 @@ function PendingRow({ s, onRead }: { s: Submission; onRead: () => void }) {
       }
     >
       <WaitingSince days={waitingDays(s) ?? 0} />
-      <SubmissionPreview content={s.content} onOpen={onRead} />
+      <Preview content={s.content} onOpen={onRead} />
     </DsListItem>
   );
 }
@@ -276,7 +314,7 @@ function ManagedCard({ s, onRead }: { s: Submission; onRead: () => void }) {
         <span className="font-bold text-primary">{s.author_name}</span> · {s.team}
       </p>
       {days !== null && <WaitingSince days={days} />}
-      <SubmissionPreview content={s.content} onOpen={onRead} />
+      <Preview content={s.content} onOpen={onRead} />
     </div>
   );
 }
