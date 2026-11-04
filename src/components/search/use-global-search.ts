@@ -6,6 +6,7 @@ import {
   fetchMetrics,
   fetchNews,
   fetchSearchableSubmissions,
+  fetchSelectableTeams,
   type Submission,
 } from "@/lib/dashboard";
 
@@ -34,6 +35,12 @@ export function useGlobalSearch({
     retry: false,
   });
   const metrics = useQuery({ queryKey: ["metrics"], queryFn: fetchMetrics, retry: false });
+  // Filtre Équipe (US23) : le référentiel, sans « Admin », comme le public des actus (US8).
+  const teams = useQuery({
+    queryKey: ["teams", "selectable"],
+    queryFn: fetchSelectableTeams,
+    retry: false,
+  });
 
   const data = useMemo(
     () =>
@@ -67,6 +74,8 @@ export function useGlobalSearch({
       isError: news.isError || submissions.isError || blockers.isError || metrics.isError,
       isLoading: news.isLoading || submissions.isLoading || blockers.isLoading || metrics.isLoading,
     },
+    /** Sans référentiel lisible, le filtre Équipe ne propose que « Toutes ». */
+    teams: teams.data ?? [],
     canReadAttachment,
     canConfirmSubmission,
   };
