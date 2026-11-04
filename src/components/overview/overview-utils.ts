@@ -1,6 +1,6 @@
 import type { AppRole } from "@/lib/auth";
 import {
-  formatMetricValue,
+  formatThreshold,
   type Blocker,
   type Metric,
   type News,
@@ -43,8 +43,8 @@ export function metricOutOfRange(m: Metric): "min" | "max" | null {
 
 /** Plage d'un KPI en clair : « de 30 à 80 % », « 30 minimum », « 80 % maximum ». */
 export function metricRangeLabel(m: Metric) {
-  const min = m.threshold_min != null ? formatMetricValue(m.threshold_min, m.unit) : null;
-  const max = m.threshold_max != null ? formatMetricValue(m.threshold_max, m.unit) : null;
+  const min = m.threshold_min != null ? formatThreshold(m.threshold_min, m.unit) : null;
+  const max = m.threshold_max != null ? formatThreshold(m.threshold_max, m.unit) : null;
   if (min && max) return `de ${min} à ${max}`;
   return min ? `${min} minimum` : `${max} maximum`;
 }
@@ -63,8 +63,8 @@ export function metricAlert(m: Metric): { days: number; text: string } | null {
   const days = daysSince(m.out_of_range_since);
   const bound =
     side === "max"
-      ? `Au-dessus de ${formatMetricValue(m.threshold_max as number, m.unit)}`
-      : `En dessous de ${formatMetricValue(m.threshold_min as number, m.unit)}`;
+      ? `Au-dessus de ${formatThreshold(m.threshold_max as number, m.unit)}`
+      : `En dessous de ${formatThreshold(m.threshold_min as number, m.unit)}`;
   return {
     days,
     text: `${bound} depuis ${days} jour${days > 1 ? "s" : ""}. Vérifie si c'est un souci ou une bonne nouvelle.`,

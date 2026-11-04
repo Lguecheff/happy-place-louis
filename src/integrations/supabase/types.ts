@@ -271,6 +271,9 @@ export type Database = {
           key: string
           label: string
           stale_after_days: number | null
+          threshold_max: number | null
+          threshold_min: number | null
+          thresholds_updated_at: string | null
           unit: string | null
           updated_at: string
           updated_by: string | null
@@ -284,6 +287,9 @@ export type Database = {
           key: string
           label: string
           stale_after_days?: number | null
+          threshold_max?: number | null
+          threshold_min?: number | null
+          thresholds_updated_at?: string | null
           unit?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -297,6 +303,9 @@ export type Database = {
           key?: string
           label?: string
           stale_after_days?: number | null
+          threshold_max?: number | null
+          threshold_min?: number | null
+          thresholds_updated_at?: string | null
           unit?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -683,8 +692,11 @@ export type Database = {
           impact: string | null
           key: string | null
           label: string | null
+          out_of_range_since: string | null
           previous_value: number | null
           stale_after_days: number | null
+          threshold_max: number | null
+          threshold_min: number | null
           trend: string | null
           unit: string | null
           updated_at: string | null

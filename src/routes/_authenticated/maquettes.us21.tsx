@@ -3,26 +3,11 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { BlockerReader } from "@/components/blocker-reader";
 import { BrandHeader } from "@/components/brand-header";
-import {
-  DS_INPUT,
-  DsBadge,
-  DsButton,
-  DsField,
-  DsFreshness,
-  DsListItem,
-  DsSection,
-  DsStaleBadge,
-} from "@/components/ds";
+import { DS_INPUT, DsField, DsListItem, DsSection } from "@/components/ds";
 import { BlockersSection, type OpenBlocker } from "@/components/overview/BlockersSection";
-import { KpiSection, VerifyMetricButton } from "@/components/overview/KpiSection";
+import { KpiSection } from "@/components/overview/KpiSection";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
-import {
-  formatDay,
-  hasMetricThresholds,
-  isVerified,
-  metricAlert,
-  metricRangeLabel,
-} from "@/components/overview/overview-utils";
+import { formatDay } from "@/components/overview/overview-utils";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
 import {
   StatusChip,
@@ -31,7 +16,7 @@ import {
   verificationStep,
   type ThreadStep,
 } from "@/components/submission-status-thread";
-import { formatMetricValue, type Blocker, type Metric, type Submission } from "@/lib/dashboard";
+import type { Blocker, Metric, Submission } from "@/lib/dashboard";
 
 export const Route = createFileRoute("/_authenticated/maquettes/us21")({
   head: () => ({
@@ -263,8 +248,8 @@ type MockState = {
   reminded?: Record<string, string>;
   /** KPI ou demandes déjà vérifiés à l'ouverture de l'état. */
   verified?: string[];
-  /** Ce que montre la page : vue d'ensemble, Mes demandes, ou aperçu des seuils d'un KPI. */
-  page?: "overview" | "requests" | "manage";
+  /** Ce que montre la page : vue d'ensemble ou Mes demandes. */
+  page?: "overview" | "requests";
   /** Aperçu de la notification de relance reçue. */
   notification?: boolean;
 };
@@ -310,7 +295,7 @@ const STATES: MockState[] = [
   {
     value: "kpi-seuil",
     label: "KPI hors plage depuis trop longtemps",
-    note: "« Missions actives » est sous 150 depuis 12 jours, plus que ses 7 jours : badge « À vérifier » et, pour Kesha (tous les KPI), « Marquer comme vérifié ». Survole le badge : « En dessous de 150 depuis 12 jours. Vérifie si c'est un souci ou une bonne nouvelle. ». Pas de couleur rouge ni verte : l'app ne sait pas si c'est bon ou mauvais.",
+    note: "« Missions actives » est sous 150 depuis 12 jours, plus que ses 7 jours : badge « À vérifier » et, pour Kesha (tous les KPI), « Marquer comme vérifié ». Survole le badge : « En dessous de 150 depuis 12 jours. Vérifie si c'est un souci ou une bonne nouvelle. ». Pas de couleur rouge ni verte : l'app ne sait pas si c'est bon ou mauvais. Plage, durée et « Seuil à définir » : voir la vraie page « Gérer les données > KPI ».",
     viewer: KESHA,
     activeDays: 12,
   },
@@ -321,14 +306,6 @@ const STATES: MockState[] = [
     viewer: KESHA,
     activeDays: 12,
     verified: ["active_users"],
-  },
-  {
-    value: "kpi-seuils",
-    label: "Seuils d'un KPI (Gérer les données)",
-    note: "Aperçu de « Gérer les données > KPI » (admin) : chaque KPI affiche sa plage et sa durée, ou « Seuil à définir ». À la création : un minimum, un maximum, ou les deux, et une durée de 1 à 365 jours. Essaie d'enregistrer le formulaire vide, ou avec un minimum plus grand que le maximum.",
-    viewer: ADMIN,
-    activeDays: 12,
-    page: "manage",
   },
   {
     value: "demande-ancienne",
@@ -348,118 +325,6 @@ const STATES: MockState[] = [
     verified: ["s1"],
   },
 ];
-
-// ---------------------------------------------------------------------------
-// Aperçu des seuils dans « Gérer les données > KPI » (admin)
-// ---------------------------------------------------------------------------
-
-type ThresholdForm = { min: string; max: string; days: string };
-
-/** Mêmes règles que la base prévue en phase 2 : une borne au moins, min < max, 1 à 365 jours. */
-function thresholdErrors({ min, max, days }: ThresholdForm) {
-  const num = (t: string) => (t.trim() === "" ? null : Number(t.replace(",", ".")));
-  const lo = num(min);
-  const hi = num(max);
-  const d = num(days);
-  const errors: Partial<Record<keyof ThresholdForm, string>> = {};
-  if (lo == null && hi == null) errors.min = "Indique un minimum, un maximum, ou les deux.";
-  else if (lo != null && hi != null && lo >= hi)
-    errors.max = "Le maximum doit être plus grand que le minimum.";
-  if (lo != null && Number.isNaN(lo)) errors.min = "Indique un nombre.";
-  if (hi != null && Number.isNaN(hi)) errors.max = "Indique un nombre.";
-  if (d == null || !Number.isInteger(d) || d < 1 || d > 365)
-    errors.days = "Indique un nombre entier de jours, de 1 à 365.";
-  return errors;
-}
-
-function ManageThresholdsPreview({
-  rows,
-  onVerify,
-}: {
-  rows: Metric[];
-  onVerify: (m: Metric) => void;
-}) {
-  const [form, setForm] = useState<ThresholdForm>({ min: "", max: "", days: "" });
-  const [submitted, setSubmitted] = useState(false);
-  const errors = submitted ? thresholdErrors(form) : {};
-  const field = (key: keyof ThresholdForm, label: string, hint: string) => (
-    <DsField id={`kpi-${key}`} label={label} error={errors[key]} className="flex-1 basis-40">
-      <input
-        id={`kpi-${key}`}
-        inputMode="decimal"
-        aria-invalid={!!errors[key]}
-        aria-describedby={`kpi-${key}-aide`}
-        className={DS_INPUT}
-        value={form[key]}
-        onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-      />
-      <p
-        id={`kpi-${key}-aide`}
-        className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant"
-      >
-        {hint}
-      </p>
-    </DsField>
-  );
-  return (
-    <>
-      <DsSection id="gerer-kpi" title="Gérer les données > KPI (aperçu, vue admin)">
-        <div className="space-y-xs">
-          {rows.map((m) => {
-            const alert = metricAlert(m);
-            const days = m.stale_after_days ?? 0;
-            return (
-              <DsListItem
-                key={m.key}
-                icon="monitoring"
-                title={`${m.label} — ${formatMetricValue(m.value, m.unit)}`}
-                meta={`${m.key} (fictif)`}
-                actions={<DsButton onClick={notWired}>Modifier</DsButton>}
-              >
-                <span className="flex flex-wrap items-center gap-xs">
-                  {hasMetricThresholds(m) ? (
-                    <DsBadge>
-                      Plage : {metricRangeLabel(m)} · plus de {days} jour{days > 1 ? "s" : ""} hors
-                      plage
-                    </DsBadge>
-                  ) : (
-                    <DsBadge icon="edit_calendar">Seuil à définir</DsBadge>
-                  )}
-                  {alert && <DsStaleBadge days={alert.days} text={alert.text} />}
-                  <DsFreshness at={m.updated_at} by={m.updated_by_name} verified={isVerified(m)} />
-                </span>
-                {alert && <VerifyMetricButton onVerify={() => onVerify(m)} />}
-              </DsListItem>
-            );
-          })}
-        </div>
-      </DsSection>
-      <DsSection id="nouveau-kpi" title="Nouvel indicateur (extrait du formulaire)">
-        <form
-          className="space-y-sm"
-          noValidate
-          onSubmit={(e) => {
-            e.preventDefault();
-            setSubmitted(true);
-            if (Object.keys(thresholdErrors(form)).length === 0)
-              toast.success("Seuils valides (fictif).");
-          }}
-        >
-          <div className="flex flex-wrap items-start gap-xs">
-            {field("min", "Seuil minimum (optionnel)", "Sous cette valeur, le compteur démarre.")}
-            {field("max", "Seuil maximum (optionnel)", "Au-dessus, le compteur démarre aussi.")}
-          </div>
-          {field(
-            "days",
-            "Durée hors plage avant « À vérifier » (jours)",
-            "Au-delà, le KPI porte le badge et le bouton « Marquer comme vérifié ».",
-          )}
-          <DsButton type="submit">Vérifier les champs</DsButton>
-        </form>
-      </DsSection>
-    </>
-  );
-}
 
 /** « Détail de la demande » sur données fictives : mêmes composants que le vrai détail. */
 function MockDetail({
@@ -631,11 +496,6 @@ function Us21Mockup() {
             {state.note}
           </p>
         </div>
-        {page === "manage" && (
-          <div className="flex max-w-lg flex-col gap-md">
-            <ManageThresholdsPreview rows={metricRows} onVerify={(m) => verify(m.key)} />
-          </div>
-        )}
         {page === "requests" && (
           <div className="flex max-w-lg flex-col gap-md">
             <DsSection id="mes-demandes" title="Mes demandes">

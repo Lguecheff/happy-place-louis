@@ -73,29 +73,52 @@ export const blockerSchema = z.object({
   }),
 });
 
-/** Seuil « à vérifier » d'un KPI (US21), même règle que la base. */
+/** Plage et durée « à vérifier » d'un KPI (US21), mêmes règles que la base. */
 const STALE_AFTER_DAYS_ERROR = "Indique un nombre entier de jours, de 1 à 365.";
+const threshold = z.number().finite("Indique un nombre.").nullable();
 
-export const metricSchema = z.object({
-  key: z
-    .string()
-    .trim()
-    .min(2, "Clé requise")
-    .max(40, "40 caractères maximum")
-    .regex(/^[a-z0-9_]+$/, "Minuscules, chiffres et _ uniquement"),
-  label: z.string().trim().min(2, "Libellé requis").max(60, "60 caractères maximum"),
-  value: z
-    .number({ invalid_type_error: "Valeur numérique requise" })
-    .finite("Valeur numérique requise"),
-  unit: z.string().trim().max(8, "8 caractères maximum").nullable(),
-  definition: z.string().trim().max(200, "200 caractères maximum").nullable(),
-  impact: z.string().trim().max(200, "200 caractères maximum").nullable(),
-  stale_after_days: z
-    .number({ invalid_type_error: STALE_AFTER_DAYS_ERROR })
-    .int(STALE_AFTER_DAYS_ERROR)
-    .min(1, STALE_AFTER_DAYS_ERROR)
-    .max(365, STALE_AFTER_DAYS_ERROR),
-});
+export const metricSchema = z
+  .object({
+    key: z
+      .string()
+      .trim()
+      .min(2, "Clé requise")
+      .max(40, "40 caractères maximum")
+      .regex(/^[a-z0-9_]+$/, "Minuscules, chiffres et _ uniquement"),
+    label: z.string().trim().min(2, "Libellé requis").max(60, "60 caractères maximum"),
+    value: z
+      .number({ invalid_type_error: "Valeur numérique requise" })
+      .finite("Valeur numérique requise"),
+    unit: z.string().trim().max(8, "8 caractères maximum").nullable(),
+    definition: z.string().trim().max(200, "200 caractères maximum").nullable(),
+    impact: z.string().trim().max(200, "200 caractères maximum").nullable(),
+    threshold_min: threshold,
+    threshold_max: threshold,
+    stale_after_days: z
+      .number({ invalid_type_error: STALE_AFTER_DAYS_ERROR })
+      .int(STALE_AFTER_DAYS_ERROR)
+      .min(1, STALE_AFTER_DAYS_ERROR)
+      .max(365, STALE_AFTER_DAYS_ERROR),
+  })
+  .superRefine((m, ctx) => {
+    if (m.threshold_min == null && m.threshold_max == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["threshold_min"],
+        message: "Indique un seuil minimum, un seuil maximum, ou les deux.",
+      });
+    } else if (
+      m.threshold_min != null &&
+      m.threshold_max != null &&
+      m.threshold_min >= m.threshold_max
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["threshold_max"],
+        message: "Le maximum doit être plus grand que le minimum.",
+      });
+    }
+  });
 
 export type FieldErrors = Record<string, string>;
 

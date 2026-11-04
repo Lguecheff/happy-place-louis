@@ -138,6 +138,12 @@ export function deltaText(m: Pick<Metric, "delta" | "unit"> | undefined): string
   return `${sign}${abs}${suffix}`;
 }
 
+/** Borne d'une plage : sans décimale inutile (« 60 % », « 150 »). */
+export function formatThreshold(value: number, unit: string | null): string {
+  const formatted = value.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
+  return unit === "%" ? `${formatted} %` : `${formatted}${unit ?? ""}`;
+}
+
 export function formatMetricValue(value: number | string, unit: string | null): string {
   const formatted = Number(value).toLocaleString("fr-FR", {
     minimumFractionDigits: unit === "%" ? 1 : 0,
@@ -562,7 +568,10 @@ export type MetricInput = {
   label: string;
   value: number;
   unit: string | null;
-  /** Seuil « à vérifier » en jours (US21), de 1 à 365. */
+  /** Plage attendue (US21) : au moins une borne, min < max. */
+  threshold_min: number | null;
+  threshold_max: number | null;
+  /** Durée hors plage avant « À vérifier » (US21), de 1 à 365 jours. */
   stale_after_days: number;
   definition: string | null;
   impact: string | null;

@@ -63,6 +63,8 @@ type FormState = {
   unit: string;
   definition: string;
   impact: string;
+  thresholdMin: string;
+  thresholdMax: string;
   staleAfterDays: string;
 };
 
@@ -73,6 +75,8 @@ const empty: FormState = {
   unit: "",
   definition: "",
   impact: "",
+  thresholdMin: "",
+  thresholdMax: "",
   staleAfterDays: "",
 };
 
@@ -147,6 +151,8 @@ function ManageMetrics() {
       unit: orNull(form.unit),
       definition: orNull(form.definition),
       impact: orNull(form.impact),
+      threshold_min: form.thresholdMin.trim() === "" ? null : toNumber(form.thresholdMin),
+      threshold_max: form.thresholdMax.trim() === "" ? null : toNumber(form.thresholdMax),
       stale_after_days: toNumber(form.staleAfterDays),
     };
     const res = validate(metricSchema, candidate);
@@ -218,6 +224,8 @@ function ManageMetrics() {
                         unit: m.unit ?? "",
                         definition: m.definition ?? "",
                         impact: m.impact ?? "",
+                        thresholdMin: m.threshold_min != null ? String(m.threshold_min) : "",
+                        thresholdMax: m.threshold_max != null ? String(m.threshold_max) : "",
                         staleAfterDays:
                           m.stale_after_days != null ? String(m.stale_after_days) : "",
                       });
@@ -296,9 +304,49 @@ function ManageMetrics() {
                 onChange={(e) => setForm({ ...form, unit: e.target.value })}
               />
             </DsField>
+            <div className="flex flex-wrap items-start gap-xs">
+              <DsField
+                id="kpi-min"
+                label="Seuil minimum (optionnel)"
+                error={errors.threshold_min}
+                className="flex-1 basis-40"
+              >
+                <input
+                  id="kpi-min"
+                  inputMode="decimal"
+                  aria-invalid={!!errors.threshold_min}
+                  aria-describedby="kpi-plage-aide"
+                  className={DS_INPUT}
+                  value={form.thresholdMin}
+                  onChange={(e) => setForm({ ...form, thresholdMin: e.target.value })}
+                />
+              </DsField>
+              <DsField
+                id="kpi-max"
+                label="Seuil maximum (optionnel)"
+                error={errors.threshold_max}
+                className="flex-1 basis-40"
+              >
+                <input
+                  id="kpi-max"
+                  inputMode="decimal"
+                  aria-invalid={!!errors.threshold_max}
+                  aria-describedby="kpi-plage-aide"
+                  className={DS_INPUT}
+                  value={form.thresholdMax}
+                  onChange={(e) => setForm({ ...form, thresholdMax: e.target.value })}
+                />
+              </DsField>
+            </div>
+            <p
+              id="kpi-plage-aide"
+              className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant"
+            >
+              Au moins un des deux. Le compteur démarre dès que la valeur atteint une des bornes.
+            </p>
             <DsField
               id="kpi-seuil"
-              label="Seuil « à vérifier » (jours)"
+              label="Durée hors plage avant « À vérifier » (jours)"
               error={errors.stale_after_days}
             >
               <input
@@ -319,7 +367,7 @@ function ManageMetrics() {
                 id="kpi-seuil-aide"
                 className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant"
               >
-                Au-delà de ce nombre de jours sans mise à jour, le KPI porte le badge « À vérifier
+                Au-delà, le KPI porte le badge « À vérifier » et le bouton « Marquer comme vérifié
                 ».
               </p>
             </DsField>
