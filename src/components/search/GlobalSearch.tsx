@@ -1,7 +1,15 @@
 import { Command as CommandPrimitive } from "cmdk";
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import { BlockerReader } from "@/components/blocker-reader";
-import { DS_INPUT, DsBadge, DsIcon, DsStaleBadge } from "@/components/ds";
+import { DS_INPUT, DsBadge, DsButton, DsField, DsIcon, DsStaleBadge } from "@/components/ds";
 import { MetricReader } from "@/components/metric-reader";
 import { NewsReader } from "@/components/news-reader";
 import { BlockerBadges } from "@/components/overview/BlockersSection";
@@ -29,14 +37,21 @@ import {
 } from "@/lib/dashboard";
 import { cn } from "@/lib/utils";
 import {
+  EMPTY_FILTERS,
   SEARCH_MAX_PER_TYPE,
   SEARCH_MIN_LENGTH,
+  SEARCH_PERIODS,
+  SEARCH_TYPES,
   excerptAround,
+  hasFilters,
   highlightParts,
   isSearchable,
   matchesTerm,
   searchAll,
   type SearchData,
+  type SearchFilters,
+  type SearchPeriod,
+  type SearchType,
 } from "./search-utils";
 
 const DEBOUNCE_MS = 250;
@@ -124,6 +139,83 @@ function BlockerSearchBadges({ blocker }: { blocker: Blocker }) {
   );
 }
 
+/** Filtres Type, Équipe, Période (US23), sous le champ, actifs à partir de 3 caractères. */
+function SearchFiltersBar({
+  filters,
+  teams,
+  disabled,
+  onChange,
+  onEscape,
+}: {
+  filters: SearchFilters;
+  teams: string[];
+  disabled: boolean;
+  onChange: (filters: SearchFilters) => void;
+  onEscape: () => void;
+}) {
+  const id = useId();
+  return (
+    <div
+      // Les listes se règlent au clavier : flèches et Entrée ne doivent pas piloter les résultats.
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === "Escape") {
+          e.preventDefault();
+          onEscape();
+        }
+      }}
+      className="grid gap-xs border-b border-outline-variant p-sm sm:grid-cols-3"
+    >
+      <DsField id={`${id}-type`} label="Type">
+        <select
+          id={`${id}-type`}
+          className={DS_INPUT}
+          disabled={disabled}
+          value={filters.type}
+          onChange={(e) => onChange({ ...filters, type: e.target.value as SearchType })}
+        >
+          {SEARCH_TYPES.map((t) => (
+            <option key={t.value} value={t.value}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+      </DsField>
+      <DsField id={`${id}-equipe`} label="Équipe">
+        <select
+          id={`${id}-equipe`}
+          className={DS_INPUT}
+          disabled={disabled}
+          value={filters.team}
+          onChange={(e) => onChange({ ...filters, team: e.target.value })}
+        >
+          <option value="">Toutes</option>
+          {teams.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+      </DsField>
+      <DsField id={`${id}-periode`} label="Période">
+        <select
+          id={`${id}-periode`}
+          className={DS_INPUT}
+          disabled={disabled}
+          value={filters.period}
+          onChange={(e) => onChange({ ...filters, period: e.target.value as SearchPeriod })}
+        >
+          {SEARCH_PERIODS.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+      </DsField>
+    </div>
+  );
+}
+
 /** Barre de recherche de l'en-tête. Le filtre se fait ici, sur les données lues sous RLS. */
 export function GlobalSearch({
   source,
@@ -133,6 +225,8 @@ export function GlobalSearch({
   onEditNews,
   renderFollow,
   defaultQuery = "",
+  teams,
+  defaultFilters = EMPTY_FILTERS,
   className,
 }: {
   source: SearchSource;
@@ -147,6 +241,10 @@ export function GlobalSearch({
   renderFollow?: (submission: Submission) => ReactNode;
   /** Terme déjà saisi à l'ouverture de la page (panneau ouvert et champ actif). */
   defaultQuery?: string;
+  /** Équipes du filtre (sans « Admin ») ; sans valeur, les filtres ne s'affichent pas. */
+  teams?: string[];
+  /** Filtres déjà réglés à l'ouverture (maquette). */
+  defaultFilters?: SearchFilters;
   className?: string;
 }) {
   const [query, setQuery] = useState(defaultQuery);
@@ -157,7 +255,13 @@ export function GlobalSearch({
   const [readingSubmission, setReadingSubmission] = useState<Submission | null>(null);
   const [readingBlocker, setReadingBlocker] = useState<Blocker | null>(null);
   const [readingMetric, setReadingMetric] = useState<Metric | null>(null);
+  const [filters, setFilters] = useState<SearchFilters>(defaultFilters);
+  // Ouvrir un résultat ferme le panneau sans effacer les filtres : on les retrouve au retour.
+  const keepFilters = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const withFilters = !!teams;
+  const activeFilters = withFilters ? filters : EMPTY_FILTERS;
+  const filtered = hasFilters(activeFilters);
 
   useEffect(() => {
     const timer = setTimeout(() => setTerm(query), DEBOUNCE_MS);
@@ -167,8 +271,8 @@ export function GlobalSearch({
   const { data, isError, isLoading } = source;
   const searchable = isSearchable(term);
   const results = useMemo(
-    () => (searchable && data ? searchAll(data, term) : null),
-    [data, searchable, term],
+    () => (searchable && data ? searchAll(data, term, activeFilters) : null),
+    [data, searchable, term, activeFilters],
   );
   const total = results
     ? results.news.total +
@@ -194,12 +298,24 @@ export function GlobalSearch({
   if (!searchable) message = `Saisis au moins ${SEARCH_MIN_LENGTH} caractères`;
   else if (isError) message = "La recherche n'est pas disponible pour le moment.";
   else if (isLoading) message = "Recherche en cours…";
+  else if (results && total === 0 && filtered) message = "Aucun résultat avec ces filtres.";
   else if (results && total === 0) message = `Aucun résultat pour « ${trimmedTerm} »`;
+
+  /** Fermeture de la recherche : les filtres sont remis à zéro. */
+  function closeSearch() {
+    setOpen(false);
+    setFilters(EMPTY_FILTERS);
+  }
+
+  function clearFilters() {
+    setFilters(EMPTY_FILTERS);
+    inputRef.current?.focus();
+  }
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Escape" && panelOpen) {
       event.preventDefault();
-      setOpen(false);
+      closeSearch();
     } else if (!panelOpen && (event.key === "Enter" || event.key === "ArrowUp")) {
       event.preventDefault();
     } else if (!panelOpen && event.key === "ArrowDown") {
@@ -214,21 +330,25 @@ export function GlobalSearch({
   }
 
   function openNews(news: News) {
+    keepFilters.current = true;
     setOpen(false);
     setReadingNews(news);
   }
 
   function openSubmission(submission: Submission) {
+    keepFilters.current = true;
     setOpen(false);
     setReadingSubmission(submission);
   }
 
   function openBlocker(blocker: Blocker) {
+    keepFilters.current = true;
     setOpen(false);
     setReadingBlocker(blocker);
   }
 
   function openMetric(metric: Metric) {
+    keepFilters.current = true;
     setOpen(false);
     setReadingMetric(metric);
   }
@@ -244,7 +364,11 @@ export function GlobalSearch({
         onValueChange={setSelected}
         onKeyDown={onKeyDown}
         onBlur={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false);
+          if (e.currentTarget.contains(e.relatedTarget)) return;
+          if (keepFilters.current) {
+            keepFilters.current = false;
+            setOpen(false);
+          } else closeSearch();
         }}
         className={cn(
           "relative h-auto min-w-0 flex-1 overflow-visible rounded-none bg-transparent",
@@ -262,20 +386,40 @@ export function GlobalSearch({
           onValueChange={(value) => {
             setQuery(value);
             setOpen(true);
+            keepFilters.current = false;
           }}
           onClick={() => setOpen(true)}
           placeholder="Rechercher dans Happy Place"
           className={cn(DS_INPUT, "truncate pl-10")}
         />
         <div
-          // Un clic dans le panneau ne doit pas retirer le focus du champ.
-          onMouseDown={(e) => e.preventDefault()}
+          // Un clic dans le panneau ne doit pas retirer le focus du champ, sauf sur un filtre.
+          onMouseDown={(e) => {
+            if (!(e.target as HTMLElement).closest("select, label")) e.preventDefault();
+          }}
           hidden={!panelOpen}
           className="absolute left-0 top-full z-40 mt-xs w-full min-w-[min(32rem,calc(100vw-1.5rem))] border border-outline bg-surface-container-lowest xl:left-auto xl:right-0"
         >
+          {withFilters && (
+            <SearchFiltersBar
+              filters={filters}
+              teams={teams}
+              disabled={!searchable}
+              onChange={setFilters}
+              onEscape={() => {
+                closeSearch();
+                inputRef.current?.focus();
+              }}
+            />
+          )}
           <CommandList className="max-h-[min(28rem,70vh)]">
-            <CommandEmpty className="p-sm font-body-md text-body-md text-on-surface-variant wrap-anywhere">
-              {message}
+            <CommandEmpty className="space-y-xs p-sm font-body-md text-body-md text-on-surface-variant wrap-anywhere">
+              <p>{message}</p>
+              {results && total === 0 && filtered && (
+                <DsButton icon="filter_alt_off" onClick={clearFilters}>
+                  Effacer les filtres
+                </DsButton>
+              )}
             </CommandEmpty>
             {results && results.news.total > 0 && (
               <CommandGroup
@@ -363,7 +507,9 @@ export function GlobalSearch({
           </CommandList>
         </div>
         <p role="status" className="sr-only">
-          {panelOpen && (message || `${total} ${plural(total, "résultat")}`)}
+          {panelOpen &&
+            (message ||
+              `${total} ${plural(total, "résultat")}${filtered ? " avec ces filtres" : ""}`)}
         </p>
       </Command>
       <NewsReader

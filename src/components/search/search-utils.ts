@@ -27,6 +27,36 @@ export type SearchResults = {
 
 export type TextPart = { text: string; match: boolean };
 
+export type SearchType = "tous" | "actus" | "demandes" | "blocages" | "kpi";
+export type SearchPeriod = "tout" | "7" | "30";
+
+/** Filtres de la recherche (US23) ; `team` vide = toutes les équipes. */
+export type SearchFilters = { type: SearchType; team: string; period: SearchPeriod };
+
+export const EMPTY_FILTERS: SearchFilters = { type: "tous", team: "", period: "tout" };
+
+export const SEARCH_TYPES: { value: SearchType; label: string }[] = [
+  { value: "tous", label: "Tous" },
+  { value: "actus", label: "Actus" },
+  { value: "demandes", label: "Demandes" },
+  { value: "blocages", label: "Points bloquants" },
+  { value: "kpi", label: "KPI" },
+];
+
+export const SEARCH_PERIODS: { value: SearchPeriod; label: string }[] = [
+  { value: "tout", label: "Tout" },
+  { value: "7", label: "7 derniers jours" },
+  { value: "30", label: "30 derniers jours" },
+];
+
+export function hasFilters({ type, team, period }: SearchFilters) {
+  return (
+    type !== EMPTY_FILTERS.type || team !== EMPTY_FILTERS.team || period !== EMPTY_FILTERS.period
+  );
+}
+
+const DAY_MS = 86_400_000;
+
 /** Minuscules, sans accents : la base n'a pas d'extension unaccent, tout se compare ici. */
 export function normalizeText(text: string) {
   return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
@@ -49,29 +79,60 @@ function group<T>(matches: T[], dateOf: (item: T) => string): SearchGroup<T> {
   };
 }
 
-/** Les données sont déjà lues sous RLS ; seules les actus publiées restent cherchables. */
+/**
+ * Les données sont déjà lues sous RLS ; seules les actus publiées restent cherchables.
+ * Les filtres (US23) ne font que retirer des résultats : ils ne donnent accès à rien de plus.
+ */
 export function searchAll(
   { news, submissions, blockers, metrics }: SearchData,
   query: string,
+  { type, team, period }: SearchFilters = EMPTY_FILTERS,
+  now = Date.now(),
 ): SearchResults {
   const term = normalizeText(query.trim());
+  const since = period === "tout" ? null : now - Number(period) * DAY_MS;
+  // Période : date propre à chaque type (publication, création, dernière mise à jour).
+  const inPeriod = (iso: string | null | undefined) =>
+    since === null || (!!iso && new Date(iso).getTime() >= since);
+  const shown = (t: SearchType) => type === "tous" || type === t;
   return {
     news: group(
       news.filter(
-        (n) => n.status === "publiée" && (contains(n.title, term) || contains(n.body, term)),
+        (n) =>
+          shown("actus") &&
+          n.status === "publiée" &&
+          (contains(n.title, term) || contains(n.body, term)) &&
+          inPeriod(newsPublishedAt(n)) &&
+          // Une équipe choisie écarte les actus « Toute l'entreprise ».
+          (!team || (n.audience === "équipe" && !!n.teams?.includes(team))),
       ),
       newsPublishedAt,
     ),
     submissions: group(
-      submissions.filter((s) => contains(s.content, term)),
+      submissions.filter(
+        (s) =>
+          shown("demandes") &&
+          contains(s.content, term) &&
+          inPeriod(s.created_at) &&
+          (!team || s.team === team),
+      ),
       (s) => s.created_at,
     ),
     blockers: group(
-      blockers.filter((b) => contains(b.title, term) || contains(b.description, term)),
+      blockers.filter(
+        (b) =>
+          shown("blocages") &&
+          (contains(b.title, term) || contains(b.description, term)) &&
+          inPeriod(b.updated_at) &&
+          // Une équipe choisie écarte les points sans équipe (qui concernent toutes les équipes).
+          (!team || b.teams.includes(team)),
+      ),
       (b) => b.created_at,
     ),
     metrics: group(
-      metrics.filter((m) => contains(m.label, term)),
+      metrics.filter(
+        (m) => shown("kpi") && !team && contains(m.label, term) && inPeriod(m.updated_at),
+      ),
       (m) => m.updated_at,
     ),
   };
