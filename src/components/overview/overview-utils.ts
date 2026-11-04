@@ -9,8 +9,8 @@ import {
 
 /** Cible d'actus publiées par mois (North Star, décision du 2026-10-28). */
 export const NEWS_MONTHLY_TARGET = 4;
-/** Seuil unique (US22) : au-delà, une demande en attente porte le badge « Plus de 30 jours ». */
-export const LONG_WAIT_DAYS = 30;
+/** Seuil unique (US22) : au-delà, une demande en attente porte le badge « Plus de 7 jours ». */
+export const LONG_WAIT_DAYS = 7;
 /** Au-delà, un point bloquant non résolu sans mise à jour porte le badge « À vérifier » (US21). */
 export const BLOCKER_STALE_DAYS = 3;
 

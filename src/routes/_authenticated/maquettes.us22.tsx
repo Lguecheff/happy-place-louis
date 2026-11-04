@@ -152,7 +152,7 @@ const STATES: MockState[] = [
   {
     value: "attente-42",
     label: "Demande en attente depuis 42 jours",
-    note: "Vue de Gontran. Créée il y a 60 jours, repassée en attente il y a 42 jours : le compteur part du dernier changement de statut. Au-delà de 30 jours, seul le badge « Plus de 30 jours » s'affiche, aussi dans la fenêtre de lecture.",
+    note: "Vue de Gontran. Créée il y a 60 jours, repassée en attente il y a 42 jours : le compteur part du dernier changement de statut. Au-delà de 7 jours, seul le badge « Plus de 7 jours » s'affiche, aussi dans la fenêtre de lecture.",
     viewer: GONTRAN,
     mine: [G42, GVALIDATED],
   },
@@ -166,7 +166,7 @@ const STATES: MockState[] = [
   {
     value: "file",
     label: "File À traiter",
-    note: "Vue de Kesha (manager). La file « À traiter » met la plus ancienne en premier et porte le même badge au-delà de 30 jours, sans nombre de jours en deçà. L'onglet « Gérées » aussi, seulement sur les demandes en attente.",
+    note: "Vue de Kesha (manager). La file « À traiter » met la plus ancienne en premier et porte le même badge au-delà de 7 jours, sans nombre de jours en deçà. L'onglet « Gérées » aussi, seulement sur les demandes en attente.",
     viewer: KESHA,
     mine: [],
   },
