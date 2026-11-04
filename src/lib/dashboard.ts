@@ -327,13 +327,15 @@ export async function fetchSubmissions(): Promise<Submission[]> {
   return withPendingSince((data ?? []) as Submission[]);
 }
 
-/** Demandes de tous statuts visibles du manager (ses équipes), pour corriger un statut. */
+/**
+ * Demandes de tous statuts visibles du manager (ses équipes), pour corriger un statut.
+ * Chargées en entier : l'onglet « Gérées » les affiche 10 par 10 (US24).
+ */
 export async function fetchManagedSubmissions(): Promise<Submission[]> {
   const { data, error } = await db
     .from("submissions")
     .select("*")
-    .order("created_at", { ascending: false })
-    .limit(200);
+    .order("created_at", { ascending: false });
   if (error) throw error;
   return withPendingSince((data ?? []) as Submission[]);
 }
@@ -348,13 +350,13 @@ export async function fetchSearchableSubmissions(): Promise<Submission[]> {
   return (data ?? []) as Submission[];
 }
 
+/** Toutes mes demandes : « Mes demandes » les affiche 10 par 10 (US24). */
 export async function fetchMySubmissions(email: string): Promise<Submission[]> {
   const { data, error } = await db
     .from("submissions")
     .select("*")
     .ilike("submitted_by_email", email)
-    .order("created_at", { ascending: false })
-    .limit(10);
+    .order("created_at", { ascending: false });
   if (error) throw error;
   return withPendingSince((data ?? []) as Submission[]);
 }

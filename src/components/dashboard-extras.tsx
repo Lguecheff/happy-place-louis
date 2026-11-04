@@ -4,7 +4,7 @@ import { AttachmentLink } from "@/components/attachment-link";
 import { SubmissionPreview, formatExactDate } from "@/components/expandable-card";
 import { LongWaitBadge } from "@/components/overview/LongWaitBadge";
 import { ManageIcon } from "@/components/manage/crud-ui";
-import { DS_INPUT } from "@/components/ds";
+import { DS_INPUT, DsShowMore, SHOW_MORE_REQUESTS, useShowMore } from "@/components/ds";
 import { cn } from "@/lib/utils";
 import { statusLabel } from "@/components/overview/overview-utils";
 import { StatusChip } from "@/components/submission-status-thread";
@@ -21,80 +21,114 @@ export function canReadAttachment(
   ctx: { role: string | null | undefined; email: string; managerTeams: string[] },
 ) {
   if (ctx.role === "admin") return true;
-  if (ctx.email && (s.submitted_by_email ?? "").toLowerCase() === ctx.email.toLowerCase()) return true;
+  if (ctx.email && (s.submitted_by_email ?? "").toLowerCase() === ctx.email.toLowerCase())
+    return true;
   return ctx.role === "manager" && ctx.managerTeams.includes(s.team);
 }
 
 const PAGE = 10;
+
+/** Nombre affiché gardé par le parent (RequestsSection) : changer d'onglet ne replie pas la liste. */
+type ListLimit = { limit?: number; onLimitChange?: (limit: number) => void };
 
 export function ValidatedSubmissions({
   role,
   email,
   managerTeams,
   onRead,
-}: {
+  limit,
+  onLimitChange,
+}: ListLimit & {
   role: string | null | undefined;
   email: string;
   managerTeams: string[];
   onRead: (s: Submission) => void;
 }) {
-  const q = useQuery({ queryKey: ["submissions", "validated"], queryFn: fetchValidatedSubmissions, retry: false });
+  const q = useQuery({
+    queryKey: ["submissions", "validated"],
+    queryFn: fetchValidatedSubmissions,
+    retry: false,
+  });
   const [team, setTeam] = useState("");
-  const [limit, setLimit] = useState(PAGE);
   const teams = useMemo(
     () => [...new Set((q.data ?? []).map((s) => s.team))].sort((a, b) => a.localeCompare(b, "fr")),
     [q.data],
   );
   const filtered = (q.data ?? []).filter((s) => !team || s.team === team);
-  const shown = filtered.slice(0, limit);
+  const list = useShowMore({
+    total: filtered.length,
+    first: PAGE,
+    noun: SHOW_MORE_REQUESTS,
+    limit,
+    onLimitChange,
+  });
+  const shown = filtered.slice(0, list.shown);
 
   return (
     <div className="min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-sm mb-md">
-        <h3 className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">Demandes validées</h3>
+        <h3 className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
+          Demandes validées
+        </h3>
         <label className="flex items-center gap-xs font-label-md text-label-md normal-case tracking-normal text-on-surface-variant min-w-0">
           <span className="sr-only">Filtrer par équipe</span>
           <select
             aria-label="Filtrer par équipe"
             value={team}
-            onChange={(e) => { setTeam(e.target.value); setLimit(PAGE); }}
+            onChange={(e) => {
+              setTeam(e.target.value);
+              list.reset();
+            }}
             className={cn(DS_INPUT, "w-auto max-w-full")}
           >
             <option value="">Toutes les équipes</option>
-            {teams.map((t) => <option key={t} value={t}>{t}</option>)}
+            {teams.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
           </select>
         </label>
       </div>
       {q.isLoading && <p className="text-body-sm text-on-surface-variant">Chargement…</p>}
-      {q.isError && <p className="text-body-sm text-error">Les demandes validées sont indisponibles.</p>}
+      {q.isError && (
+        <p className="text-body-sm text-error">Les demandes validées sont indisponibles.</p>
+      )}
       {q.data && filtered.length === 0 && (
-        <p className="text-body-sm text-on-surface-variant italic">Aucune demande validée pour le moment.</p>
+        <p className="text-body-sm text-on-surface-variant italic">
+          Aucune demande validée pour le moment.
+        </p>
       )}
       <div className="grid gap-xs md:grid-cols-2">
-        {shown.map((s) => (
-          <div key={s.id} className="p-sm border border-outline-variant bg-card min-w-0 overflow-hidden space-y-xs">
-            <p className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant wrap-anywhere">
-              <span className="text-primary font-bold">{s.author_name}</span> · {s.team} ·{" "}
-              {s.validated_at ? `Validée le ${formatExactDate(s.validated_at)}` : `Créée le ${formatExactDate(s.created_at)}`}
-            </p>
-            <SubmissionPreview content={s.content} onOpen={() => onRead(s)} />
-            {s.attachment_path &&
-              (canReadAttachment(s, { role, email, managerTeams }) ? (
-                <AttachmentLink path={s.attachment_path} name={s.attachment_name} />
-              ) : (
-                <p className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant italic">Pièce jointe réservée à l'équipe</p>
-              ))}
+        {shown.map((s, i) => (
+          <div key={s.id} {...list.itemProps(i)}>
+            <div className="p-sm border border-outline-variant bg-card min-w-0 overflow-hidden space-y-xs">
+              <p className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant wrap-anywhere">
+                <span className="text-primary font-bold">{s.author_name}</span> · {s.team} ·{" "}
+                {s.validated_at
+                  ? `Validée le ${formatExactDate(s.validated_at)}`
+                  : `Créée le ${formatExactDate(s.created_at)}`}
+              </p>
+              <SubmissionPreview content={s.content} onOpen={() => onRead(s)} />
+              {s.attachment_path &&
+                (canReadAttachment(s, { role, email, managerTeams }) ? (
+                  <AttachmentLink path={s.attachment_path} name={s.attachment_name} />
+                ) : (
+                  <p className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant italic">
+                    Pièce jointe réservée à l'équipe
+                  </p>
+                ))}
+            </div>
           </div>
         ))}
       </div>
-      {filtered.length > limit && (
-        <button
-          type="button"
-          onClick={() => setLimit((l) => l + PAGE)}
-          className="mt-md min-h-11 font-label-md text-label-md normal-case tracking-normal text-primary underline"
-        >
-          Afficher plus ({filtered.length - limit} restantes)
-        </button>
+      {filtered.length > 0 && (
+        <DsShowMore
+          {...list}
+          className="mt-md"
+          label="Voir plus de demandes validées"
+          onMore={list.more}
+        />
       )}
     </div>
   );
@@ -107,27 +141,41 @@ export function ManagedSubmissions({
   onRead,
   onThread,
   onChangeStatus,
-}: {
+  limit,
+  onLimitChange,
+}: ListLimit & {
   onRead: (s: Submission) => void;
   onThread: (s: Submission) => void;
   onChangeStatus: (s: Submission, status: Status) => void;
 }) {
-  const q = useQuery({ queryKey: ["submissions", "managed"], queryFn: fetchManagedSubmissions, retry: false });
+  const q = useQuery({
+    queryKey: ["submissions", "managed"],
+    queryFn: fetchManagedSubmissions,
+    retry: false,
+  });
   const [status, setStatus] = useState("");
-  const [limit, setLimit] = useState(PAGE);
   const filtered = (q.data ?? []).filter((s) => !status || s.status === status);
-  const shown = filtered.slice(0, limit);
+  const list = useShowMore({
+    total: filtered.length,
+    first: PAGE,
+    noun: SHOW_MORE_REQUESTS,
+    limit,
+    onLimitChange,
+  });
+  const shown = filtered.slice(0, list.shown);
 
   return (
     <div className="min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-sm mb-md">
-        <h3 className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">Suivi des demandes</h3>
+        <h3 className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant">
+          Suivi des demandes
+        </h3>
         <select
           aria-label="Filtrer par statut"
           value={status}
           onChange={(e) => {
             setStatus(e.target.value);
-            setLimit(PAGE);
+            list.reset();
           }}
           className={cn(DS_INPUT, "w-auto max-w-full")}
         >
@@ -142,40 +190,43 @@ export function ManagedSubmissions({
       {q.isLoading && <p className="text-body-sm text-on-surface-variant">Chargement…</p>}
       {q.isError && <p className="text-body-sm text-error">Les demandes sont indisponibles.</p>}
       {q.data && filtered.length === 0 && (
-        <p className="text-body-sm text-on-surface-variant italic">Aucune demande pour ce statut.</p>
+        <p className="text-body-sm text-on-surface-variant italic">
+          Aucune demande pour ce statut.
+        </p>
       )}
       <div className="grid gap-xs md:grid-cols-2">
-        {shown.map((s) => (
-          <div key={s.id} className="p-sm border border-outline-variant bg-card min-w-0 space-y-xs">
-            <StatusChip status={s.status} />
-            <p className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant wrap-anywhere">
-              <span className="text-primary font-bold">{s.author_name}</span> · {s.team} ·{" "}
-              {formatExactDate(s.created_at)}
-            </p>
-            <LongWaitBadge submission={s} />
-            <SubmissionPreview content={s.content} onOpen={() => onRead(s)} />
-            <div className="flex flex-wrap items-center gap-xs pt-xs">
-              <button
-                type="button"
-                aria-haspopup="dialog"
-                onClick={() => onThread(s)}
-                className={ACTION_BUTTON}
-              >
-                <ManageIcon name="history" /> Voir le détail
-              </button>
-              <StatusMenu id={s.id} current={s.status} onPick={(st) => onChangeStatus(s, st)} />
+        {shown.map((s, i) => (
+          <div key={s.id} {...list.itemProps(i)}>
+            <div className="p-sm border border-outline-variant bg-card min-w-0 space-y-xs">
+              <StatusChip status={s.status} />
+              <p className="font-label-md text-label-md normal-case tracking-normal text-on-surface-variant wrap-anywhere">
+                <span className="text-primary font-bold">{s.author_name}</span> · {s.team} ·{" "}
+                {formatExactDate(s.created_at)}
+              </p>
+              <LongWaitBadge submission={s} />
+              <SubmissionPreview content={s.content} onOpen={() => onRead(s)} />
+              <div className="flex flex-wrap items-center gap-xs pt-xs">
+                <button
+                  type="button"
+                  aria-haspopup="dialog"
+                  onClick={() => onThread(s)}
+                  className={ACTION_BUTTON}
+                >
+                  <ManageIcon name="history" /> Voir le détail
+                </button>
+                <StatusMenu id={s.id} current={s.status} onPick={(st) => onChangeStatus(s, st)} />
+              </div>
             </div>
           </div>
         ))}
       </div>
-      {filtered.length > limit && (
-        <button
-          type="button"
-          onClick={() => setLimit((l) => l + PAGE)}
-          className="mt-md min-h-11 font-label-md text-label-md normal-case tracking-normal text-primary underline"
-        >
-          Afficher plus ({filtered.length - limit} restantes)
-        </button>
+      {filtered.length > 0 && (
+        <DsShowMore
+          {...list}
+          className="mt-md"
+          label="Voir plus de demandes gérées"
+          onMore={list.more}
+        />
       )}
     </div>
   );

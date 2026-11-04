@@ -23,3 +23,10 @@ export { DsStaleBadge } from "./ds-stale-badge";
 export { DsStatTile } from "./ds-stat-tile";
 export { DsTooltip } from "./ds-tooltip";
 export { toastUndo } from "./ds-toast-undo";
+export { DsShowMore } from "./ds-show-more";
+export {
+  SHOW_MORE_NEWS,
+  SHOW_MORE_REQUESTS,
+  useShowMore,
+  type DsShowMoreNoun,
+} from "./use-show-more";

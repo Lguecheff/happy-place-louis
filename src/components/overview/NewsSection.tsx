@@ -11,6 +11,9 @@ import {
   DsListItem,
   DsSaveStatus,
   DsSection,
+  DsShowMore,
+  SHOW_MORE_NEWS,
+  useShowMore,
 } from "@/components/ds";
 import { NewsAudienceBadge } from "@/components/news/NewsAudienceBadge";
 import { NewsAudienceField } from "@/components/news/NewsAudienceField";
@@ -46,6 +49,7 @@ import {
   type NewsLink,
 } from "@/lib/news-media";
 
+/** Première tranche de « Publiées récemment » ; chaque « Voir plus » en ajoute 10 (US24). */
 const RECENT_NEWS = 4;
 const SUBTITLE = "font-label-md text-label-md normal-case tracking-normal text-on-surface-variant";
 
@@ -192,6 +196,7 @@ export function NewsSection({
   const published = (news.data?.filter((n) => n.status === "publiée") ?? []).sort((a, b) =>
     newsPublishedAt(b).localeCompare(newsPublishedAt(a)),
   );
+  const recent = useShowMore({ total: published.length, first: RECENT_NEWS, noun: SHOW_MORE_NEWS });
 
   function reset() {
     setEditing(null);
@@ -494,26 +499,30 @@ export function NewsSection({
         {news.data && published.length === 0 && (
           <DsEmptyState>Aucune actu publiée pour le moment.</DsEmptyState>
         )}
-        {published.slice(0, RECENT_NEWS).map((n) => {
+        {published.slice(0, recent.shown).map((n, i) => {
           const modifiedAt = newsModifiedAt(n);
           return (
-            <DsListItem
-              key={n.id}
-              icon="article"
-              title={n.title}
-              meta={
-                <>
-                  <span className="block">
-                    Publiée {timeAgo(newsPublishedAt(n))} · Par {n.author}
-                    {modifiedAt && ` · Modifiée le ${formatDay(modifiedAt)}`}
-                  </span>
-                  <NewsAudienceBadge news={n} className="mt-xs" />
-                </>
-              }
-              onClick={() => onRead(n)}
-            />
+            <div key={n.id} {...recent.itemProps(i)}>
+              <DsListItem
+                icon="article"
+                title={n.title}
+                meta={
+                  <>
+                    <span className="block">
+                      Publiée {timeAgo(newsPublishedAt(n))} · Par {n.author}
+                      {modifiedAt && ` · Modifiée le ${formatDay(modifiedAt)}`}
+                    </span>
+                    <NewsAudienceBadge news={n} className="mt-xs" />
+                  </>
+                }
+                onClick={() => onRead(n)}
+              />
+            </div>
           );
         })}
+        {published.length > 0 && (
+          <DsShowMore {...recent} label="Voir plus d'actus" onMore={recent.more} />
+        )}
       </div>
       <ConfirmDialog
         open={confirmPublish}

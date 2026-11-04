@@ -1,7 +1,16 @@
 import { useRef, useState } from "react";
 import { AttachmentLink } from "@/components/attachment-link";
 import { ManagedSubmissions, ValidatedSubmissions } from "@/components/dashboard-extras";
-import { DsAvatar, DsButton, DsEmptyState, DsListItem, DsSection } from "@/components/ds";
+import {
+  DsAvatar,
+  DsButton,
+  DsEmptyState,
+  DsListItem,
+  DsSection,
+  DsShowMore,
+  SHOW_MORE_REQUESTS,
+  useShowMore,
+} from "@/components/ds";
 import { DS_FOCUS } from "@/components/ds/focus";
 import { SubmissionPreview } from "@/components/expandable-card";
 import { Linkify } from "@/components/linkify";
@@ -15,6 +24,9 @@ import type { AppRole } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 type RequestList = { data?: Submission[]; isError: boolean; isLoading: boolean };
+
+/** Première tranche et pas de chaque liste de demandes (US24). */
+export const REQUESTS_PAGE = 10;
 
 const TAB = cn(
   "min-h-11 rounded-none border-b-2 border-transparent px-sm font-label-md text-sm",
@@ -87,10 +99,12 @@ function PendingRow({
 
 function MyRequests({
   query,
+  list,
   onThread,
   onRead,
 }: {
   query: RequestList;
+  list: ReturnType<typeof useShowMore>;
   onThread: (s: Submission) => void;
   onRead: (s: Submission) => void;
 }) {
@@ -98,30 +112,34 @@ function MyRequests({
     <div className="space-y-xs">
       <ListStatus query={query} error="Tes demandes sont indisponibles." />
       {query.data?.length === 0 && <DsEmptyState>Tu n'as encore aucune demande.</DsEmptyState>}
-      {query.data?.map((s) => (
-        <DsListItem
-          key={s.id}
-          title={<StatusChip status={s.status} />}
-          meta={`${s.team} · Créée ${timeAgo(s.created_at)}`}
-          actions={
-            <DsButton variant="link" aria-haspopup="dialog" onClick={() => onThread(s)}>
-              Voir le détail
-            </DsButton>
-          }
-        >
-          <LongWaitBadge submission={s} />
-          <SubmissionPreview content={s.content} onOpen={() => onRead(s)} />
-          <AttachmentLink path={s.attachment_path} name={s.attachment_name} />
-          {s.status === "refusée" && s.rejection_category && (
-            <div className="bg-error-container p-xs font-body-sm text-body-sm text-on-error-container wrap-anywhere">
-              <p className="font-bold">Motif : {s.rejection_category}</p>
-              <p className="whitespace-pre-line">
-                Raison : <Linkify text={s.rejection_note ?? ""} />
-              </p>
-            </div>
-          )}
-        </DsListItem>
+      {query.data?.slice(0, list.shown).map((s, i) => (
+        <div key={s.id} {...list.itemProps(i)}>
+          <DsListItem
+            title={<StatusChip status={s.status} />}
+            meta={`${s.team} · Créée ${timeAgo(s.created_at)}`}
+            actions={
+              <DsButton variant="link" aria-haspopup="dialog" onClick={() => onThread(s)}>
+                Voir le détail
+              </DsButton>
+            }
+          >
+            <LongWaitBadge submission={s} />
+            <SubmissionPreview content={s.content} onOpen={() => onRead(s)} />
+            <AttachmentLink path={s.attachment_path} name={s.attachment_name} />
+            {s.status === "refusée" && s.rejection_category && (
+              <div className="bg-error-container p-xs font-body-sm text-body-sm text-on-error-container wrap-anywhere">
+                <p className="font-bold">Motif : {s.rejection_category}</p>
+                <p className="whitespace-pre-line">
+                  Raison : <Linkify text={s.rejection_note ?? ""} />
+                </p>
+              </div>
+            )}
+          </DsListItem>
+        </div>
       ))}
+      {!!query.data?.length && (
+        <DsShowMore {...list} label="Voir plus de mes demandes" onMore={list.more} />
+      )}
     </div>
   );
 }
@@ -158,6 +176,19 @@ export function RequestsSection({
   const queue = [...(pending.data ?? [])].sort((a, b) =>
     pendingSince(a).localeCompare(pendingSince(b)),
   );
+  // Les tranches vivent ici : changer d'onglet démonte la liste mais ne la replie pas.
+  const queueList = useShowMore({
+    total: queue.length,
+    first: REQUESTS_PAGE,
+    noun: SHOW_MORE_REQUESTS,
+  });
+  const mineList = useShowMore({
+    total: mine.data?.length ?? 0,
+    first: REQUESTS_PAGE,
+    noun: SHOW_MORE_REQUESTS,
+  });
+  const [managedLimit, setManagedLimit] = useState(REQUESTS_PAGE);
+  const [validatedLimit, setValidatedLimit] = useState(REQUESTS_PAGE);
 
   return (
     <DsSection
@@ -203,25 +234,40 @@ export function RequestsSection({
           <TabsContent value="a-traiter" className="mt-md space-y-xs">
             <ListStatus query={pending} error="Les demandes sont indisponibles." />
             {pending.data?.length === 0 && <DsEmptyState>Aucune demande à traiter.</DsEmptyState>}
-            {queue.map((s) => (
-              <PendingRow
-                key={s.id}
-                submission={s}
-                busy={busy}
-                onValidate={() => onValidate(s)}
-                onReject={() => onReject(s)}
-                onThread={() => onThread(s, true)}
-                onRead={() => onRead(s)}
-              />
+            {queue.slice(0, queueList.shown).map((s, i) => (
+              <div key={s.id} {...queueList.itemProps(i)}>
+                <PendingRow
+                  submission={s}
+                  busy={busy}
+                  onValidate={() => onValidate(s)}
+                  onReject={() => onReject(s)}
+                  onThread={() => onThread(s, true)}
+                  onRead={() => onRead(s)}
+                />
+              </div>
             ))}
+            {queue.length > 0 && (
+              <DsShowMore
+                {...queueList}
+                label="Voir plus de demandes à traiter"
+                onMore={queueList.more}
+              />
+            )}
           </TabsContent>
         )}
         <TabsContent value="mes-demandes" className="mt-md">
-          <MyRequests query={mine} onThread={(s) => onThread(s, false)} onRead={onRead} />
+          <MyRequests
+            query={mine}
+            list={mineList}
+            onThread={(s) => onThread(s, false)}
+            onRead={onRead}
+          />
         </TabsContent>
         {canReview && (
           <TabsContent value="gerees" className="mt-md">
             <ManagedSubmissions
+              limit={managedLimit}
+              onLimitChange={setManagedLimit}
               onRead={onRead}
               onThread={(s) => onThread(s, true)}
               onChangeStatus={onChangeStatus}
@@ -230,6 +276,8 @@ export function RequestsSection({
         )}
         <TabsContent value="validees" className="mt-md">
           <ValidatedSubmissions
+            limit={validatedLimit}
+            onLimitChange={setValidatedLimit}
             role={role}
             email={email}
             managerTeams={managerTeams}

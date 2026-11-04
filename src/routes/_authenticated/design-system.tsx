@@ -20,10 +20,13 @@ import {
   DsPopover,
   DsSaveStatus,
   DsSection,
+  DsShowMore,
   DsStaleBadge,
   DsStatTile,
   DsTooltip,
+  SHOW_MORE_NEWS,
   toastUndo,
+  useShowMore,
 } from "@/components/ds";
 
 export const Route = createFileRoute("/_authenticated/design-system")({
@@ -44,6 +47,22 @@ function Demo({ title, children }: { title: string; children: React.ReactNode })
         {title}
       </h3>
       <div className="flex flex-wrap items-start gap-sm">{children}</div>
+    </div>
+  );
+}
+
+const DEMO_NEWS = Array.from({ length: 16 }, (_, i) => `Actu d'exemple n° ${i + 1}`);
+
+function ShowMoreDemo() {
+  const list = useShowMore({ total: DEMO_NEWS.length, first: 4, noun: SHOW_MORE_NEWS });
+  return (
+    <div className="w-full space-y-xs">
+      {DEMO_NEWS.slice(0, list.shown).map((title, i) => (
+        <div key={title} {...list.itemProps(i)}>
+          <DsListItem icon="article" title={title} meta="Publiée il y a 2 jours" />
+        </div>
+      ))}
+      <DsShowMore {...list} label="Voir plus d'actus" onMore={list.more} />
     </div>
   );
 }
@@ -391,6 +410,31 @@ function DesignSystemPage() {
         <DsSection id="choix-multiple" title="DsMultiSelect">
           <Demo title="Plusieurs équipes (Product +1), rien de choisi, désactivé">
             <MultiSelectDemo />
+          </Demo>
+        </DsSection>
+
+        <DsSection id="voir-plus" title="DsShowMore">
+          <Demo title="4 actus, puis 10 de plus par clic : focus sur la première ajoutée, annonce « 10 actus ajoutées. »">
+            <ShowMoreDemo />
+          </Demo>
+          <Demo title="Suite chargée depuis la base : en cours, puis échec avec « Réessayer »">
+            <DsShowMore
+              shown={10}
+              total={23}
+              label="Voir plus de demandes"
+              onMore={() => {}}
+              pending
+            />
+            <DsShowMore
+              shown={10}
+              total={23}
+              label="Voir plus de demandes"
+              onMore={() => {}}
+              error
+            />
+          </Demo>
+          <Demo title="Tout affiché : plus de bouton">
+            <DsShowMore shown={3} total={3} label="Voir plus de demandes" onMore={() => {}} />
           </Demo>
         </DsSection>
 

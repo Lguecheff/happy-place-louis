@@ -1,8 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { BrandHeader } from "@/components/brand-header";
-import { DS_INPUT, DsAvatar, DsButton, DsField, DsListItem, DsSection } from "@/components/ds";
+import {
+  DS_INPUT,
+  DsAvatar,
+  DsButton,
+  DsField,
+  DsListItem,
+  DsSection,
+  DsShowMore,
+  SHOW_MORE_NEWS,
+  SHOW_MORE_REQUESTS,
+  useShowMore,
+  type DsShowMoreNoun,
+} from "@/components/ds";
 import { DS_FOCUS } from "@/components/ds/focus";
 import { SubmissionPreview } from "@/components/expandable-card";
 import { LongWaitBadge } from "@/components/overview/LongWaitBadge";
@@ -160,131 +172,72 @@ const TAB = cn(
 const SUBTITLE = "font-label-md text-label-md normal-case tracking-normal text-on-surface-variant";
 
 // ---------------------------------------------------------------------------
-// Tranches : candidat au composant ds « DsShowMore » (à valider, voir le résumé).
+// Tranches : DsShowMore et useShowMore, plus un faux chargement pour l'état d'erreur.
 // ---------------------------------------------------------------------------
 
-type Noun = { one: string; many: string };
-const NEWS_NOUN: Noun = { one: "actu ajoutée", many: "actus ajoutées" };
-const REQUEST_NOUN: Noun = { one: "demande ajoutée", many: "demandes ajoutées" };
-
-type TrancheStatus = "idle" | "loading" | "error";
-
-/** Nombre d'éléments affichés, qui ne baisse jamais tout seul (une mise à jour ne replie pas). */
-function useTranche({
+/** useShowMore, avec un chargement simulé (1 seconde) qui échoue la première fois si `failing`. */
+function useMockList({
   total,
   first,
-  step,
+  noun,
   expanded,
   failing,
-  noun,
 }: {
   total: number;
   first: number;
-  step: number;
+  noun: DsShowMoreNoun;
   expanded?: boolean;
   failing?: boolean;
-  noun: Noun;
 }) {
-  const [limit, setLimit] = useState(expanded ? Number.POSITIVE_INFINITY : first);
-  const [status, setStatus] = useState<TrancheStatus>("idle");
-  const [announce, setAnnounce] = useState("");
-  const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  const list = useShowMore({ total, first: expanded ? Number.POSITIVE_INFINITY : first, noun });
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState(false);
   const failed = useRef(false);
-  const items = useRef(new Map<number, HTMLElement>());
-  const retryBox = useRef<HTMLDivElement>(null);
-  const shown = Math.min(limit, total);
 
-  useEffect(() => {
-    if (focusIndex === null) return;
-    items.current.get(focusIndex)?.focus();
-    setFocusIndex(null);
-  }, [focusIndex]);
-
-  useEffect(() => {
-    if (status === "error") retryBox.current?.querySelector("button")?.focus();
-  }, [status]);
-
-  function grow() {
-    const added = Math.min(step, total - shown);
-    setLimit(shown + step);
-    setStatus("idle");
-    setFocusIndex(shown);
-    setAnnounce(`${added} ${added > 1 ? noun.many : noun.one}.`);
-  }
-
-  function more() {
-    if (!failing) return grow();
-    // Maquette : simule un chargement depuis la base, qui échoue la première fois.
-    setStatus("loading");
-    setAnnounce("Chargement…");
+  function onMore() {
+    if (!failing) return list.more();
+    setError(false);
+    setPending(true);
     window.setTimeout(() => {
-      if (failed.current) return grow();
+      setPending(false);
+      if (failed.current) return list.more();
       failed.current = true;
-      setStatus("error");
-      setAnnounce("Impossible de charger la suite.");
+      setError(true);
     }, 1000);
   }
 
-  return {
-    shown,
-    total,
-    status,
-    announce,
-    more,
-    retryBox,
-    /** À poser sur l'enveloppe de chaque élément : reçoit le focus quand il vient d'être ajouté. */
-    itemProps: (index: number) => ({
-      tabIndex: -1,
-      className: cn("min-w-0", DS_FOCUS),
-      ref: (el: HTMLDivElement | null) => {
-        if (el) items.current.set(index, el);
-        else items.current.delete(index);
-      },
-    }),
-  };
+  return { ...list, pending, error, onMore };
 }
 
-type Tranche = ReturnType<typeof useTranche>;
+type MockList = ReturnType<typeof useMockList>;
 
-function ShowMore({ tranche, label }: { tranche: Tranche; label: string }) {
-  const { shown, total, status, announce, more, retryBox } = tranche;
+function MockShowMore({ list, label }: { list: MockList; label: string }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-sm pt-xs">
-      <p className="font-label-md text-label-md text-on-surface-variant">
-        {shown} sur {total} affichées
-      </p>
-      {status === "error" ? (
-        <div ref={retryBox} className="flex flex-wrap items-center gap-sm">
-          <p className="font-body-sm text-body-sm text-error">Impossible de charger la suite.</p>
-          <DsButton onClick={more}>Réessayer</DsButton>
-        </div>
-      ) : (
-        shown < total && (
-          <DsButton pending={status === "loading"} aria-label={label} onClick={more}>
-            {status === "loading" ? "Chargement…" : "Voir plus"}
-          </DsButton>
-        )
-      )}
-      <p className="sr-only" aria-live="polite">
-        {announce}
-      </p>
-    </div>
+    <DsShowMore
+      shown={list.shown}
+      total={list.total}
+      announce={list.announce}
+      pending={list.pending}
+      error={list.error}
+      label={label}
+      onMore={list.onMore}
+    />
   );
 }
 
 function TrancheList({
-  tranche,
+  list,
   className,
   children,
 }: {
-  tranche: Tranche;
+  list: MockList;
   className?: string;
   children: (index: number) => ReactNode;
 }) {
   return (
     <div className={className}>
-      {Array.from({ length: tranche.shown }, (_, i) => (
-        <div key={i} {...tranche.itemProps(i)}>
+      {Array.from({ length: list.shown }, (_, i) => (
+        <div key={i} {...list.itemProps(i)}>
           {children(i)}
         </div>
       ))}
@@ -366,26 +319,18 @@ function Lists({ state, viewer }: { state: MockState; viewer: Viewer }) {
   const sortedQueue = [...queue].sort((a, b) => pendingSince(a).localeCompare(pendingSince(b)));
 
   const common = { expanded: state.expanded, failing: state.failing };
-  const newsT = useTranche({ total: news.length, first: 4, step: 10, noun: NEWS_NOUN, ...common });
-  const mineT = useTranche({
-    total: mine.length,
-    first: 10,
-    step: 10,
-    noun: REQUEST_NOUN,
-    ...common,
-  });
-  const queueT = useTranche({
+  const newsT = useMockList({ total: news.length, first: 4, noun: SHOW_MORE_NEWS, ...common });
+  const mineT = useMockList({ total: mine.length, first: 10, noun: SHOW_MORE_REQUESTS, ...common });
+  const queueT = useMockList({
     total: queue.length,
     first: 10,
-    step: 10,
-    noun: REQUEST_NOUN,
+    noun: SHOW_MORE_REQUESTS,
     ...common,
   });
-  const managedT = useTranche({
+  const managedT = useMockList({
     total: managed.length,
     first: 10,
-    step: 10,
-    noun: REQUEST_NOUN,
+    noun: SHOW_MORE_REQUESTS,
     ...common,
   });
 
@@ -451,27 +396,27 @@ function Lists({ state, viewer }: { state: MockState; viewer: Viewer }) {
               </TabsList>
               {canReview && (
                 <TabsContent value="a-traiter" className="mt-md space-y-xs">
-                  <TrancheList tranche={queueT} className="space-y-xs">
+                  <TrancheList list={queueT} className="space-y-xs">
                     {(i) => (
                       <PendingRow s={sortedQueue[i]} onRead={() => setReading(sortedQueue[i])} />
                     )}
                   </TrancheList>
-                  <ShowMore tranche={queueT} label="Voir plus de demandes à traiter" />
+                  <MockShowMore list={queueT} label="Voir plus de demandes à traiter" />
                 </TabsContent>
               )}
               <TabsContent value="mes-demandes" className="mt-md space-y-xs">
-                <TrancheList tranche={mineT} className="space-y-xs">
+                <TrancheList list={mineT} className="space-y-xs">
                   {(i) => <MyRow s={mine[i]} onRead={() => setReading(mine[i])} />}
                 </TrancheList>
-                <ShowMore tranche={mineT} label="Voir plus de mes demandes" />
+                <MockShowMore list={mineT} label="Voir plus de mes demandes" />
               </TabsContent>
               {canReview && (
                 <TabsContent value="gerees" className="mt-md space-y-xs">
                   <h3 className={cn(SUBTITLE, "mb-md")}>Suivi des demandes</h3>
-                  <TrancheList tranche={managedT} className="grid gap-xs md:grid-cols-2">
+                  <TrancheList list={managedT} className="grid gap-xs md:grid-cols-2">
                     {(i) => <ManagedCard s={managed[i]} onRead={() => setReading(managed[i])} />}
                   </TrancheList>
-                  <ShowMore tranche={managedT} label="Voir plus de demandes gérées" />
+                  <MockShowMore list={managedT} label="Voir plus de demandes gérées" />
                 </TabsContent>
               )}
             </Tabs>
@@ -479,7 +424,7 @@ function Lists({ state, viewer }: { state: MockState; viewer: Viewer }) {
           <DsSection id="actus" title="Actualités du cabinet">
             <div className="space-y-xs">
               <h3 className={SUBTITLE}>Publiées récemment</h3>
-              <TrancheList tranche={newsT} className="space-y-xs">
+              <TrancheList list={newsT} className="space-y-xs">
                 {(i) => (
                   <DsListItem
                     icon="article"
@@ -489,7 +434,7 @@ function Lists({ state, viewer }: { state: MockState; viewer: Viewer }) {
                   />
                 )}
               </TrancheList>
-              <ShowMore tranche={newsT} label="Voir plus d'actus" />
+              <MockShowMore list={newsT} label="Voir plus d'actus" />
             </div>
           </DsSection>
         </div>

@@ -185,6 +185,15 @@ Props : `label`, `options`, `value` (valeurs cochées), `onChange`, `allLabel` (
 <DsMultiSelect label="Équipe" allLabel="Toutes" options={equipes} value={choix} onChange={setChoix} />
 ```
 
+### DsShowMore et useShowMore
+`useShowMore({ total, first, step, noun, limit?, onLimitChange? })` : nombre d'éléments affichés d'une liste, première tranche `first`, puis `step` de plus par clic (10 par défaut). Il ne baisse jamais tout seul : une mise à jour en temps réel ne replie pas la liste ; `reset()` revient à la première tranche (changement de filtre). `itemProps(i)` se pose sur l'enveloppe de chaque élément : après un clic, le premier élément ajouté reçoit le focus. `noun` (`SHOW_MORE_NEWS`, `SHOW_MORE_REQUESTS`) donne l'annonce « 10 demandes ajoutées. ». `limit` et `onLimitChange` laissent le parent garder le nombre (onglet qui se démonte).
+`DsShowMore` : `shown`, `total`, `announce`, `label` (nom lu, qui commence par « Voir plus » : « Voir plus d'actus »), `onMore`, `pending`, `error`, `onRetry`. Sous la liste : « N sur M affichées », toujours, puis le bouton « Voir plus » (`secondary`) tant qu'il reste des éléments ; une liste plus courte que la première tranche n'a pas de bouton. Si la suite se charge depuis la base : « Chargement… » pendant l'attente, puis « Impossible de charger la suite. » et « Réessayer », qui reçoit le focus. Une zone `aria-live` polie annonce l'ajout, le chargement et l'échec. Pas de pagination numérotée sur la vue d'ensemble. Les tableaux de « Gérer les données » gardent leur propre pagination.
+```tsx
+const actus = useShowMore({ total: liste.length, first: 4, noun: SHOW_MORE_NEWS });
+{liste.slice(0, actus.shown).map((n, i) => <div key={n.id} {...actus.itemProps(i)}><DsListItem … /></div>)}
+<DsShowMore {...actus} label="Voir plus d'actus" onMore={actus.more} />
+```
+
 ### DsIcon
 Props : `name`, `filled`, `label`, `className`. Décorative (`aria-hidden`) par défaut ; avec `label`, elle est annoncée.
 ```tsx
