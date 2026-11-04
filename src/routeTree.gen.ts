@@ -45,6 +45,7 @@ import { Route as AuthenticatedMaquettesUs21RouteImport } from './routes/_authen
 import { Route as AuthenticatedMaquettesUs22RouteImport } from './routes/_authenticated/maquettes.us22'
 import { Route as AuthenticatedMaquettesUs23RouteImport } from './routes/_authenticated/maquettes.us23'
 import { Route as AuthenticatedMaquettesUs24RouteImport } from './routes/_authenticated/maquettes.us24'
+import { Route as AuthenticatedMaquettesUs25RouteImport } from './routes/_authenticated/maquettes.us25'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -254,6 +255,12 @@ const AuthenticatedMaquettesUs24Route =
     path: '/maquettes/us24',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMaquettesUs25Route =
+  AuthenticatedMaquettesUs25RouteImport.update({
+    id: '/maquettes/us25',
+    path: '/maquettes/us25',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -290,6 +297,7 @@ export interface FileRoutesByFullPath {
   '/maquettes/us22': typeof AuthenticatedMaquettesUs22Route
   '/maquettes/us23': typeof AuthenticatedMaquettesUs23Route
   '/maquettes/us24': typeof AuthenticatedMaquettesUs24Route
+  '/maquettes/us25': typeof AuthenticatedMaquettesUs25Route
   '/manage/': typeof AuthenticatedManageIndexRoute
 }
 export interface FileRoutesByTo {
@@ -326,6 +334,7 @@ export interface FileRoutesByTo {
   '/maquettes/us22': typeof AuthenticatedMaquettesUs22Route
   '/maquettes/us23': typeof AuthenticatedMaquettesUs23Route
   '/maquettes/us24': typeof AuthenticatedMaquettesUs24Route
+  '/maquettes/us25': typeof AuthenticatedMaquettesUs25Route
   '/manage': typeof AuthenticatedManageIndexRoute
 }
 export interface FileRoutesById {
@@ -365,6 +374,7 @@ export interface FileRoutesById {
   '/_authenticated/maquettes/us22': typeof AuthenticatedMaquettesUs22Route
   '/_authenticated/maquettes/us23': typeof AuthenticatedMaquettesUs23Route
   '/_authenticated/maquettes/us24': typeof AuthenticatedMaquettesUs24Route
+  '/_authenticated/maquettes/us25': typeof AuthenticatedMaquettesUs25Route
   '/_authenticated/manage/': typeof AuthenticatedManageIndexRoute
 }
 export interface FileRouteTypes {
@@ -404,6 +414,7 @@ export interface FileRouteTypes {
     | '/maquettes/us22'
     | '/maquettes/us23'
     | '/maquettes/us24'
+    | '/maquettes/us25'
     | '/manage/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -440,6 +451,7 @@ export interface FileRouteTypes {
     | '/maquettes/us22'
     | '/maquettes/us23'
     | '/maquettes/us24'
+    | '/maquettes/us25'
     | '/manage'
   id:
     | '__root__'
@@ -478,6 +490,7 @@ export interface FileRouteTypes {
     | '/_authenticated/maquettes/us22'
     | '/_authenticated/maquettes/us23'
     | '/_authenticated/maquettes/us24'
+    | '/_authenticated/maquettes/us25'
     | '/_authenticated/manage/'
   fileRoutesById: FileRoutesById
 }
@@ -742,6 +755,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMaquettesUs24RouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/maquettes/us25': {
+      id: '/_authenticated/maquettes/us25'
+      path: '/maquettes/us25'
+      fullPath: '/maquettes/us25'
+      preLoaderRoute: typeof AuthenticatedMaquettesUs25RouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -793,6 +813,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMaquettesUs22Route: typeof AuthenticatedMaquettesUs22Route
   AuthenticatedMaquettesUs23Route: typeof AuthenticatedMaquettesUs23Route
   AuthenticatedMaquettesUs24Route: typeof AuthenticatedMaquettesUs24Route
+  AuthenticatedMaquettesUs25Route: typeof AuthenticatedMaquettesUs25Route
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -822,6 +843,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMaquettesUs22Route: AuthenticatedMaquettesUs22Route,
   AuthenticatedMaquettesUs23Route: AuthenticatedMaquettesUs23Route,
   AuthenticatedMaquettesUs24Route: AuthenticatedMaquettesUs24Route,
+  AuthenticatedMaquettesUs25Route: AuthenticatedMaquettesUs25Route,
 }
 
 const AuthenticatedRouteRouteWithChildren =
