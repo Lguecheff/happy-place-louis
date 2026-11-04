@@ -1,14 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
-import {
-  DS_INPUT,
-  DsButton,
-  DsChoice,
-  DsChoiceGroup,
-  DsField,
-  DsIcon,
-  DsIconButton,
-} from "@/components/ds";
+import { DS_INPUT, DsButton, DsChoice, DsChoiceGroup, DsField, DsIcon } from "@/components/ds";
 import { ConfirmDialog } from "@/components/overview/ConfirmDialog";
 import { ReaderDialog } from "@/components/reader-dialog";
 import {
@@ -36,11 +27,6 @@ export type NewsAiWriterInitial = {
   replacing?: boolean;
 };
 
-export type NewsAiFormat = "dialog" | "inline";
-
-const PANEL_ID = "ia-panneau";
-const TRIGGER_ID = "ia-bouton";
-
 const BOX = "space-y-xs border border-outline-variant bg-surface-container p-sm";
 
 /**
@@ -55,7 +41,6 @@ export function NewsAiWriter({
   generate,
   disabled,
   initial,
-  format = "dialog",
 }: {
   /** Le titre ou le texte est déjà rempli : utiliser le texte demande une confirmation. */
   hasText: boolean;
@@ -63,8 +48,6 @@ export function NewsAiWriter({
   generate: AiGenerate;
   disabled?: boolean;
   initial?: NewsAiWriterInitial;
-  /** A/B de la maquette : fenêtre (comme les modèles) ou panneau dans le formulaire. */
-  format?: NewsAiFormat;
 }) {
   const [open, setOpen] = useState(!!initial);
   const [phase, setPhase] = useState<Phase>(initial?.phase ?? "prompt");
@@ -81,12 +64,6 @@ export function NewsAiWriter({
   useEffect(() => {
     if (phase === "preview") previewTitle.current?.focus();
   }, [phase]);
-
-  // Dans le formulaire, rien ne déplace le focus à l'ouverture : on le pose sur la consigne.
-  function openWriter() {
-    flushSync(() => setOpen(true));
-    if (format === "inline") promptRef.current?.focus();
-  }
 
   // Maquette « Chargement » : la génération démarre à l'ouverture.
   useEffect(() => {
@@ -131,8 +108,6 @@ export function NewsAiWriter({
   function close() {
     abort.current?.abort("cancel");
     setOpen(false);
-    // La fenêtre rend le focus au bouton elle-même ; le panneau, non.
-    if (format === "inline") document.getElementById(TRIGGER_ID)?.focus();
     // L'aperçu non utilisé est abandonné ; la consigne et le ton restent.
     if (phase !== "limit") setPhase("prompt");
     setDraft(null);
@@ -271,43 +246,18 @@ export function NewsAiWriter({
   return (
     <>
       <DsButton
-        id={TRIGGER_ID}
         icon="auto_awesome"
-        {...(format === "dialog"
-          ? { "aria-haspopup": "dialog" as const }
-          : { "aria-expanded": open, "aria-controls": PANEL_ID })}
+        aria-haspopup="dialog"
         disabled={disabled}
-        onClick={() => (open ? close() : openWriter())}
+        onClick={() => setOpen(true)}
       >
         Rédiger avec l'IA
       </DsButton>
-      {open &&
-        (format === "dialog" ? (
-          <ReaderDialog title={TITLE} subtitle={SUBTITLE} onClose={close}>
-            {content}
-          </ReaderDialog>
-        ) : (
-          <div
-            id={PANEL_ID}
-            role="region"
-            aria-labelledby="ia-panneau-titre"
-            className="w-full basis-full space-y-md border border-outline-variant p-md"
-          >
-            <div className="flex items-start justify-between gap-sm">
-              <div className="min-w-0">
-                <h3
-                  id="ia-panneau-titre"
-                  className="font-body-md text-body-md font-bold text-primary"
-                >
-                  {TITLE}
-                </h3>
-                <p className="font-body-sm text-body-sm text-on-surface-variant">{SUBTITLE}</p>
-              </div>
-              <DsIconButton icon="close" label="Fermer la rédaction avec l'IA" onClick={close} />
-            </div>
-            {content}
-          </div>
-        ))}
+      {open && (
+        <ReaderDialog title={TITLE} subtitle={SUBTITLE} onClose={close}>
+          {content}
+        </ReaderDialog>
+      )}
       <ConfirmDialog
         open={replacing && !!draft}
         title="Remplacer ton texte par celui de l'IA ?"

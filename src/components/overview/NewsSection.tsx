@@ -21,11 +21,7 @@ import {
   NewsTemplatePicker,
   type NewsTemplatePickerInitial,
 } from "@/components/news/NewsTemplatePicker";
-import {
-  NewsAiWriter,
-  type NewsAiFormat,
-  type NewsAiWriterInitial,
-} from "@/components/news/NewsAiWriter";
+import { NewsAiWriter, type NewsAiWriterInitial } from "@/components/news/NewsAiWriter";
 import type { AiGenerate } from "@/lib/news-ai";
 import { useAutosaveDraft, type AutosaveFn } from "@/components/news/use-autosave-draft";
 import { NewsMediaEditor } from "@/components/news-media";
@@ -188,7 +184,7 @@ export function NewsSection({
   /** Fenêtre des modèles ouverte au départ (maquettes). */
   initialTemplatePicker?: NewsTemplatePickerInitial;
   /** « Rédiger avec l'IA » (US27) ; sans valeur, le bouton n'apparaît pas. */
-  aiWriter?: { generate: AiGenerate; initial?: NewsAiWriterInitial; format?: NewsAiFormat };
+  aiWriter?: { generate: AiGenerate; initial?: NewsAiWriterInitial };
   /** Bloc « Idées de sujets » (US26), managers seulement ; placé sous le compteur du mois. */
   ideas?: ReactNode;
 }) {
@@ -453,7 +449,6 @@ export function NewsSection({
                     disabled={busy}
                     generate={aiWriter.generate}
                     initial={aiWriter.initial}
-                    format={aiWriter.format}
                     onApply={(d) => {
                       setTitle(d.title);
                       setBody(d.body);
