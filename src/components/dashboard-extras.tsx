@@ -128,6 +128,7 @@ export function ValidatedSubmissions({
           className="mt-md"
           label="Voir plus de demandes validées"
           onMore={list.more}
+          onLess={list.less}
         />
       )}
     </div>
@@ -226,6 +227,7 @@ export function ManagedSubmissions({
           className="mt-md"
           label="Voir plus de demandes gérées"
           onMore={list.more}
+          onLess={list.less}
         />
       )}
     </div>

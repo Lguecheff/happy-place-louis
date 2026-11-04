@@ -126,14 +126,14 @@ const STATES: MockState[] = [
   {
     value: "25-actus",
     label: "25 actus",
-    note: "« Publiées récemment » montre 4 actus, puis 10 de plus par clic (4, 14, 24, 25). Après un clic, le focus va sur la première actu ajoutée et « 10 actus ajoutées » est annoncé.",
+    note: "« Publiées récemment » montre 4 actus, puis 10 de plus par clic (4, 14, 24, 25). Après un clic, le focus va sur la première actu ajoutée et « 10 actus ajoutées » est annoncé. « Voir moins » revient à la tranche précédente (25, 24, 14, 4) : focus sur la dernière actu qui reste, « 1 actu masquée » annoncé.",
     news: 25,
     requests: 3,
   },
   {
     value: "3-actus",
     label: "3 actus (pas de bouton)",
-    note: "Liste plus courte que la première tranche : pas de bouton, la mention « 3 sur 3 affichées » reste.",
+    note: "Liste plus courte que la première tranche : ni « Voir plus » ni « Voir moins », la mention « 3 sur 3 affichées » reste.",
     news: 3,
     requests: 3,
   },
@@ -147,7 +147,7 @@ const STATES: MockState[] = [
   {
     value: "tout",
     label: "Tout affiché",
-    note: "Toutes les listes sont dépliées : « 25 sur 25 affichées », « 23 sur 23 affichées », plus de bouton.",
+    note: "Toutes les listes sont dépliées : « 25 sur 25 affichées », « 23 sur 23 affichées », plus de « Voir plus », « Voir moins » reste.",
     news: 25,
     requests: 23,
     expanded: true,
@@ -221,6 +221,8 @@ function MockShowMore({ list, label }: { list: MockList; label: string }) {
       error={list.error}
       label={label}
       onMore={list.onMore}
+      canLess={list.canLess}
+      onLess={list.less}
     />
   );
 }

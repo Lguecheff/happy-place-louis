@@ -138,7 +138,12 @@ function MyRequests({
         </div>
       ))}
       {!!query.data?.length && (
-        <DsShowMore {...list} label="Voir plus de mes demandes" onMore={list.more} />
+        <DsShowMore
+          {...list}
+          label="Voir plus de mes demandes"
+          onMore={list.more}
+          onLess={list.less}
+        />
       )}
     </div>
   );
@@ -251,6 +256,7 @@ export function RequestsSection({
                 {...queueList}
                 label="Voir plus de demandes à traiter"
                 onMore={queueList.more}
+                onLess={queueList.less}
               />
             )}
           </TabsContent>

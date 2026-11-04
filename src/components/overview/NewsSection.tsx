@@ -521,7 +521,12 @@ export function NewsSection({
           );
         })}
         {published.length > 0 && (
-          <DsShowMore {...recent} label="Voir plus d'actus" onMore={recent.more} />
+          <DsShowMore
+            {...recent}
+            label="Voir plus d'actus"
+            onMore={recent.more}
+            onLess={recent.less}
+          />
         )}
       </div>
       <ConfirmDialog

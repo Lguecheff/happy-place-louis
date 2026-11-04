@@ -62,7 +62,7 @@ function ShowMoreDemo() {
           <DsListItem icon="article" title={title} meta="Publiée il y a 2 jours" />
         </div>
       ))}
-      <DsShowMore {...list} label="Voir plus d'actus" onMore={list.more} />
+      <DsShowMore {...list} label="Voir plus d'actus" onMore={list.more} onLess={list.less} />
     </div>
   );
 }
@@ -414,7 +414,7 @@ function DesignSystemPage() {
         </DsSection>
 
         <DsSection id="voir-plus" title="DsShowMore">
-          <Demo title="4 actus, puis 10 de plus par clic : focus sur la première ajoutée, annonce « 10 actus ajoutées. »">
+          <Demo title="4 actus, puis 10 de plus par clic ; « Voir moins » retire la dernière tranche. Focus et annonce à chaque clic">
             <ShowMoreDemo />
           </Demo>
           <Demo title="Suite chargée depuis la base : en cours, puis échec avec « Réessayer »">

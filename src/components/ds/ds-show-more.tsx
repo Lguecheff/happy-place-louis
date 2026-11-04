@@ -1,4 +1,4 @@
-/** Sous une liste : « N sur M affichées » et le bouton « Voir plus » (US24). Voir `useShowMore`. */
+/** Sous une liste : « N sur M affichées », « Voir moins » et « Voir plus » (US24). Voir `useShowMore`. */
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { DsButton } from "./ds-button";
@@ -9,6 +9,8 @@ export function DsShowMore({
   announce = "",
   label,
   onMore,
+  canLess = false,
+  onLess,
   pending = false,
   error = false,
   onRetry,
@@ -21,6 +23,10 @@ export function DsShowMore({
   /** Nom lu du bouton, qui commence par « Voir plus » (ex. « Voir plus d'actus »). */
   label: string;
   onMore: () => void;
+  /** Plus que la première tranche est affiché (fourni par `useShowMore`). */
+  canLess?: boolean;
+  /** Retire la dernière tranche ; sans valeur, pas de « Voir moins ». Son nom lu remplace « Voir plus » par « Voir moins » dans `label`. */
+  onLess?: () => void;
   /** Suite en cours de chargement depuis la base. */
   pending?: boolean;
   /** Échec du chargement de la suite. */
@@ -44,18 +50,25 @@ export function DsShowMore({
       <p className="font-label-md text-label-md text-on-surface-variant">
         {shown} sur {total} affichées
       </p>
-      {error ? (
-        <div ref={retryBox} className="flex flex-wrap items-center gap-sm">
-          <p className="font-body-sm text-body-sm text-error">Impossible de charger la suite.</p>
-          <DsButton onClick={onRetry ?? onMore}>Réessayer</DsButton>
-        </div>
-      ) : (
-        shown < total && (
-          <DsButton pending={pending} aria-label={pending ? undefined : label} onClick={onMore}>
-            {pending ? "Chargement…" : "Voir plus"}
+      <div className="flex flex-wrap items-center gap-sm">
+        {onLess && canLess && !pending && (
+          <DsButton aria-label={label.replace("Voir plus", "Voir moins")} onClick={onLess}>
+            Voir moins
           </DsButton>
-        )
-      )}
+        )}
+        {error ? (
+          <div ref={retryBox} className="flex flex-wrap items-center gap-sm">
+            <p className="font-body-sm text-body-sm text-error">Impossible de charger la suite.</p>
+            <DsButton onClick={onRetry ?? onMore}>Réessayer</DsButton>
+          </div>
+        ) : (
+          shown < total && (
+            <DsButton pending={pending} aria-label={pending ? undefined : label} onClick={onMore}>
+              {pending ? "Chargement…" : "Voir plus"}
+            </DsButton>
+          )
+        )}
+      </div>
       <p className="sr-only" aria-live="polite">
         {live}
       </p>
