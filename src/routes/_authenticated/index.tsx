@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { toast } from "sonner";
+import { generateNewsWithAi } from "@/lib/news-ai";
 import { BrandHeader } from "@/components/brand-header";
 import { BlockerReader } from "@/components/blocker-reader";
 import { DepartureNotices } from "@/components/departure-notices";
@@ -67,6 +68,9 @@ import {
 } from "@/lib/dashboard";
 import { ideaDraft, type NewsIdea } from "@/lib/news-ideas";
 import { cn } from "@/lib/utils";
+
+/** « Rédiger avec l'IA » (US27) : le serveur revérifie le rôle et la limite du jour. */
+const AI_WRITER = { generate: generateNewsWithAi };
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -507,6 +511,7 @@ function ManagerSpace() {
               onSave={saveNews}
               onPublish={publishNews}
               onAutosave={autosaveNews}
+              aiWriter={canReview ? AI_WRITER : undefined}
               onRemove={(n) => removeDraft.mutate(n)}
               onRead={setReadingNews}
               savingEdit={editPublished.isPending}

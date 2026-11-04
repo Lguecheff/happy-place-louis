@@ -146,6 +146,11 @@ function DesignSystemPage() {
               Publier
             </DsButton>
           </Demo>
+          <Demo title="En cours, focus gardé (busy)">
+            <DsButton icon="auto_awesome" busy>
+              Proposer un texte
+            </DsButton>
+          </Demo>
           <Demo title="Lien (balise a)">
             <DsButton variant="secondary" href="#boutons" icon="arrow_forward">
               Revenir à cette section

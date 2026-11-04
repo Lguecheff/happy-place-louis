@@ -24,6 +24,12 @@ type Common = {
   icon?: string;
   /** Action en cours : le bouton est désactivé et annonce qu'il est occupé. */
   pending?: boolean;
+  /**
+   * Action en cours, mais le bouton garde le focus clavier : il reste focusable,
+   * annonce qu'il est occupé (aria-disabled, aria-busy) et ignore les clics.
+   * À préférer à `pending` quand le focus est sur le bouton pendant l'attente.
+   */
+  busy?: boolean;
 };
 
 type DsButtonProps =
@@ -31,7 +37,7 @@ type DsButtonProps =
   | (Common & AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; disabled?: boolean });
 
 export function DsButton(props: DsButtonProps) {
-  const { variant = "secondary", icon, pending, className, children, ...rest } = props;
+  const { variant = "secondary", icon, pending, busy, className, children, ...rest } = props;
   const classes = cn(
     "inline-flex min-h-11 items-center justify-center gap-xs px-md py-xs font-label-md text-sm font-medium",
     "disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
@@ -41,7 +47,7 @@ export function DsButton(props: DsButtonProps) {
   );
   const content = (
     <>
-      {pending ? (
+      {pending || busy ? (
         <DsIcon name="progress_activity" className="animate-spin" />
       ) : (
         icon && <DsIcon name={icon} />
@@ -72,6 +78,7 @@ export function DsButton(props: DsButtonProps) {
   const {
     type = "button",
     disabled,
+    onClick,
     ...buttonRest
   } = rest as ButtonHTMLAttributes<HTMLButtonElement>;
   return (
@@ -79,7 +86,15 @@ export function DsButton(props: DsButtonProps) {
       {...buttonRest}
       type={type}
       disabled={disabled || pending}
-      aria-busy={pending || undefined}
+      aria-busy={pending || busy || undefined}
+      aria-disabled={busy || buttonRest["aria-disabled"] || undefined}
+      onClick={(e) => {
+        if (busy) {
+          e.preventDefault();
+          return;
+        }
+        onClick?.(e);
+      }}
       className={classes}
     >
       {content}

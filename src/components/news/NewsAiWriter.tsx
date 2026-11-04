@@ -76,6 +76,8 @@ export function NewsAiWriter({
     const err = aiPromptError(prompt);
     setPromptError(err);
     if (err) {
+      // Une consigne à corriger remplace l'échec précédent : un seul message à la fois.
+      if (phase === "error") setPhase("prompt");
       promptRef.current?.focus();
       return;
     }
@@ -90,6 +92,11 @@ export function NewsAiWriter({
       if (result.ok) {
         setDraft({ title: result.title, body: result.body });
         setPhase("preview");
+      } else if (result.reason === "personal") {
+        // Refusé par le serveur : rien n'est parti vers le service d'IA.
+        setPromptError(AI_MESSAGES.personal);
+        setPhase("prompt");
+        promptRef.current?.focus();
       } else setPhase(result.reason === "limit" ? "limit" : "error");
     } catch {
       // Annulation par l'utilisateur : on revient à la consigne, sans message.
@@ -193,12 +200,12 @@ export function NewsAiWriter({
                 Annuler
               </DsButton>
             )}
-            {/* Pendant le chargement, le bouton garde le focus : aria-disabled, pas disabled. */}
+            {/* Pendant le chargement, le bouton garde le focus (busy, pas pending). */}
             <DsButton
               icon="auto_awesome"
-              onClick={() => !loading && void run()}
+              busy={loading}
+              onClick={() => void run()}
               disabled={phase === "limit"}
-              aria-disabled={loading || undefined}
             >
               {phase === "error" ? "Réessayer" : "Proposer un texte"}
             </DsButton>

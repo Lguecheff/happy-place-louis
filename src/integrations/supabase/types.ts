@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_usage: {
+        Row: {
+          count: number
+          day: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          day: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          day?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       allowed_user_roles: {
         Row: {
           allowed_user_id: string
@@ -729,6 +750,14 @@ export type Database = {
       }
     }
     Functions: {
+      ai_usage_consume: {
+        Args: { _email: string; _user_id: string }
+        Returns: Json
+      }
+      ai_usage_refund: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
       choisir_mon_role: {
         Args: {
           _first_name: string

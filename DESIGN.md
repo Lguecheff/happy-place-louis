@@ -56,7 +56,8 @@ Largeurs maximales : `max-w-xs` 20 rem, `max-w-sm` 24 rem, `max-w-md` 28 rem, `m
 ## 5. Composants (`import { … } from "@/components/ds"`)
 
 ### DsButton
-Props : `variant` (`primary` | `secondary` | `confirm` | `link`, défaut `secondary`), `icon`, `pending`, `disabled`, `href` (rend un `<a>`), + props natives. Hauteur min. 44 px, libellé 14 px.
+Props : `variant` (`primary` | `secondary` | `confirm` | `link`, défaut `secondary`), `icon`, `pending`, `busy`, `disabled`, `href` (rend un `<a>`), + props natives. Hauteur min. 44 px, libellé 14 px.
+`pending` désactive le bouton pendant l'action : le focus clavier est perdu. `busy` garde le bouton focusable (`aria-disabled`, `aria-busy`, clics ignorés) : à utiliser quand le focus reste sur le bouton pendant une attente longue, comme « Proposer un texte » de la rédaction par IA. Annonce l'attente à côté, dans une zone `role="status"`.
 `confirm` (contour épais) sert pour Valider, Publier et Enregistrer les modifications d'un contenu déjà publié. Un seul `primary` par écran.
 ```tsx
 <DsButton variant="confirm" icon="check" onClick={valider}>Valider</DsButton>
