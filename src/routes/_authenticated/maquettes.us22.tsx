@@ -8,7 +8,6 @@ import {
   DsBadge,
   DsButton,
   DsField,
-  DsIcon,
   DsListItem,
   DsSection,
 } from "@/components/ds";
@@ -16,12 +15,7 @@ import { DS_FOCUS } from "@/components/ds/focus";
 import { Linkify } from "@/components/linkify";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
 import { TodayStrip } from "@/components/overview/TodayStrip";
-import {
-  LONG_WAIT_DAYS,
-  daysSince,
-  formatDays,
-  pendingSince,
-} from "@/components/overview/overview-utils";
+import { LONG_WAIT_DAYS, daysSince, pendingSince } from "@/components/overview/overview-utils";
 import { StatusChip } from "@/components/submission-status-thread";
 import { SubmissionReader } from "@/components/submission-reader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -44,19 +38,14 @@ function waitingDays(s: Submission) {
   return s.status === "en attente" ? daysSince(pendingSince(s)) : null;
 }
 
-/** « Sans réponse depuis N jours », plus le badge au-delà de LONG_WAIT_DAYS. */
+/** Badge « Plus de 30 jours » au-delà de LONG_WAIT_DAYS ; rien en deçà (mention retirée par Louis). */
 function WaitingSince({ days }: { days: number }) {
+  if (days <= LONG_WAIT_DAYS) return null;
   return (
-    <p className="flex flex-wrap items-center gap-xs font-body-sm text-body-sm text-on-surface-variant">
-      <span className="inline-flex items-center gap-1">
-        <DsIcon name="schedule" className="text-base" />
-        Sans réponse depuis {formatDays(days)}
-      </span>
-      {days > LONG_WAIT_DAYS && (
-        <DsBadge variant="watch" icon="hourglass_bottom">
-          Plus de {LONG_WAIT_DAYS} jours
-        </DsBadge>
-      )}
+    <p className="flex">
+      <DsBadge variant="watch" icon="hourglass_bottom">
+        Plus de {LONG_WAIT_DAYS} jours
+      </DsBadge>
     </p>
   );
 }
@@ -222,14 +211,14 @@ const STATES: MockState[] = [
   {
     value: "attente-5",
     label: "Demande en attente depuis 5 jours",
-    note: "Vue de Gontran, onglet « Mes demandes ». La demande en attente affiche « Sans réponse depuis 5 jours » ; la demande validée n'a aucun repère. La fenêtre de lecture s'ouvre toujours : « Voir plus » si le texte est coupé, « Lire la demande » sinon.",
+    note: "Vue de Gontran, onglet « Mes demandes ». À 5 jours, la demande en attente n'affiche aucun repère (mention retirée) ; la demande validée non plus. La fenêtre de lecture s'ouvre toujours : « Voir plus » si le texte est coupé, « Lire la demande » sinon.",
     viewer: GONTRAN,
     mine: [G5, GVALIDATED],
   },
   {
     value: "attente-42",
     label: "Demande en attente depuis 42 jours",
-    note: "Vue de Gontran. Créée il y a 60 jours, repassée en attente il y a 42 jours : le compteur part du dernier changement de statut. Au-delà de 30 jours, le badge « Plus de 30 jours » s'ajoute.",
+    note: "Vue de Gontran. Créée il y a 60 jours, repassée en attente il y a 42 jours : le compteur part du dernier changement de statut. Au-delà de 30 jours, seul le badge « Plus de 30 jours » s'affiche, aussi dans la fenêtre de lecture.",
     viewer: GONTRAN,
     mine: [G42, GVALIDATED],
   },
@@ -243,7 +232,7 @@ const STATES: MockState[] = [
   {
     value: "file",
     label: "File À traiter",
-    note: "Vue de Kesha (manager). La file « À traiter » met la plus ancienne en premier et porte la même mention et le même badge. L'onglet « Gérées » aussi, seulement sur les demandes en attente.",
+    note: "Vue de Kesha (manager). La file « À traiter » met la plus ancienne en premier et porte le même badge au-delà de 30 jours, sans nombre de jours en deçà. L'onglet « Gérées » aussi, seulement sur les demandes en attente.",
     viewer: KESHA,
     mine: [],
   },
