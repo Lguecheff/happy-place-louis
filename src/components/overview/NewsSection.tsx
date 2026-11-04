@@ -1,4 +1,4 @@
-import { useImperativeHandle, useRef, useState, type RefObject } from "react";
+import { useImperativeHandle, useRef, useState, type ReactNode, type RefObject } from "react";
 import { flushSync } from "react-dom";
 import { toast } from "sonner";
 import { ErrorSummary } from "@/components/manage/crud-ui";
@@ -141,6 +141,7 @@ export function NewsSection({
   onAutosave,
   initialDraft,
   initialTemplatePicker,
+  ideas,
 }: {
   canWrite: boolean;
   email: string;
@@ -173,6 +174,8 @@ export function NewsSection({
   initialDraft?: { title: string; body: string };
   /** Fenêtre des modèles ouverte au départ (maquettes). */
   initialTemplatePicker?: NewsTemplatePickerInitial;
+  /** Bloc « Idées de sujets » (US26), managers seulement ; placé sous le compteur du mois. */
+  ideas?: ReactNode;
 }) {
   const [title, setTitle] = useState(initialDraft?.title ?? "");
   const [body, setBody] = useState(initialDraft?.body ?? "");
@@ -365,6 +368,7 @@ export function NewsSection({
   return (
     <DsSection id="actus" title="Actualités du cabinet">
       {canWrite && publishedCount !== undefined && <MonthlyProgress count={publishedCount} />}
+      {canWrite && ideas}
       {canWrite && (
         <>
           {!editingPublished && (
