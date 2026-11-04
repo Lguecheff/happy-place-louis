@@ -23,7 +23,7 @@ export default defineConfig({
     nitro({
       preset: "cloudflare_module",
       compatibilityDate: "2025-09-01",
-      cloudflare: { deployConfig: true, nodeCompat: true, wrangler: { name: "happy-place" } },
+      cloudflare: { deployConfig: true, nodeCompat: true, wrangler: { name: "happy-place-louis" } },
     }),
     viteReact(),
     tailwindcss(),
