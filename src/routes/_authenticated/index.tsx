@@ -381,7 +381,7 @@ function ManagerSpace() {
     return saved;
   }
 
-  function publishNews(input: DraftInput & { id: string }, onPublished: () => void) {
+  function publishNews(input: DraftInput, onPublished: () => void) {
     publishDraft.mutate(
       { ...input, author: myName, author_email: myEmail },
       { onSuccess: onPublished },

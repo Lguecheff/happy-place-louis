@@ -237,12 +237,13 @@ export async function publishDraftNews(id: string) {
   if (!data?.length) throw new Error("Vous n'avez pas le droit de publier cette actualité.");
 }
 
-/** Enregistre le brouillon ouvert dans le rédacteur, puis le publie. */
-export async function saveAndPublishDraftNews(
-  input: Parameters<typeof saveDraftNews>[0] & { id: string },
-) {
-  await saveDraftNews(input);
-  await publishDraftNews(input.id);
+/**
+ * « Enregistrer et publier » : enregistre le contenu du rédacteur (le brouillon est créé
+ * s'il n'existe pas encore), puis le publie.
+ */
+export async function saveAndPublishDraftNews(input: Parameters<typeof saveDraftNews>[0]) {
+  const id = await saveDraftNews(input);
+  await publishDraftNews(id);
 }
 
 export type PublishedNewsInput = {

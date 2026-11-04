@@ -251,7 +251,11 @@ function Us04Mockup() {
                 onSaved();
               }}
               onPublish={(input, onPublished) => {
-                setNews((list) => publish(input.id, applyDraft(input, list)));
+                setNews((list) => {
+                  // Nouveau brouillon : applyDraft le place en tête de liste.
+                  const next = applyDraft(input, list);
+                  return publish(input.id ?? next[0].id, next);
+                });
                 toast.success("Actualité publiée (fictif)");
                 onPublished();
               }}

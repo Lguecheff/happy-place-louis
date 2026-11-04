@@ -125,7 +125,7 @@ function Us25Mockup() {
     onSaved();
   }
 
-  function publish(input: DraftInput & { id: string }, onPublished: () => void) {
+  function publish(input: DraftInput, onPublished: () => void) {
     writeDraft(input, input.id, "publiée");
     toast.success("Actu publiée (fictif)");
     onPublished();

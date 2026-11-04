@@ -171,8 +171,8 @@ export function NewsSection({
   publishing: boolean;
   removing: boolean;
   onSave: (input: DraftInput, onSaved: () => void) => void;
-  /** Enregistre les modifications du rédacteur, puis publie. */
-  onPublish: (input: DraftInput & { id: string }, onPublished: () => void) => void;
+  /** « Enregistrer et publier » : enregistre le rédacteur (brouillon créé si besoin), puis publie. */
+  onPublish: (input: DraftInput, onPublished: () => void) => void;
   onRemove: (n: News) => void;
   onRead: (n: News) => void;
   editRef?: RefObject<NewsSectionHandle | null>;
@@ -557,19 +557,17 @@ export function NewsSection({
                       </DsButton>
                     </>
                   )}
-                  <DsButton type="submit" pending={saving}>
+                  <DsButton type="submit" pending={saving} disabled={publishing}>
                     {saving ? "Enregistrement…" : "Enregistrer le brouillon"}
                   </DsButton>
-                  {editing && (
-                    <DsButton
-                      variant="confirm"
-                      pending={publishing}
-                      disabled={saving}
-                      onClick={publish}
-                    >
-                      Publier
-                    </DsButton>
-                  )}
+                  <DsButton
+                    variant="confirm"
+                    pending={publishing}
+                    disabled={saving}
+                    onClick={publish}
+                  >
+                    {publishing ? "Publication…" : "Enregistrer et publier"}
+                  </DsButton>
                 </>
               )}
             </div>
@@ -640,10 +638,11 @@ export function NewsSection({
         onCancel={() => setConfirmPublish(false)}
         onConfirm={async () => {
           setConfirmPublish(false);
-          if (!editing) return;
-          // Aucun enregistrement automatique ne doit arriver après la publication.
-          if (onAutosave) await autosave.idle();
-          onPublish({ ...draftInput(), id: editing.id }, done);
+          // Aucun enregistrement automatique ne doit arriver après la publication ; on reprend
+          // le brouillon qu'il a peut-être déjà créé, pour ne pas en créer un second.
+          const id = onAutosave ? await autosave.idle() : undefined;
+          const input = draftInput();
+          onPublish({ ...input, id: id ?? input.id }, done);
         }}
       />
       <ConfirmDialog
