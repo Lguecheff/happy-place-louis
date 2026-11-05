@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchOwnRole, signOut, type AppRole } from "@/lib/auth";
+import { ENTREE_LIBRE, fetchOwnRole, signOut, type AppRole } from "@/lib/auth";
 import { BrandHeader } from "@/components/brand-header";
 import { safeRedirect } from "@/lib/app-url";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ export const Route = createFileRoute("/choisir-role")({
   beforeLoad: async ({ search }) => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth", search: { redirect: search.redirect } });
+    // Connexion par mot de passe : le rôle est fixé à l'avance, l'écran n'est plus accessible.
+    if (!ENTREE_LIBRE) throw redirect({ to: "/" });
     return { email: data.user.email ?? "" };
   },
   component: ChoisirRolePage,

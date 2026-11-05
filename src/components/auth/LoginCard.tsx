@@ -6,7 +6,7 @@ export type LoginNotice = { tone: "alert" | "info"; text: string };
 
 export const LOGIN_ERROR = "Adresse ou mot de passe incorrect.";
 export const LOGIN_NO_ACCESS = "Ce compte n'a pas accès à Happy Place.";
-export const LOGIN_SIGNED_OUT = "Tu es déconnecté.";
+export const LOGIN_SIGNED_OUT = "Déconnexion effectuée.";
 
 type LoginCardProps = {
   email: string;

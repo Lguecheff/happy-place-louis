@@ -1,10 +1,10 @@
 import { createFileRoute, isRedirect, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { safeRedirect } from "@/lib/app-url";
-import { fetchOwnRole } from "@/lib/auth";
+import { ENTREE_LIBRE, fetchOwnRole } from "@/lib/auth";
 
-// Version élèves : un compte connecté sans rôle est envoyé vers /choisir-role
-// (au lieu d'être déconnecté comme dans l'app d'origine, réservée à une liste blanche).
+// Un compte connecté sans rôle est déconnecté et renvoyé sur /auth avec « Ce compte n'a pas accès ».
+// Entrée libre (VITE_ENTREE_LIBRE=true) : il est envoyé vers /choisir-role, comme dans la version élèves.
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async ({ location }) => {
@@ -16,7 +16,11 @@ export const Route = createFileRoute("/_authenticated")({
       if (error || !data.user) throw redirect({ to: "/auth", search });
       const email = data.user.email ?? "";
       const role = email ? await fetchOwnRole(email) : null;
-      if (!role) throw redirect({ to: "/choisir-role", search });
+      if (!role) {
+        if (ENTREE_LIBRE) throw redirect({ to: "/choisir-role", search });
+        await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+        throw redirect({ to: "/auth", search: { ...search, raison: "sans-acces" } });
+      }
       return { user: data.user, email, role };
     } catch (e) {
       if (isRedirect(e)) throw e;

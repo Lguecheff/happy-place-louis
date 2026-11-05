@@ -3,11 +3,14 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BrandHeader } from "@/components/brand-header";
+import { DsIcon } from "@/components/ds";
+import { DS_FOCUS } from "@/components/ds/focus";
 import { WeeklyDigestPanel } from "@/components/digest/WeeklyDigestPanel";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
 import { useGlobalSearch } from "@/components/search/use-global-search";
 import { processAttachmentDeletionQueue } from "@/lib/dashboard";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/manage")({
   head: () => ({
@@ -21,7 +24,8 @@ export const Route = createFileRoute("/_authenticated/manage")({
       { property: "og:title", content: "Gestion des données — Happy Place" },
       {
         property: "og:description",
-        content: "Gestion de l'activité d'un cabinet de recrutement spécialisé dans l'IT et le digital.",
+        content:
+          "Gestion de l'activité d'un cabinet de recrutement spécialisé dans l'IT et le digital.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -66,16 +70,20 @@ function ManageLayout() {
       <main className="w-full max-w-interface mx-auto p-sm md:p-md space-y-md">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-sm">
           <div className="space-y-1">
-            <p className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">
+            <p className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">
               Gestion des données
             </p>
             <h1 className="font-headline-lg text-headline-lg text-primary">Gestion des données</h1>
           </div>
           <Link
             to="/"
-            className="px-md py-xs border border-outline bg-surface text-primary font-label-md text-label-md hover:bg-surface-container"
+            className={cn(
+              "inline-flex min-h-11 items-center justify-center gap-xs border border-outline bg-surface px-md py-xs font-label-md text-sm font-medium text-primary hover:bg-surface-container",
+              DS_FOCUS,
+            )}
           >
-            ← RETOUR À LA VUE D'ENSEMBLE
+            <DsIcon name="arrow_back" />
+            Retour à la vue d'ensemble
           </Link>
         </div>
 

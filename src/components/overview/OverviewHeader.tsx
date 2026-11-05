@@ -14,7 +14,7 @@ import {
   NotificationPreferences,
   type NotificationPreferencesProps,
 } from "@/components/notifications/NotificationPreferences";
-import { signOut, type AppRole } from "@/lib/auth";
+import { ENTREE_LIBRE, signOut, type AppRole } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const ROLE_LABELS: Record<AppRole, string> = {
@@ -136,9 +136,11 @@ export function OverviewHeader({
               Préférences
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem asChild className={MENU_ITEM}>
-            <Link to="/choisir-role">Changer de rôle</Link>
-          </DropdownMenuItem>
+          {ENTREE_LIBRE && (
+            <DropdownMenuItem asChild className={MENU_ITEM}>
+              <Link to="/choisir-role">Changer de rôle</Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem disabled={exporting} onSelect={onExport} className={MENU_ITEM}>
             {exporting ? "Export en cours…" : "Exporter mes demandes"}
           </DropdownMenuItem>

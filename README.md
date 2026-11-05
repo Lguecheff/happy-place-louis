@@ -2,7 +2,9 @@
 
 Happy Place est le dashboard interne de **Bigger Boat**, un cabinet de recrutement fictif. Il réunit les actualités, les idées et demandes des équipes, les points bloquants et les indicateurs.
 
-Ce dépôt contient **le code de l'app à l'identique**, avec une seule différence : **l'entrée est libre**. Pas d'email, pas de mot de passe : en ouvrant l'app, tu arrives directement sur l'écran **« Choisis ton rôle »** (collaborateur, manager ou admin) et tu choisis ton équipe. Le lien **« Changer de rôle »** en haut de l'écran te permet de tester l'app sous chaque angle.
+Pour la démo, on **se connecte avec une adresse e-mail et un mot de passe**. Il n'y a pas d'inscription : les comptes sont créés à l'avance (étape 2), et chacun arrive sur la vue d'ensemble avec son rôle.
+
+L'ancienne **entrée libre** (sans email ni mot de passe, avec l'écran **« Choisis ton rôle »** et le lien **« Changer de rôle »**) existe toujours, mais elle est coupée par défaut. Pour la rallumer, voir [VITE_ENTREE_LIBRE](#vite_entree_libre--rallumer-lentrée-libre).
 
 Chaque groupe installe **sa propre base Supabase**, sans toucher à celle des autres groupes. Tout le groupe partage la même app et les mêmes données.
 
@@ -30,11 +32,21 @@ Tu travailles désormais dans **ce nouveau dépôt** : c'est la copie de ton gro
 2. Donne-lui un nom (par exemple `happy-place-groupe-3`), clique sur **Generate a password** et choisis une région en Europe.
 3. Clique sur **Create new project** et attends 1 à 2 minutes.
 
-## 2. Activer les connexions anonymes
+## 2. Connexion par mot de passe et comptes de démo
 
-C'est ce qui permet d'entrer dans l'app sans email ni mot de passe.
+1. **Authentication** → **Sign In / Providers** → vérifie que **Email** est activé. Laisse **Allow anonymous sign-ins** coupé (il ne sert qu'à l'entrée libre).
+2. Après l'étape 3 (la base), crée les 4 comptes de la démo : **Authentication** → **Users** → **Add user** → **Create new user**. Saisis l'adresse et le mot de passe, coche **Auto Confirm User**, puis **Create user**. Recommence pour chaque compte.
 
-**Authentication** → **Sign In / Providers** → active **Allow anonymous sign-ins** → **Save**.
+| Compte | Rôle | Équipe | Adresse de connexion |
+|---|---|---|---|
+| Kesha Démo | Manager | Product | `guecheff.louis+kesha@gmail.com` |
+| Marc Démo | Manager | Product | `guecheff.louis+marc@gmail.com` |
+| Gontran Démo | Collaborateur | Product | `guecheff.louis+gontran@gmail.com` |
+| Olivia Démo | Admin | aucune | `guecheff.louis+olivia@gmail.com` |
+
+Le mot de passe commun de la démo est donné à part : il n'est écrit nulle part dans le dépôt.
+
+Le profil, le rôle, l'équipe et l'adresse de réception des mails de ces comptes sont déjà dans la base (migration `20261105200000_comptes_demo.sql`, comprise dans `setup.sql`). Une adresse qui se connecte sans être inscrite avec un rôle est déconnectée, avec le message « Ce compte n'a pas accès à Happy Place. ».
 
 ## 3. Installer la base de données
 
@@ -63,7 +75,7 @@ Dans Supabase, clique sur **Connect** (en haut de la page) et note :
 3. Dans le terminal, tape `npm install` (attends la fin), puis `npm run dev`.
 4. Clique sur **Open in Browser** dans la fenêtre qui apparaît (ou onglet **Ports** → ligne **3000** → icône du globe).
 
-L'app s'ouvre directement sur **« Choisis ton rôle »**.
+L'app s'ouvre sur la page de connexion.
 
 Pour partager l'app avec ton groupe : onglet **Ports** → clic droit sur la ligne **3000** → **Port Visibility** → **Public**, puis copie l'adresse et envoie-la.
 
@@ -85,7 +97,13 @@ Ces droits sont appliqués **par la base elle-même** (règles RLS de Supabase),
 
 La base contient aussi dix membres fictifs de Bigger Boat (`@biggerboat.example`). Ils n'ont pas de compte : ils peuplent l'écran des utilisateurs et managent certaines équipes.
 
-**Ton profil est gardé dans ton navigateur.** En revenant plus tard, tu retrouves ton rôle. Si tu changes de navigateur ou vides ton historique, tu repars avec un nouveau profil : ce que tu as déjà créé reste dans la base. Les profils des élèves apparaissent dans l'app avec une adresse interne du type `eleve-xxxx@happyplace.test`.
+Les liens reçus par mail (`/?demande=…`, `/?actu=…`, `/?point=…`, `/?preferences`) passent par la connexion puis rouvrent la bonne page. **Se déconnecter** se trouve dans le menu du compte de la vue d'ensemble et dans l'en-tête de « Gérer les données ».
+
+Les profils créés avec l'entrée libre restent dans la base, avec une adresse interne du type `eleve-xxxx@happyplace.test`.
+
+### VITE_ENTREE_LIBRE : rallumer l'entrée libre
+
+Ajoute `VITE_ENTREE_LIBRE=true` dans `.env`, active **Allow anonymous sign-ins** dans Supabase, puis relance `npm run dev`. L'ancien comportement revient à l'identique : session anonyme, écran **« Choisis ton rôle »**, lien **« Changer de rôle »**. Si la variable est absente, ou a une autre valeur que `true`, c'est la connexion par mot de passe : `/choisir-role` renvoie vers la vue d'ensemble (ou vers la connexion sans session). Ne l'ajoute pas aux variables de build Cloudflare : la version en ligne reste en mode connexion.
 
 ---
 
@@ -103,7 +121,9 @@ La base contient aussi dix membres fictifs de Bigger Boat (`@biggerboat.example`
 | Symptôme | Cause probable |
 |---|---|
 | « Missing Supabase environment variable(s) » | Le fichier `.env` est absent ou mal nommé. Relance `npm run dev` après l'avoir corrigé. |
-| « Les connexions anonymes ne sont pas activées » | L'étape 2 n'a pas été faite. Active **Allow anonymous sign-ins**, puis clique sur **Réessayer**. |
+| « Adresse ou mot de passe incorrect. » avec le bon mot de passe | Le compte n'a pas été créé dans **Authentication** → **Users**, ou **Auto Confirm User** n'a pas été coché. |
+| « Ce compte n'a pas accès à Happy Place. » | L'adresse n'est pas dans `allowed_users` avec un rôle : relance la migration des comptes de démo. |
+| « Les connexions anonymes ne sont pas activées » | Entrée libre seulement : active **Allow anonymous sign-ins**, puis clique sur **Réessayer**. |
 | « Blocked request. This host is not allowed » | Le fichier `vite.config.ts` a été modifié : il doit contenir `allowedHosts: [".app.github.dev"]`. |
 | « Impossible de charger les équipes » | `setup.sql` n'a pas été exécuté en entier. Relance-le sur un projet neuf. |
 | Le dashboard est vide | `seed.sql` n'a pas été exécuté. |
@@ -113,8 +133,8 @@ La base contient aussi dix membres fictifs de Bigger Boat (`@biggerboat.example`
 
 ### Différences avec l'app d'origine
 
-- **Entrée libre** : session anonyme Supabase ouverte automatiquement, à la place de la connexion Google réservée à une liste blanche.
-- **Nouvel écran** `/choisir-role` et lien « Changer de rôle » dans l'en-tête.
+- **Connexion par mot de passe** (`signInWithPassword`) à la place de la connexion Google, avec des comptes de démo créés à l'avance.
+- **Entrée libre** gardée derrière `VITE_ENTREE_LIBRE` : session anonyme, écran `/choisir-role` et lien « Changer de rôle ».
 - **Nouvelle fonction SQL** `choisir_mon_role` (migrations `20261016090000_connexion_libre.sql` et `20261016100000_entree_directe.sql`) : elle enregistre le rôle et donne au profil anonyme une adresse interne. Les règles de sécurité par rôle sont inchangées.
 - **Configuration standard** à la place des outils propres à Lovable (`vite.config.ts`, client Supabase), compatible GitHub Codespaces.
 - **Base installable de zéro** : migrations regroupées dans `supabase/migrations`, espaces de stockage ajoutés, et une ancienne migration inutilisée retirée.
