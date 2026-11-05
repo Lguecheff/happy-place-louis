@@ -16,6 +16,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedDesignSystemRouteImport } from './routes/_authenticated/design-system'
 import { Route as AuthenticatedManageRouteImport } from './routes/_authenticated/manage'
+import { Route as MaquettesConnexionRouteImport } from './routes/maquettes.connexion'
 import { Route as AuthenticatedManageIndexRouteImport } from './routes/_authenticated/manage.index'
 import { Route as AuthenticatedManageBlockersRouteImport } from './routes/_authenticated/manage.blockers'
 import { Route as AuthenticatedManageMetricsRouteImport } from './routes/_authenticated/manage.metrics'
@@ -86,6 +87,11 @@ const AuthenticatedManageRoute = AuthenticatedManageRouteImport.update({
   id: '/manage',
   path: '/manage',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const MaquettesConnexionRoute = MaquettesConnexionRouteImport.update({
+  id: '/maquettes/connexion',
+  path: '/maquettes/connexion',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedManageIndexRoute =
   AuthenticatedManageIndexRouteImport.update({
@@ -304,6 +310,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/design-system': typeof AuthenticatedDesignSystemRoute
   '/manage': typeof AuthenticatedManageRouteWithChildren
+  '/maquettes/connexion': typeof MaquettesConnexionRoute
   '/manage/blockers': typeof AuthenticatedManageBlockersRoute
   '/manage/metrics': typeof AuthenticatedManageMetricsRoute
   '/manage/news': typeof AuthenticatedManageNewsRoute
@@ -345,6 +352,7 @@ export interface FileRoutesByTo {
   '/choisir-role': typeof ChoisirRoleRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/design-system': typeof AuthenticatedDesignSystemRoute
+  '/maquettes/connexion': typeof MaquettesConnexionRoute
   '/': typeof AuthenticatedIndexRoute
   '/manage/blockers': typeof AuthenticatedManageBlockersRoute
   '/manage/metrics': typeof AuthenticatedManageMetricsRoute
@@ -390,6 +398,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/design-system': typeof AuthenticatedDesignSystemRoute
   '/_authenticated/manage': typeof AuthenticatedManageRouteWithChildren
+  '/maquettes/connexion': typeof MaquettesConnexionRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/manage/blockers': typeof AuthenticatedManageBlockersRoute
   '/_authenticated/manage/metrics': typeof AuthenticatedManageMetricsRoute
@@ -436,6 +445,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/design-system'
     | '/manage'
+    | '/maquettes/connexion'
     | '/manage/blockers'
     | '/manage/metrics'
     | '/manage/news'
@@ -477,6 +487,7 @@ export interface FileRouteTypes {
     | '/choisir-role'
     | '/sitemap.xml'
     | '/design-system'
+    | '/maquettes/connexion'
     | '/'
     | '/manage/blockers'
     | '/manage/metrics'
@@ -521,6 +532,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/_authenticated/design-system'
     | '/_authenticated/manage'
+    | '/maquettes/connexion'
     | '/_authenticated/'
     | '/_authenticated/manage/blockers'
     | '/_authenticated/manage/metrics'
@@ -564,6 +576,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ChoisirRoleRoute: typeof ChoisirRoleRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  MaquettesConnexionRoute: typeof MaquettesConnexionRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -616,6 +629,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/manage'
       preLoaderRoute: typeof AuthenticatedManageRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/maquettes/connexion': {
+      id: '/maquettes/connexion'
+      path: '/maquettes/connexion'
+      fullPath: '/maquettes/connexion'
+      preLoaderRoute: typeof MaquettesConnexionRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/manage/': {
       id: '/_authenticated/manage/'
@@ -964,6 +984,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ChoisirRoleRoute: ChoisirRoleRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  MaquettesConnexionRoute: MaquettesConnexionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
