@@ -10,6 +10,8 @@ import {
   DsCount,
   DsEmptyState,
   DsField,
+  dsFieldErrorId,
+  dsFieldHintId,
   DsFreshness,
   DsIcon,
   DsIconButton,
@@ -386,6 +388,38 @@ function DesignSystemPage() {
               Afficher le message
             </DsButton>
           </Demo>
+        </DsSection>
+
+        <DsSection id="champs" title="DsField">
+          <div className="grid gap-md md:grid-cols-2">
+            <DsField
+              id="demo-champ-aide"
+              label="Adresse pour recevoir les mails"
+              hint="Sans adresse, tu ne reçois aucun mail."
+            >
+              <input
+                id="demo-champ-aide"
+                type="email"
+                className={DS_INPUT}
+                aria-describedby={dsFieldHintId("demo-champ-aide")}
+              />
+            </DsField>
+            <DsField
+              id="demo-champ-erreur"
+              label="Avec une erreur"
+              error="Cette adresse n'est pas valide."
+              hint="Sans adresse, tu ne reçois aucun mail."
+            >
+              <input
+                id="demo-champ-erreur"
+                type="email"
+                defaultValue="kesha@"
+                aria-invalid
+                className={DS_INPUT}
+                aria-describedby={`${dsFieldErrorId("demo-champ-erreur")} ${dsFieldHintId("demo-champ-erreur")}`}
+              />
+            </DsField>
+          </div>
         </DsSection>
 
         <DsSection id="choix" title="DsChoiceGroup et DsChoice">

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { DsChoice, DsChoiceGroup, DsEmptyState } from "@/components/ds";
 import { ReaderDialog } from "@/components/reader-dialog";
+import { MailAddressField, type MailAddressSettings } from "./MailAddressField";
 import {
   CHANNEL_HINTS,
   CHANNEL_LABELS,
@@ -18,6 +19,8 @@ export type NotificationPreferencesProps = {
   values: PreferenceValues;
   /** Enregistre un choix ; une erreur remet la case dans son état précédent. */
   onChange: (kind: PreferenceKind, channel: NotificationChannel, checked: boolean) => Promise<void>;
+  /** Adresse de réception des mails, sous les lignes ; sans valeur, le champ n'apparaît pas. */
+  address?: MailAddressSettings;
   onClose: () => void;
   onCloseAutoFocus?: (event: Event) => void;
 };
@@ -29,6 +32,7 @@ export function NotificationPreferences({
   kinds,
   values,
   onChange,
+  address,
   onClose,
   onCloseAutoFocus,
 }: NotificationPreferencesProps) {
@@ -104,6 +108,7 @@ export function NotificationPreferences({
           </DsChoiceGroup>
         ))
       )}
+      {address && <MailAddressField {...address} />}
     </ReaderDialog>
   );
 }

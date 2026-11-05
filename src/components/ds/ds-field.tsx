@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { dsFieldErrorId, dsFieldHintId } from "./ds-field-ids";
 import { DS_FOCUS } from "./focus";
 
 /** Style commun des champs de saisie : 44 px minimum, bordure de contrôle. */
@@ -13,12 +14,14 @@ type DsFieldProps = {
   /** `id` du champ placé dans `children` : relie le libellé au champ. */
   id: string;
   label: string;
+  /** Phrase d'aide sous le champ, toujours visible (id : `dsFieldHintId(id)`). */
+  hint?: ReactNode;
   error?: string;
   children: ReactNode;
   className?: string;
 };
 
-export function DsField({ id, label, error, children, className }: DsFieldProps) {
+export function DsField({ id, label, hint, error, children, className }: DsFieldProps) {
   return (
     <div className={cn("min-w-0 space-y-xs", className)}>
       <label
@@ -29,8 +32,13 @@ export function DsField({ id, label, error, children, className }: DsFieldProps)
       </label>
       {children}
       {error && (
-        <p role="alert" className="font-body-sm text-body-sm text-error">
+        <p id={dsFieldErrorId(id)} role="alert" className="font-body-sm text-body-sm text-error">
           {error}
+        </p>
+      )}
+      {hint && (
+        <p id={dsFieldHintId(id)} className="font-body-sm text-body-sm text-on-surface-variant">
+          {hint}
         </p>
       )}
     </div>

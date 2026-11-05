@@ -22,6 +22,7 @@ import { Route as AuthenticatedManageMetricsRouteImport } from './routes/_authen
 import { Route as AuthenticatedManageNewsRouteImport } from './routes/_authenticated/manage.news'
 import { Route as AuthenticatedManageSubmissionsRouteImport } from './routes/_authenticated/manage.submissions'
 import { Route as AuthenticatedManageUsersRouteImport } from './routes/_authenticated/manage.users'
+import { Route as AuthenticatedMaquettesMailsRouteImport } from './routes/_authenticated/maquettes.mails'
 import { Route as AuthenticatedMaquettesUs01RouteImport } from './routes/_authenticated/maquettes.us01'
 import { Route as AuthenticatedMaquettesUs02RouteImport } from './routes/_authenticated/maquettes.us02'
 import { Route as AuthenticatedMaquettesUs03RouteImport } from './routes/_authenticated/maquettes.us03'
@@ -119,6 +120,12 @@ const AuthenticatedManageUsersRoute =
     id: '/users',
     path: '/users',
     getParentRoute: () => AuthenticatedManageRoute,
+  } as any)
+const AuthenticatedMaquettesMailsRoute =
+  AuthenticatedMaquettesMailsRouteImport.update({
+    id: '/maquettes/mails',
+    path: '/maquettes/mails',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedMaquettesUs01Route =
   AuthenticatedMaquettesUs01RouteImport.update({
@@ -295,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/manage/news': typeof AuthenticatedManageNewsRoute
   '/manage/submissions': typeof AuthenticatedManageSubmissionsRoute
   '/manage/users': typeof AuthenticatedManageUsersRoute
+  '/maquettes/mails': typeof AuthenticatedMaquettesMailsRoute
   '/maquettes/us01': typeof AuthenticatedMaquettesUs01Route
   '/maquettes/us02': typeof AuthenticatedMaquettesUs02Route
   '/maquettes/us03': typeof AuthenticatedMaquettesUs03Route
@@ -335,6 +343,7 @@ export interface FileRoutesByTo {
   '/manage/news': typeof AuthenticatedManageNewsRoute
   '/manage/submissions': typeof AuthenticatedManageSubmissionsRoute
   '/manage/users': typeof AuthenticatedManageUsersRoute
+  '/maquettes/mails': typeof AuthenticatedMaquettesMailsRoute
   '/maquettes/us01': typeof AuthenticatedMaquettesUs01Route
   '/maquettes/us02': typeof AuthenticatedMaquettesUs02Route
   '/maquettes/us03': typeof AuthenticatedMaquettesUs03Route
@@ -378,6 +387,7 @@ export interface FileRoutesById {
   '/_authenticated/manage/news': typeof AuthenticatedManageNewsRoute
   '/_authenticated/manage/submissions': typeof AuthenticatedManageSubmissionsRoute
   '/_authenticated/manage/users': typeof AuthenticatedManageUsersRoute
+  '/_authenticated/maquettes/mails': typeof AuthenticatedMaquettesMailsRoute
   '/_authenticated/maquettes/us01': typeof AuthenticatedMaquettesUs01Route
   '/_authenticated/maquettes/us02': typeof AuthenticatedMaquettesUs02Route
   '/_authenticated/maquettes/us03': typeof AuthenticatedMaquettesUs03Route
@@ -421,6 +431,7 @@ export interface FileRouteTypes {
     | '/manage/news'
     | '/manage/submissions'
     | '/manage/users'
+    | '/maquettes/mails'
     | '/maquettes/us01'
     | '/maquettes/us02'
     | '/maquettes/us03'
@@ -461,6 +472,7 @@ export interface FileRouteTypes {
     | '/manage/news'
     | '/manage/submissions'
     | '/manage/users'
+    | '/maquettes/mails'
     | '/maquettes/us01'
     | '/maquettes/us02'
     | '/maquettes/us03'
@@ -503,6 +515,7 @@ export interface FileRouteTypes {
     | '/_authenticated/manage/news'
     | '/_authenticated/manage/submissions'
     | '/_authenticated/manage/users'
+    | '/_authenticated/maquettes/mails'
     | '/_authenticated/maquettes/us01'
     | '/_authenticated/maquettes/us02'
     | '/_authenticated/maquettes/us03'
@@ -632,6 +645,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/manage/users'
       preLoaderRoute: typeof AuthenticatedManageUsersRouteImport
       parentRoute: typeof AuthenticatedManageRoute
+    }
+    '/_authenticated/maquettes/mails': {
+      id: '/_authenticated/maquettes/mails'
+      path: '/maquettes/mails'
+      fullPath: '/maquettes/mails'
+      preLoaderRoute: typeof AuthenticatedMaquettesMailsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/maquettes/us01': {
       id: '/_authenticated/maquettes/us01'
@@ -850,6 +870,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDesignSystemRoute: typeof AuthenticatedDesignSystemRoute
   AuthenticatedManageRoute: typeof AuthenticatedManageRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedMaquettesMailsRoute: typeof AuthenticatedMaquettesMailsRoute
   AuthenticatedMaquettesUs01Route: typeof AuthenticatedMaquettesUs01Route
   AuthenticatedMaquettesUs02Route: typeof AuthenticatedMaquettesUs02Route
   AuthenticatedMaquettesUs03Route: typeof AuthenticatedMaquettesUs03Route
@@ -883,6 +904,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDesignSystemRoute: AuthenticatedDesignSystemRoute,
   AuthenticatedManageRoute: AuthenticatedManageRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedMaquettesMailsRoute: AuthenticatedMaquettesMailsRoute,
   AuthenticatedMaquettesUs01Route: AuthenticatedMaquettesUs01Route,
   AuthenticatedMaquettesUs02Route: AuthenticatedMaquettesUs02Route,
   AuthenticatedMaquettesUs03Route: AuthenticatedMaquettesUs03Route,

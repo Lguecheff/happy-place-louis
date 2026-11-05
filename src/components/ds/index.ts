@@ -5,6 +5,7 @@ export { DsChoice, DsChoiceGroup } from "./ds-choice";
 export { DsCount } from "./ds-count";
 export { DsEmptyState } from "./ds-empty-state";
 export { DS_INPUT, DsField } from "./ds-field";
+export { dsFieldErrorId, dsFieldHintId } from "./ds-field-ids";
 export { DsFreshness } from "./ds-freshness";
 export { DsIcon } from "./ds-icon";
 export { DsIconButton } from "./ds-icon-button";

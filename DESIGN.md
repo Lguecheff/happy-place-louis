@@ -163,10 +163,13 @@ Props : `name`. Initiales sur fond `secondary-fixed`, décoratif : le nom est to
 ```
 
 ### DsField
-Props : `id`, `label`, `error`, `children`. Relie le libellé au champ par `htmlFor`. `DS_INPUT` donne le style d'un champ (44 px minimum).
+Props : `id`, `label`, `hint`, `error`, `children`. Relie le libellé au champ par `htmlFor`. `DS_INPUT` donne le style d'un champ (44 px minimum). `hint` affiche une phrase d'aide sous le champ, toujours visible (`text-on-surface-variant`), sous l'erreur s'il y en a une ; relie-la au champ avec `aria-describedby={dsFieldHintId(id)}` (et `dsFieldErrorId(id)` pour l'erreur).
 ```tsx
 <DsField id="titre" label="Titre" error={erreur}>
   <input id="titre" className={DS_INPUT} />
+</DsField>
+<DsField id="adresse" label="Adresse pour recevoir les mails" hint="Sans adresse, tu ne reçois aucun mail.">
+  <input id="adresse" type="email" className={DS_INPUT} aria-describedby={dsFieldHintId("adresse")} />
 </DsField>
 ```
 

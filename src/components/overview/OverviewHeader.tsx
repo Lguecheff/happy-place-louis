@@ -47,6 +47,8 @@ export function OverviewHeader({
   search,
   notifications,
   preferences,
+  preferencesOpen,
+  onPreferencesOpenChange,
 }: {
   isAdmin: boolean;
   name: string;
@@ -57,8 +59,16 @@ export function OverviewHeader({
   notifications?: ReactNode;
   /** Sans valeur, le menu ne propose pas « Préférences ». */
   preferences?: Omit<NotificationPreferencesProps, "onClose" | "onCloseAutoFocus">;
+  /** Fenêtre des préférences pilotée par le parent (lien profond `/?preferences`). */
+  preferencesOpen?: boolean;
+  onPreferencesOpenChange?: (open: boolean) => void;
 }) {
-  const [settingUp, setSettingUp] = useState(false);
+  const [ownSettingUp, setOwnSettingUp] = useState(false);
+  const settingUp = preferencesOpen ?? ownSettingUp;
+  const setSettingUp = (open: boolean) => {
+    setOwnSettingUp(open);
+    onPreferencesOpenChange?.(open);
+  };
   const menuRef = useRef<HTMLButtonElement>(null);
 
   return (
