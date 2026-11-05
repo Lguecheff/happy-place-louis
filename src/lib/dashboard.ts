@@ -1045,6 +1045,39 @@ export async function setMyFollow(submissionId: string, email: string, follow: b
 }
 
 /** `null` si la demande est supprimée ou si la RLS ne la laisse plus lire. */
+/** Adresse de réception des mails du compte connecté (RLS : sa ligne seulement) ; vide sans adresse. */
+export async function fetchMyMailAddress(email: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("notification_mail_addresses")
+    .select("address")
+    .eq("recipient_email", email.toLowerCase())
+    .maybeSingle();
+  if (error) throw error;
+  return data?.address ?? "";
+}
+
+/** Enregistre l'adresse (vide : la retire). La base vérifie le format et renvoie un message en français. */
+export async function saveMyMailAddress(address: string): Promise<string> {
+  const { data, error } = await supabase.rpc("set_my_mail_address", { _address: address });
+  if (error) {
+    throw new Error(
+      error.code === "22023" ? error.message : "Ton adresse n'a pas pu être enregistrée. Réessaie.",
+    );
+  }
+  return data ?? "";
+}
+
+/** Actu lisible par le compte connecté (RLS), ou `null` si elle a été supprimée ou n'est pas visible. */
+export async function fetchReadableNews(id: string): Promise<News | null> {
+  const { data, error } = await db
+    .from("news")
+    .select("*, news_teams(team)")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? toNews(data) : null;
+}
+
 export async function fetchReadableSubmission(id: string): Promise<Submission | null> {
   const { data, error } = await supabase.from("submissions").select("*").eq("id", id).maybeSingle();
   if (error) throw error;

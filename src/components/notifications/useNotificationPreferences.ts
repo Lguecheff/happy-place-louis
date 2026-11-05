@@ -1,6 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { fetchMyNotificationPreferences, saveNotificationPreference } from "@/lib/dashboard";
+import {
+  fetchMyMailAddress,
+  fetchMyNotificationPreferences,
+  saveMyMailAddress,
+  saveNotificationPreference,
+} from "@/lib/dashboard";
 import { notificationKindsFor, type AppRole, type PreferenceValues } from "./notification-kinds";
 import type { NotificationPreferencesProps } from "./NotificationPreferences";
 
@@ -16,6 +21,11 @@ export function useNotificationPreferences(
     queryFn: () => fetchMyNotificationPreferences(recipient),
     enabled: !!recipient,
   });
+  const address = useQuery({
+    queryKey: ["notification_mail_address", recipient],
+    queryFn: () => fetchMyMailAddress(recipient),
+    enabled: !!recipient,
+  });
 
   const values = useMemo<PreferenceValues>(
     () =>
@@ -25,13 +35,21 @@ export function useNotificationPreferences(
     [preferences.data],
   );
 
-  if (!preferences.data) return undefined;
+  // Adresse illisible : le champ reste vide plutôt que de masquer toutes les préférences.
+  if (!preferences.data || address.isPending) return undefined;
   return {
     kinds: notificationKindsFor(role),
     values,
     onChange: async (kind, channel, checked) => {
       await saveNotificationPreference(recipient, kind, channel, checked);
       await qc.invalidateQueries({ queryKey: ["notification_preferences", recipient] });
+    },
+    address: {
+      value: address.data ?? "",
+      onSave: async (next) => {
+        const saved = await saveMyMailAddress(next);
+        qc.setQueryData(["notification_mail_address", recipient], saved);
+      },
     },
   };
 }

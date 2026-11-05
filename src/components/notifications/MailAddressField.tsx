@@ -29,6 +29,8 @@ export function MailAddressField({ value, onSave, initialDraft }: MailAddressSet
     setError(undefined);
     try {
       await onSave(address);
+      // La base enregistre l'adresse en minuscules : le champ montre ce qui est enregistré.
+      setDraft(address.toLowerCase());
       toast.success(address ? "Adresse enregistrée" : "Adresse retirée", {
         description: address
           ? "Les alertes cochées « Par mail » arriveront à cette adresse."

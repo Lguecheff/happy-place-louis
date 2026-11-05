@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchOwnRole, signOut, type AppRole } from "@/lib/auth";
 import { BrandHeader } from "@/components/brand-header";
+import { safeRedirect } from "@/lib/app-url";
 import { Button } from "@/components/ui/button";
 
 // Version élèves : chaque personne connectée choisit son rôle et son équipe,
@@ -11,9 +12,13 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/choisir-role")({
   ssr: false,
   head: () => ({ meta: [{ title: "Choisir mon rôle — Happy Place" }] }),
-  beforeLoad: async () => {
+  // Chemin interne où revenir après le choix (lien reçu par mail) ; toute autre valeur est ignorée.
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
+    redirect: safeRedirect(search.redirect) ?? undefined,
+  }),
+  beforeLoad: async ({ search }) => {
     const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
+    if (error || !data.user) throw redirect({ to: "/auth", search: { redirect: search.redirect } });
     return { email: data.user.email ?? "" };
   },
   component: ChoisirRolePage,
@@ -39,6 +44,7 @@ const ROLES: { value: AppRole; label: string; description: string }[] = [
 
 function ChoisirRolePage() {
   const { email } = Route.useRouteContext();
+  const { redirect: back } = Route.useSearch();
   const [teams, setTeams] = useState<string[]>([]);
   const [current, setCurrent] = useState<AppRole | null>(null);
   const [role, setRole] = useState<AppRole>("collaborateur");
@@ -111,7 +117,7 @@ function ChoisirRolePage() {
     // on rafraîchit la session pour que les règles de sécurité la voient.
     await supabase.auth.refreshSession();
     // Rechargement complet : le dashboard relit le rôle à l'ouverture.
-    window.location.replace("/");
+    window.location.replace(back ?? "/");
   }
 
   const inputCls =

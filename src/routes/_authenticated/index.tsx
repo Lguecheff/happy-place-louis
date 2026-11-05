@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { toast } from "sonner";
 import { generateNewsWithAi, improveNewsWithAi } from "@/lib/news-ai";
@@ -26,6 +26,7 @@ import {
 } from "@/components/overview/NewsSection";
 import { OverviewHeader } from "@/components/overview/OverviewHeader";
 import { RejectModal } from "@/components/overview/RejectModal";
+import { ReaderDialog } from "@/components/reader-dialog";
 import { RequestFormModal } from "@/components/overview/RequestFormModal";
 import { RequestsSection } from "@/components/overview/RequestsSection";
 import { TodayStrip } from "@/components/overview/TodayStrip";
@@ -42,9 +43,12 @@ import { SubmissionFollow } from "@/components/notifications/FollowButton";
 import { SubmissionReader } from "@/components/submission-reader";
 import { SubmissionThreadModal } from "@/components/submission-status-thread";
 import {
+  fetchBlocker,
   fetchBlockers,
   fetchMetrics,
   fetchNews,
+  fetchReadableNews,
+  fetchReadableSubmission,
   fetchSelectableTeams,
   fetchSubmissions,
   fetchMySubmissions,
@@ -67,6 +71,7 @@ import {
   type SubmissionInput,
 } from "@/lib/dashboard";
 import { ideaDraft, type NewsIdea } from "@/lib/news-ideas";
+import { parseDeepLink, type DeepLink } from "@/lib/app-url";
 import { cn } from "@/lib/utils";
 
 /** « Rédiger avec l'IA » (US27) : le serveur revérifie le rôle et la limite du jour. */
@@ -92,8 +97,18 @@ export const Route = createFileRoute("/_authenticated/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
+  // Liens profonds des mails : /?demande=<id>, /?point=<id>, /?actu=<id>, /?preferences.
+  validateSearch: (search: Record<string, unknown>): DeepLink => parseDeepLink(search),
   component: ManagerSpace,
 });
+
+/** Élément d'un lien profond illisible ou supprimé : mêmes messages que la cloche. */
+const UNAVAILABLE = {
+  demande: { title: "Demande indisponible", text: "Cette demande n'est plus disponible." },
+  point: { title: "Point bloquant indisponible", text: "Ce point bloquant n'est plus disponible." },
+  actu: { title: "Actu indisponible", text: "Cette actu n'est plus disponible." },
+} as const;
+type Unavailable = (typeof UNAVAILABLE)[keyof typeof UNAVAILABLE];
 
 function ManagerSpace() {
   const qc = useQueryClient();
@@ -158,6 +173,11 @@ function ManagerSpace() {
   const [readingNews, setReadingNews] = useState<News | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [readingBlocker, setReadingBlocker] = useState<Blocker | null>(null);
+  const link = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [unavailable, setUnavailable] = useState<Unavailable | null>(null);
+  const handledLink = useRef<string | null>(null);
   const blockerTrigger = useRef<HTMLElement | null>(null);
 
   const news = useQuery({ queryKey: ["news"], queryFn: fetchNews, retry: false });
@@ -273,6 +293,39 @@ function ManagerSpace() {
     setThreadEditable(editable);
     setThreadOf(s);
   }
+
+  const hasLink = !!(link.demande || link.point || link.actu || link.preferences);
+  /** Après fermeture de la fenêtre ouverte par le lien, le paramètre disparaît de l'adresse. */
+  function clearLink() {
+    if (hasLink) navigate({ to: "/", search: {}, replace: true });
+  }
+
+  // Ouvre l'élément du lien une fois : la RLS décide de ce qui est lisible.
+  // Un manager attend ses équipes pour avoir les mêmes boutons de statut que depuis la cloche.
+  useEffect(() => {
+    if (!hasLink || (role === "manager" && myTeams.isPending)) return;
+    const key = JSON.stringify(link);
+    if (handledLink.current === key) return;
+    handledLink.current = key;
+    if (link.preferences) setPreferencesOpen(true);
+    if (link.demande) {
+      fetchReadableSubmission(link.demande)
+        .then((s) => (s ? openThread(s, canChangeStatus(s)) : setUnavailable(UNAVAILABLE.demande)))
+        .catch(() => setUnavailable(UNAVAILABLE.demande));
+    } else if (link.point) {
+      fetchBlocker(link.point)
+        .then((b) => (b ? setReadingBlocker(b) : setUnavailable(UNAVAILABLE.point)))
+        .catch(() => setUnavailable(UNAVAILABLE.point));
+    } else if (link.actu) {
+      fetchReadableNews(link.actu)
+        .then((n) =>
+          n && n.status === "publiée" ? setReadingNews(n) : setUnavailable(UNAVAILABLE.actu),
+        )
+        .catch(() => setUnavailable(UNAVAILABLE.actu));
+    }
+    // openThread et canChangeStatus ne dépendent que de role et myTeams.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasLink, link, role, myTeams.isPending]);
 
   function startReject(s: Submission) {
     setReading(null);
@@ -416,6 +469,11 @@ function ManagerSpace() {
           exporting={exportReport.isPending}
           onExport={() => exportReport.mutate()}
           preferences={notificationPreferences}
+          preferencesOpen={preferencesOpen}
+          onPreferencesOpenChange={(open) => {
+            setPreferencesOpen(open);
+            if (!open) clearLink();
+          }}
           search={
             <GlobalSearch
               {...search}
@@ -563,7 +621,10 @@ function ManagerSpace() {
       />
       <BlockerReader
         blocker={readingBlocker}
-        onClose={() => setReadingBlocker(null)}
+        onClose={() => {
+          setReadingBlocker(null);
+          clearLink();
+        }}
         onCloseAutoFocus={focusBlockerTrigger}
       />
       {threadOf && !rejecting && (
@@ -579,12 +640,18 @@ function ManagerSpace() {
                 )
               : undefined
           }
-          onClose={() => setThreadOf(null)}
+          onClose={() => {
+            setThreadOf(null);
+            clearLink();
+          }}
         />
       )}
       <NewsReader
         news={readingNews}
-        onClose={() => setReadingNews(null)}
+        onClose={() => {
+          setReadingNews(null);
+          clearLink();
+        }}
         onEdit={readingNews && canEditNews(readingNews) ? () => editNews(readingNews) : undefined}
       />
       <SubmissionReader
@@ -621,6 +688,18 @@ function ManagerSpace() {
           onCancel={() => setRejecting(null)}
           onSubmit={(reason) => review.mutate({ id: rejecting.id, status: "refusée", ...reason })}
         />
+      )}
+      {unavailable && (
+        <ReaderDialog
+          title={unavailable.title}
+          subtitle="Lien reçu par mail"
+          onClose={() => {
+            setUnavailable(null);
+            clearLink();
+          }}
+        >
+          <p className="font-body-md text-body-md text-on-surface">{unavailable.text}</p>
+        </ReaderDialog>
       )}
       {requestOpen && (
         <RequestFormModal

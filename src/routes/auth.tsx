@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandHeader } from "@/components/brand-header";
+import { safeRedirect } from "@/lib/app-url";
 import { Button } from "@/components/ui/button";
 
 // Version élèves : entrée directe, sans email ni mot de passe.
@@ -11,6 +12,10 @@ import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
+  // Chemin interne où revenir (lien reçu par mail) ; toute autre valeur est ignorée.
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
+    redirect: safeRedirect(search.redirect) ?? undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Happy Place" },
@@ -22,6 +27,7 @@ export const Route = createFileRoute("/auth")({
 
 function EntreePage() {
   const navigate = useNavigate();
+  const { redirect } = Route.useSearch();
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
@@ -31,7 +37,9 @@ function EntreePage() {
       setError(null);
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        navigate({ to: "/" });
+        // Le chemin vient de safeRedirect : interne à l'app.
+        if (redirect) window.location.replace(redirect);
+        else navigate({ to: "/" });
         return;
       }
       const { error: err } = await supabase.auth.signInAnonymously();
@@ -44,12 +52,12 @@ function EntreePage() {
         );
         return;
       }
-      navigate({ to: "/choisir-role" });
+      navigate({ to: "/choisir-role", search: { redirect } });
     })();
     return () => {
       cancelled = true;
     };
-  }, [navigate, attempt]);
+  }, [navigate, attempt, redirect]);
 
   return (
     <div className="min-h-dvh w-full bg-background flex flex-col">

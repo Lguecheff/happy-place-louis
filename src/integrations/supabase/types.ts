@@ -453,6 +453,66 @@ export type Database = {
           },
         ]
       }
+      mail_outbox: {
+        Row: {
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["notification_kind"]
+          notification_id: string | null
+          payload: Json
+          posted_at: string | null
+          recipient_email: string
+          request_id: number | null
+          status: Database["public"]["Enums"]["mail_status"]
+          to_address: string
+          to_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["notification_kind"]
+          notification_id?: string | null
+          payload: Json
+          posted_at?: string | null
+          recipient_email: string
+          request_id?: number | null
+          status?: Database["public"]["Enums"]["mail_status"]
+          to_address: string
+          to_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["notification_kind"]
+          notification_id?: string | null
+          payload?: Json
+          posted_at?: string | null
+          recipient_email?: string
+          request_id?: number | null
+          status?: Database["public"]["Enums"]["mail_status"]
+          to_address?: string
+          to_name?: string | null
+        }
+        Relationships: []
+      }
+      notification_mail_addresses: {
+        Row: {
+          address: string
+          recipient_email: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          recipient_email: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          recipient_email?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           by_email: boolean
@@ -795,6 +855,10 @@ export type Database = {
         Args: { _blocker_id: string }
         Returns: number
       }
+      set_my_mail_address: {
+        Args: { _address: string }
+        Returns: string | null
+      }
       set_blocker_status: {
         Args: {
           _blocker_id: string
@@ -831,6 +895,7 @@ export type Database = {
       app_role: "admin" | "manager" | "collaborateur"
       blocker_severity: "critical" | "warning" | "info"
       blocker_status: "OUVERT" | "EN COURS" | "SURVEILLANCE" | "RÉSOLU"
+      mail_status: "en attente" | "transmis" | "ignoré"
       news_audience: "équipe" | "entreprise"
       news_status: "brouillon" | "publiée"
       notification_kind:
@@ -976,6 +1041,7 @@ export const Constants = {
       app_role: ["admin", "manager", "collaborateur"],
       blocker_severity: ["critical", "warning", "info"],
       blocker_status: ["OUVERT", "EN COURS", "SURVEILLANCE", "RÉSOLU"],
+      mail_status: ["en attente", "transmis", "ignoré"],
       news_audience: ["équipe", "entreprise"],
       news_status: ["brouillon", "publiée"],
       notification_kind: [

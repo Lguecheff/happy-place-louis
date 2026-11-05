@@ -124,16 +124,6 @@ const STATES: State[] = [
     url: `/?point=${BLOCKER.id}`,
     blocker: BLOCKER,
   },
-  {
-    value: "autre-navigateur",
-    label: "Lien ouvert dans un autre navigateur (proposition)",
-    note: "Proposition, à valider : la session y est différente, et la base ne distingue pas une demande supprimée d'une demande invisible pour ce compte. Le message couvre donc les deux cas.",
-    url: `/?demande=${SUBMISSION.id}`,
-    unavailable: {
-      title: "Demande indisponible",
-      text: "Cette demande n'est plus disponible, ou tu ne peux pas la voir depuis ce navigateur. Si tu as reçu le lien par mail, ouvre-le dans le navigateur où tu utilises Happy Place d'habitude.",
-    },
-  },
 ];
 
 // ---------------------------------------------------------------------------
