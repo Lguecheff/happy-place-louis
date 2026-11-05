@@ -20,6 +20,8 @@ type Props = {
   /** « lundi 9 novembre à 08:00 ». */
   nextLabel: string;
   last: LastDigest | null;
+  /** Le dernier envoi n'a pas pu être lu. */
+  lastUnavailable?: boolean;
   /** Nombre de destinataires, sans construire le résumé. */
   loadCount: () => Promise<number>;
   send: () => Promise<DigestSendResult>;
@@ -36,7 +38,14 @@ function doneMessage({ recipients, transmitted }: DigestSendResult) {
   return `Résumé envoyé à ${people(recipients)}.`;
 }
 
-export function WeeklyDigestCard({ nextLabel, last, loadCount, send, initialStep }: Props) {
+export function WeeklyDigestCard({
+  nextLabel,
+  last,
+  lastUnavailable,
+  loadCount,
+  send,
+  initialStep,
+}: Props) {
   const [step, setStep] = useState<DigestStep>(initialStep ?? { kind: "idle" });
   const [coolingDown, setCoolingDown] = useState(initialStep?.kind === "done");
   const questionRef = useRef<HTMLParagraphElement>(null);
@@ -106,6 +115,8 @@ export function WeeklyDigestCard({ nextLabel, last, loadCount, send, initialStep
                 <DsBadge variant="status" icon="check">
                   Transmis
                 </DsBadge>
+              ) : last.status === "ignoré" ? (
+                <DsBadge variant="neutral">Aucun destinataire</DsBadge>
               ) : (
                 <DsBadge variant="watch" icon="hourglass_empty">
                   En attente
@@ -114,7 +125,9 @@ export function WeeklyDigestCard({ nextLabel, last, loadCount, send, initialStep
             </div>
           ) : (
             <p className="font-body-sm text-body-sm text-on-surface-variant">
-              Aucun résumé envoyé pour l'instant.
+              {lastUnavailable
+                ? "Impossible de charger le dernier envoi."
+                : "Aucun résumé envoyé pour l'instant."}
             </p>
           )}
         </div>

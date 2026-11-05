@@ -1,10 +1,12 @@
 /**
  * Résumé hebdomadaire : formats partagés par la carte de /manage et sa maquette.
- * L'envoi planifié part le lundi à 08:00, heure de Paris.
+ * L'envoi planifié (pg_cron « weekly-digest ») part le lundi à 07:00 UTC :
+ * 08:00 à Paris l'hiver, 09:00 l'été.
  */
 
 export type DigestMode = "manuel" | "planifié";
-export type DigestStatus = "en attente" | "transmis";
+/** « ignoré » : aucun destinataire, rien n'a été transmis. */
+export type DigestStatus = "en attente" | "transmis" | "ignoré";
 
 export type LastDigest = {
   created_at: string;
@@ -22,47 +24,31 @@ export type DigestSendResult = {
 
 const PARIS = "Europe/Paris";
 const DIGEST_WEEKDAY = 1; // lundi
-const DIGEST_HOUR = 8;
+const DIGEST_HOUR_UTC = 7;
 /** Bouton désactivé après un envoi, pour éviter un double envoi. */
 export const DIGEST_COOLDOWN_MS = 60_000;
 
 export const people = (n: number) => `${n} ${n > 1 ? "personnes" : "personne"}`;
 
-function parisParts(at: Date) {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: PARIS,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    hourCycle: "h23",
-    weekday: "short",
-  }).formatToParts(at);
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  return {
-    year: Number(get("year")),
-    month: Number(get("month")),
-    day: Number(get("day")),
-    hour: Number(get("hour")),
-    weekday: weekdays.indexOf(get("weekday")),
-  };
-}
-
-/** « lundi 9 novembre à 08:00 » : prochain lundi 08:00 à Paris (aujourd'hui si lundi avant 08:00). */
+/** « lundi 9 novembre à 08:00 » : prochain lundi 07:00 UTC, affiché à l'heure de Paris. */
 export function nextDigestLabel(now: Date = new Date()) {
-  const p = parisParts(now);
-  let days = (DIGEST_WEEKDAY - p.weekday + 7) % 7;
-  if (days === 0 && p.hour >= DIGEST_HOUR) days = 7;
-  // Calcul de calendrier seulement : midi UTC évite tout décalage de jour.
-  const date = new Date(Date.UTC(p.year, p.month - 1, p.day + days, 12));
-  const label = new Intl.DateTimeFormat("fr-FR", {
-    timeZone: "UTC",
+  let days = (DIGEST_WEEKDAY - now.getUTCDay() + 7) % 7;
+  if (days === 0 && now.getUTCHours() >= DIGEST_HOUR_UTC) days = 7;
+  const at = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + days, DIGEST_HOUR_UTC),
+  );
+  const day = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: PARIS,
     weekday: "long",
     day: "numeric",
     month: "long",
-  }).format(date);
-  return `${label} à 0${DIGEST_HOUR}:00`;
+  }).format(at);
+  const time = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: PARIS,
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(at);
+  return `${day} à ${time}`;
 }
 
 /** « jeudi 5 novembre 2026 à 08:00 », heure de Paris. */

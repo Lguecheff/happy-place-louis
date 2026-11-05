@@ -785,6 +785,48 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_digests: {
+        Row: {
+          created_at: string
+          id: string
+          mode: string
+          payload: Json
+          period_from: string
+          period_to: string
+          posted_at: string | null
+          recipients_count: number
+          request_id: number | null
+          sent_by_name: string | null
+          status: Database["public"]["Enums"]["mail_status"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mode: string
+          payload: Json
+          period_from: string
+          period_to: string
+          posted_at?: string | null
+          recipients_count?: number
+          request_id?: number | null
+          sent_by_name?: string | null
+          status?: Database["public"]["Enums"]["mail_status"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mode?: string
+          payload?: Json
+          period_from?: string
+          period_to?: string
+          posted_at?: string | null
+          recipients_count?: number
+          request_id?: number | null
+          sent_by_name?: string | null
+          status?: Database["public"]["Enums"]["mail_status"]
+        }
+        Relationships: []
+      }
     }
     Views: {
       metrics_with_trend: {
@@ -876,6 +918,14 @@ export type Database = {
       }
       simuler_point_bloquant_a_revoir: {
         Args: { _blocker_id: string }
+        Returns: number
+      }
+      send_weekly_digest: {
+        Args: never
+        Returns: { recipients: number; transmitted: boolean }[]
+      }
+      weekly_digest_recipients_count: {
+        Args: never
         Returns: number
       }
       save_published_news: {

@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BrandHeader } from "@/components/brand-header";
+import { WeeklyDigestPanel } from "@/components/digest/WeeklyDigestPanel";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
 import { useGlobalSearch } from "@/components/search/use-global-search";
@@ -77,6 +78,8 @@ function ManageLayout() {
             ← RETOUR À LA VUE D'ENSEMBLE
           </Link>
         </div>
+
+        <WeeklyDigestPanel />
 
         <nav className="flex flex-wrap gap-xs border-b border-outline-variant pb-sm">
           {tabs.map((t) => (

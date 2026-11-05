@@ -78,7 +78,7 @@ const STATES: State[] = [
   {
     value: "aucun",
     label: "Aucun destinataire",
-    note: "Personne n'a d'adresse avec le résumé coché : la confirmation le dit, et l'envoi est seulement enregistré (0 personne, rien de transmis).",
+    note: "Personne n'a d'adresse avec le résumé coché : la confirmation le dit, et l'envoi est seulement enregistré, au statut « ignoré » (rien n'est transmis).",
     last: LAST_SCHEDULED,
     count: 0,
     initialStep: { kind: "confirm", count: 0 },
@@ -86,8 +86,8 @@ const STATES: State[] = [
   },
   {
     value: "webhook-absent",
-    label: "Webhook absent (à valider)",
-    note: "État ajouté, à valider : le secret Vault manque, la ligne reste « en attente ». Le message ne dit pas « envoyé ».",
+    label: "Webhook absent",
+    note: "Le secret Vault manque : la ligne reste « en attente » et le message ne dit pas « envoyé ».",
     last: {
       ...LAST_SCHEDULED,
       created_at: "2026-11-05T14:12:00Z",
@@ -117,6 +117,7 @@ const STATES: State[] = [
 const PAYLOAD = {
   digest_id: "3f1c0e7a-fictif",
   mode: "manuel",
+  created_at: "2026-11-05T14:12:00+01:00",
   period_from: "2026-10-29T14:12:00+01:00",
   period_to: "2026-11-05T14:12:00+01:00",
   period_label: "du 29 octobre au 5 novembre 2026",
@@ -142,15 +143,18 @@ const PAYLOAD = {
         url: `${BASE}/?actu=a1-fictif`,
       },
     ],
+    company_news_total: 1,
     validated_submissions: [
       {
         id: "d1-fictif",
         excerpt: "Ajouter un créneau de réservation des salles le vendredi après-midi (fictif).",
         team: "Product",
         author_name: "Gontran Martin (fictif)",
+        validated_at: "2026-11-04T16:20:00+01:00",
         url: `${BASE}/?demande=d1-fictif`,
       },
     ],
+    validated_submissions_total: 1,
     open_blockers: [
       {
         id: "p1-fictif",
@@ -164,6 +168,8 @@ const PAYLOAD = {
     ],
     company_news_html:
       '<p style="margin:0 0 12px;color:#2b2a30"><a href="…/?actu=a1-fictif" style="font-family:Georgia,serif;color:#2b2a30">Nouveaux horaires de l&#39;accueil (fictif)</a><br>À partir du 9 novembre… (fictif)</p>',
+    validated_submissions_html:
+      '<p style="…"><a href="…/?demande=d1-fictif" style="font-family:Georgia,serif;color:#2b2a30">Ajouter un créneau de réservation…</a><br>Product · Gontran Martin (fictif) · validée le 4 novembre</p>',
     open_blockers_html:
       '<p style="margin:0 0 12px;color:#2b2a30"><a href="…/?point=p1-fictif" style="font-family:Georgia,serif;color:#2b2a30">Accès au nouvel outil de planning en attente (fictif)</a><br>Critique · En cours · Product, Data · sans mise à jour depuis 6 jours</p>',
   },
@@ -183,17 +189,24 @@ const PAYLOAD = {
           url: `${BASE}/?actu=a2-fictif`,
         },
       ],
+      team_news_total: 1,
       my_submissions: [],
+      my_submissions_total: 0,
       pending_in_my_teams: [
         {
           id: "d2-fictif",
           excerpt: "Prévoir un écran de plus en salle Hopper (fictif).",
           author_name: "Gontran Martin (fictif)",
           created_at: "2026-10-26T10:00:00+01:00",
+          team: "Product",
           url: `${BASE}/?demande=d2-fictif`,
         },
       ],
+      pending_in_my_teams_total: 1,
+      pending_in_my_teams_html:
+        '<p style="…"><a href="…/?demande=d2-fictif" style="font-family:Georgia,serif;color:#2b2a30">Prévoir un écran de plus en salle Hopper (fictif)</a><br>Product · Gontran Martin (fictif) · envoyée le 26 octobre</p>',
       news_this_month: 1,
+      news_monthly_target: 4,
       team_news_html:
         '<p style="margin:0 0 12px;color:#2b2a30"><a href="…/?actu=a2-fictif" style="font-family:Georgia,serif;color:#2b2a30">Rétro de sprint déplacée à jeudi (fictif)</a><br>La rétro du sprint 14… (fictif)</p>',
       my_submissions_html: "",
@@ -204,15 +217,18 @@ const PAYLOAD = {
       role: "collaborateur",
       teams: ["Product"],
       team_news: [],
+      team_news_total: 0,
       my_submissions: [
         {
           id: "d1-fictif",
           excerpt: "Ajouter un créneau de réservation des salles le vendredi après-midi (fictif).",
           new_status: "validée",
           changed_at: "2026-11-04T16:20:00+01:00",
+          is_automatic: false,
           url: `${BASE}/?demande=d1-fictif`,
         },
       ],
+      my_submissions_total: 1,
       team_news_html: "",
       my_submissions_html:
         '<p style="margin:0 0 12px;color:#2b2a30"><a href="…/?demande=d1-fictif" style="font-family:Georgia,serif;color:#2b2a30">Ajouter un créneau de réservation…</a><br>Validée le 4 novembre (fictif)</p>',
@@ -267,8 +283,7 @@ function DigestMockup() {
           <p className="font-label-md text-label-md text-on-surface-variant">/manage</p>
           <h1 className="font-headline-lg text-headline-lg text-primary">Gestion des données</h1>
           <p className="font-body-sm text-body-sm text-on-surface-variant">
-            La carte se place au-dessus des onglets, visible quel que soit l'onglet ouvert (à
-            valider).
+            La carte se place au-dessus des onglets, visible quel que soit l'onglet ouvert.
           </p>
         </div>
 
